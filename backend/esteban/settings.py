@@ -79,7 +79,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'esteban', # database명
         'USER': 'root', # mysql 계정
-        'PASSWORD': 'alsdndrl', # 비밀번호
+        'PASSWORD': '1234', # 비밀번호
         'HOST': 'localhost',
         'PORT': '3306', # mysql default port 3306
     }
