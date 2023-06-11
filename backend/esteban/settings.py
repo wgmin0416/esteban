@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -50,6 +53,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "esteban.urls"
+
 
 TEMPLATES = [
     {
@@ -66,6 +70,9 @@ TEMPLATES = [
         },
     },
 ]
+
+# 템플릿 경로 추가
+TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'templates'))
 
 WSGI_APPLICATION = "esteban.wsgi.application"
 
@@ -114,9 +121,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = "static/"
+
+
+# STATIC_URL = "static/"
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# 
+# AUTH_USER_MODEL = 'accounts.User'
