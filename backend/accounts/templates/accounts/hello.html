@@ -12,12 +12,13 @@
     {% if user.is_authenticated %}
       <h2>환영합니다! {{ user.username }} 님!</h2>
       <a href="{% url 'accounts:logout' %}" class="login-button">로그아웃</a>
+      <a href="{% url 'accounts:json_api' %}" class="login-button orange">JSON View로 이동</a> 
+
     {% else %}
       <h2>안녕하세요!</h2>
       <p>환영합니다!</p>
       <a href="{% url 'accounts:login' %}" class="login-button">로그인</a>
       <a href="{% url 'accounts:signup' %}" class="login-button">회원가입</a>
     {% endif %}
-    
   </body>
 {% endblock %}

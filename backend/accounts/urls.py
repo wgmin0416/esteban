@@ -9,4 +9,5 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
     path('logout/', views.logout_view, name='logout'),
     path('login/', views.login_view, name='login'),
+    path('json/', views.json_api, name='json_api'),
 ]
