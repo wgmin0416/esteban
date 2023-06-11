@@ -1,23 +1,25 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import { RecoilRoot } from 'recoil';
-import Header from './components/header/header'
-import Body from './components/body/body';
-import Bottom from './components/bottom/bottom';
+import React from "react";
+import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import Header from "./components/header/header";
+import Body from "./components/body/body";
+import Bottom from "./components/bottom/bottom";
+import MemberManagement from "./components/MemberManagement.jsx";
+import TeamManagement from "./components/TeamManagement.jsx";
 
 function App() {
-    return (
-        <RecoilRoot>
-            <Router>
-                <Header />
-                {/*<Switch>*/}
-                    <Router path="/" exact component={Body}/>
-                    {/*다른 라우트 추가 가능*/}
-                {/*</Switch>*/}
-                <Bottom />
-            </Router>
-        </RecoilRoot>
-    );
+  return (
+      <Router>
+          <div>
+              <Header />
+              <Switch>
+                  <Route path="/body" component={Body} />
+                  <Route path="/member" component={MemberManagement} />
+                  <Route path="/team" component={TeamManagement} />
+              </Switch>
+              <Bottom />
+          </div>
+      </Router>
+  );
 }
 
 export default App;

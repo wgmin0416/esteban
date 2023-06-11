@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 
 const Body = ({ children }) => {
-    return <div className="body">{children}</div>;
+  return <div className="body">{children}</div>;
 };
 
 export default Body;

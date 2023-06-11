@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 
 function Bottom() {
-    return (
-        <footer>
-            <h1>Bottom</h1>
-        </footer>
-    );
+  return (
+    <footer>
+      <h1>Bottom</h1>
+    </footer>
+  );
 }
 
 export default Bottom;

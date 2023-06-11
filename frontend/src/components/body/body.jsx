@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 
 function Body() {
-    return (
-        <footer>
-            <h1>Body</h1>
-        </footer>
-    );
+  return (
+    <div>
+      <h1>Body!!</h1>
+    </div>
+  );
 }
 
 export default Body;
