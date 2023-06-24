@@ -5,6 +5,7 @@ import Body from "./components/body/body";
 import Bottom from "./components/bottom/bottom";
 import MemberManagement from "./components/MemberManagement.jsx";
 import TeamManagement from "./components/TeamManagement.jsx";
+import Login from "./pages/Login.jsx"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
                   <Route path="/body" component={Body} />
                   <Route path="/member" component={MemberManagement} />
                   <Route path="/team" component={TeamManagement} />
+                  <Route path="/login" component={Login} />
               </Switch>
               <Bottom />
           </div>
