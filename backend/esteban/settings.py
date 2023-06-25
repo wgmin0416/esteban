@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     
     "accounts",
+    "team"
 ]
 
 MIDDLEWARE = [
@@ -136,3 +137,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # 
 # AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'auth.User'
