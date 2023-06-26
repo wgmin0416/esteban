@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.contrib import auth
-
+import json
 
 # Create jons reaction
 # def json_api(request):
@@ -57,19 +57,10 @@ def signup(request):
     return render(request, 'accounts/signup.html', {'form': form})
 
 def login_view(request):
-
-    # if request.method == 'POST':
-        # form = AuthenticationForm(request, data=request.POST)
-        # if form.is_valid():
-        #     user = form.get_user()
-        #     login(request, user)
-        #     return redirect('accounts:hello')
-    # else:
-    #     form = AuthenticationForm()  
-    # return render(request, 'accounts/login.html', {'form': form})
     if request.method == 'POST':
-        username = request.POST.get['username']
-        password = request.POST.get['password']
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
 
         # 사용자 인증
         user = authenticate(request, username=username, password=password)
@@ -80,7 +71,7 @@ def login_view(request):
                 # auth user
                 'id': user.id,
                 'name': user.username,
-                'user_email': user.user_email,
+                'user_email': user.email,
                 'date_joined': user.date_joined
 
                 # community_user
@@ -89,14 +80,24 @@ def login_view(request):
                 # 'created_at': user.created_at,
                 # 'updated_at': user.updated_at
             }
-                return JsonResponse(result, status=200)
+                return JsonResponse(result, status=200, safe=False, json_dumps_params={'ensure_ascii': False})
         else:
-                # 인증 실패 시 에러 응답
-                return JsonResponse({'message': '로그인 실패'}, status=401)
+            # 인증 실패 시 에러 응답
+            return JsonResponse({'message': '로그인 실패'}, status=401, safe=False, json_dumps_params={'ensure_ascii': False})
     else:
-         return JsonResponse({'message': 'Requset not POST'}, status=401)
+        return JsonResponse({'message': 'Request not POST'}, status=401, safe=False, json_dumps_params={'ensure_ascii': False})
 
-         
+    ### html frontend code
+    # if request.method == 'POST':
+        # form = AuthenticationForm(request, data=request.POST)
+        # if form.is_valid():
+        #     user = form.get_user()
+        #     login(request, user)
+        #     return redirect('accounts:hello')
+    # else:
+    #     form = AuthenticationForm()  
+    # return render(request, 'accounts/login.html', {'form': form})
+    ### 
 
 
 def logout_view(request):
