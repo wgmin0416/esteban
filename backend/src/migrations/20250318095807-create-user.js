@@ -10,7 +10,7 @@ module.exports = {
         primaryKey: true,
         comment: "sequence",
       },
-      name: {
+      username: {
         type: Sequelize.STRING(64),
         allowNull: false,
         comment: "이름",

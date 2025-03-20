@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: "sequence",
       },
-      name: {
+      username: {
         type: DataTypes.STRING(64),
         allowNull: false,
         comment: "이름",
