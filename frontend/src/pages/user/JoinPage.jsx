@@ -15,6 +15,9 @@ const JoinPage = () => {
 
   const handleDuplicateCheck = () => {
     store.duplicateCheck(store.joinInfo);
+    // 중복 확인 버튼 활성화 조건 만들기
+    // 1. 이메일이 입력되어 있어야 함
+    // 2. 이메일 형식이어야 함
   };
 
   return (
@@ -25,17 +28,18 @@ const JoinPage = () => {
         <div>
           <h1>회원가입</h1>
           <form onSubmit={handleSubmit}>
+            <br />
             <label>
-              아이디:
+              이메일:
               <input
-                type="text"
-                name="id"
-                value={store.joinInfo.id}
+                type="email"
+                name="email"
+                value={store.joinInfo.email}
                 onChange={handleChange}
                 required
               />
-              <button onClick={handleDuplicateCheck}>중복확인</button>
             </label>
+            <button onClick={handleDuplicateCheck}>중복확인</button>
             <br />
             <label>
               비밀번호:
@@ -54,17 +58,6 @@ const JoinPage = () => {
                 type="text"
                 name="username"
                 value={store.joinInfo.username}
-                onChange={handleChange}
-                required
-              />
-            </label>
-            <br />
-            <label>
-              이메일:
-              <input
-                type="email"
-                name="email"
-                value={store.joinInfo.email}
                 onChange={handleChange}
                 required
               />

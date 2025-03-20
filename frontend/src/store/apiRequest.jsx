@@ -20,11 +20,7 @@ const apiRequest = async (method, url, data) => {
       const response = await axios.put(url, data);
       return response.data;
     } else if (method === "delete") {
-      const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}+${url}`,
-        data,
-        data
-      );
+      const response = await axios.delete(`url`, data);
       return response.data;
     }
   } catch (error) {

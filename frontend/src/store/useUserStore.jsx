@@ -27,17 +27,17 @@ const joinStore = create((set) => ({
       console.error(error);
     }
   },
-  // 중복 ID 체크
+  // 중복 메일 체크
   duplicateCheck: async (data) => {
-    const { id } = data;
-    if (!id) {
-      alert("아이디를 입력해주세요.");
+    const { email } = data;
+    if (!email) {
+      alert("아이디(메일)를 입력해주세요.");
       return;
     }
     try {
       const response = await apiRequest(
         "get",
-        `/user/id-duplicate-check?id=${id}`,
+        `/user/id-duplicate-check?email=${email}`,
         null
       );
       return response;
