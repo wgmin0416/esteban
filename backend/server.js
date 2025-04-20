@@ -4,9 +4,8 @@ const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
 const routes = require("./src/routes");
-const db = require("./src/db/db");
 const app = express();
-const sequelize = require("./src/db/sequelize");
+const { sequelize } = require("./src/models");
 
 // 미들웨어 설정
 app.use(cors()); // CORS 허용

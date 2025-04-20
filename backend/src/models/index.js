@@ -3,12 +3,8 @@
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
-const process = require("process");
-
 const env = process.env.NODE_ENV || "development";
-console.log("env: ", env);
 const config = require(path.join(__dirname, "..", "config", "config"))[env];
-console.log("path: ", path.join(__dirname, "..", "config", "config.js"));
 const db = {};
 
 const sequelize = config.use_env_variable
@@ -35,7 +31,6 @@ Object.values(db).forEach((model) => {
   if (model.associate) model.associate(db);
 });
 
-// `db` 객체에 sequelize 관련 정보 추가
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
