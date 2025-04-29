@@ -1,11 +1,11 @@
-import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import JoinPage from "./pages/user/JoinPage";
-import LoginPage from "./pages/user/LoginPage";
-import ProfilePage from "./pages/user/ProfilePage";
-import NotfoundPage from "./pages/error/NotfoundPage";
-import HomePage from "./pages/HomePage";
-import ProtectedRoute from "./components/ProtectedRoute";
+import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import JoinPage from './pages/user/JoinPage';
+import LoginPage from './pages/user/LoginPage';
+import ProfilePage from './pages/user/ProfilePage';
+import NotfoundPage from './pages/error/NotfoundPage';
+import HomePage from './pages/HomePage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const isAuthenticated = false;

@@ -1,12 +1,14 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const userController = require("../../controllers/userController.js");
+const userController = require('../../controllers/userController.js');
 
 // 회원가입
-router.post("/join", userController.joinUser);
+router.post('/join', userController.joinUser);
 // ID 중복 체크
-router.get("/id-duplicate-check", userController.checkDuplicateUserId);
-// 로그인
-router.post("/login", userController.loginUser);
+router.get('/id-duplicate-check', userController.checkDuplicateUserId);
+// 소셜 로그인
+router.get('/google/callback', userController.googleLoginCallback);
+// router.get('/naver/callback', userController.naverCallback);
+// router.get('/kakao/callback', userController.kakaoCallback);
 
 module.exports = router;

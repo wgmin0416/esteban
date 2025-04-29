@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import joinStore from "../../store/useUserStore";
+import userStore from "../../store/userStore";
 
 const JoinPage = () => {
-  const store = joinStore();
+  const store = userStore();
+
 
   const handleChange = (e) => {
     store.setJoinInfo(e);
@@ -11,13 +12,15 @@ const JoinPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     store.join(store.joinInfo);
+    // 가입 버튼 활성화 조건 만들기
+    // 1. 모든 항목이 형식에 맞게 입력되어 있어야 함
+    // 2. 이메일 중복 확인 시 가입 가능한 이메일이어야 함
   };
 
-  const handleDuplicateCheck = () => {
-    store.duplicateCheck(store.joinInfo);
-    // 중복 확인 버튼 활성화 조건 만들기
-    // 1. 이메일이 입력되어 있어야 함
-    // 2. 이메일 형식이어야 함
+  const handleDuplicateCheck =  async () => {
+    const duplicateCheckResult = await store.duplicateCheck(store.joinInfo);
+    console.log("dup res: ", duplicateCheckResult)
+    alert(duplicateCheckResult.message);
   };
 
   return (

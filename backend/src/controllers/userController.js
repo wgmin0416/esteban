@@ -1,70 +1,181 @@
-const { User } = require("../models/index.js");
+const { User } = require('../models/index.js');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const redisClient = require('../config/redisClient.js');
+const { hashValue, compareHash } = require('../utils/bcrypt.js');
 
 // 회원가입
 const joinUser = async (req, res) => {
   try {
-    console.log("회원가입 API 진입");
+    console.log('회원가입 API 진입');
     const { email, username, password, phone } = req.body;
     console.log(username, password);
 
     // 1. 기존 회원 체크
     const dbEmail = await User.findOne({ where: { email } });
     if (dbEmail) {
-      return res.status(400).json({ message: "이미 사용 중인 아이디입니다." });
+      return res.status(400).json({ message: '이미 사용 중인 아이디입니다.' });
     }
 
     // 2. email 인증
     // 3. 회원가입
     const createdUser = await User.create({ username, password, email, phone });
-    console.log("createdUser: ", createdUser);
+    console.log('createdUser: ', createdUser);
 
     res.json({ message: `User ${username} registered successfully` });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 // 중복 가입 체크
 const checkDuplicateUserId = async (req, res) => {
   try {
-    console.log("중복 가입 체크");
     const { email } = req.query;
-
     const dbEmail = await User.findOne({ where: { email } });
-    console.log(dbEmail);
     if (!dbEmail) {
-      return res.json({ message: "사용할 수 있는 아이디입니다." });
+      return res.status(200).json({ success: true, message: '사용할 수 있는 아이디입니다.' });
     }
-    res.json({ message: "이미 사용 중인 아이디입니다." });
+    res.status(400).json({ success: false, message: '이미 사용 중인 아이디입니다.' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 // 이메일 인증
 const confirmEmail = async (req, res) => {
   try {
-    console.log("이메일 인증");
+    console.log('이메일 인증');
     const { email } = req.query;
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-const loginUser = async (req, res) => {
-  const { username, password } = req.body;
+// Google login callback (Authorization Code 수령)
+const googleLoginCallback = async (req, res) => {
+  // 1. Authorization Code로 Access Token 요청
+  // 2. Access token으로 사용자 정보 요청
+  // 3. 사용자 DB 조회
+  // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
+  // 4-2. 등록 된 사용자일 경우 token 발급
 
-  // 예제 비즈니스 로직 (실제 로직은 DB 조회 추가)
-  if (username === "admin" && password === "1234") {
-    return res.json({ message: "Login successful", token: "fake-jwt-token" });
+  const code = req.query.code; // Authorization Code
+
+  try {
+    // 1. Authorization Code로 Access Token 요청
+    const tokenRes = await axios.post('https://oauth2.googleapis.com/token', null, {
+      params: {
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      },
+    });
+
+    // Access token
+    const { access_token } = tokenRes.data;
+
+    // 2. Access token으로 사용자 정보 요청
+    const userRes = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    // 사용자 정보
+    const { id, email, name } = userRes.data;
+
+    // 3. 사용자 DB 조회
+    const user = await User.findOne({
+      where: {
+        provider: 'google',
+        provider_id: id,
+      },
+    });
+
+    if (!user) {
+      // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
+      await User.create({
+        username: name,
+        email: email,
+        provider: 'google',
+        provider_id: id,
+      });
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage(
+                { type: 'SOCIAL_LOGIN', status: 'join', message: '회원가입이 완료되었습니다. 로그인 후 이용해주세요.' },
+                '${process.env.FRONT_URL}'
+              );
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    } else {
+      // 4-2. 등록 된 사용자일 경우 token 발급
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, provider: user.provider },
+        process.env.JWT_ACCESS_SECRET_KEY,
+        { expiresIn: '1m' }
+      );
+      const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
+        expiresIn: '7d',
+      });
+      // refresh token 해싱
+      const hashedRefreshToken = await hashValue(refreshToken);
+
+      // 5. redis에 refresh token 저장
+      await redisClient.set(user.id.toString(), hashedRefreshToken, {
+        EX: 60 * 60 * 24,
+      });
+
+      // 6. cookie에 token 전달
+      // access token
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Strict',
+        maxAge: 15 * 60 * 1000, // 10분 유효
+      });
+      // refresh token
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일 유효
+      });
+      // /oauth로 redirect 후 token을 storage에 저장하려고 하였으나 보안 및 redirection 문제로 저장하지 않기로 함
+      // 부모창의 home으로 이동하도록 변경
+      // res.redirect(`${process.env.FRONT_URL}/oauth`);
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage(
+                { type: 'SOCIAL_LOGIN', status: 'login', message: '로그인에 성공했습니다. 환영합니다!' },
+                '${process.env.FRONT_URL}'
+              );
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Google OAuth 처리 중 오류 발생' });
   }
-  return res.status(401).json({ message: "Invalid credentials" });
 };
 
-module.exports = { joinUser, checkDuplicateUserId, loginUser };
+module.exports = { joinUser, checkDuplicateUserId, googleLoginCallback };
 
 // RESTful 스타일
 

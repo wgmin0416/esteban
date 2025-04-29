@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import apiRequest from "./apiRequest";
+import checkEmail from "../utils/validation";
 
-const joinStore = create((set) => ({
+const userStore = create((set) => ({
+  // 회원 정보
+  userInfo: {
+    id: "",
+    username: "",
+    email: "",
+    phone: "",
+    token: "",
+  },
   // 회원가입 정보
   joinInfo: {
     id: "",
@@ -10,6 +19,9 @@ const joinStore = create((set) => ({
     email: "",
     phone: "",
   },
+  // 이메일 중복 체크 여부
+  isEmailDuplicateChecked: false,
+  setEmailDuplicateChecked: (result) => set({ isEmailDuplicateChecked: result}),
   // 회원가입 정보 변경 함수
   setJoinInfo: (e) => {
     const { name, value } = e.target;
@@ -30,16 +42,19 @@ const joinStore = create((set) => ({
   // 중복 메일 체크
   duplicateCheck: async (data) => {
     const { email } = data;
-    if (!email) {
-      alert("아이디(메일)를 입력해주세요.");
-      return;
+    const checkEmailResult = checkEmail(email);
+    if (!checkEmailResult.valid) {
+      return checkEmailResult;
     }
     try {
       const response = await apiRequest(
         "get",
-        `/user/id-duplicate-check?email=${email}`,
-        null
+        "/user/id-duplicate-check",
+        { email }
       );
+      if(response.success) {
+        setEmailDuplicateChecked(response.success);
+      }
       return response;
     } catch (error) {
       console.error(error);
@@ -47,4 +62,4 @@ const joinStore = create((set) => ({
   },
 }));
 
-export default joinStore;
+export default userStore;

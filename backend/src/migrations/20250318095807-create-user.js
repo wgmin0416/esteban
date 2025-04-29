@@ -11,24 +11,29 @@ module.exports = {
         comment: "sequence",
       },
       username: {
-        type: Sequelize.STRING(64),
-        allowNull: false,
+        type: Sequelize.STRING(16),
+        allowNull: true,
         comment: "이름",
-      },
-      password: {
-        type: Sequelize.STRING(256),
-        allowNull: false,
-        comment: "비밀번호",
       },
       email: {
         type: Sequelize.STRING(64),
-        allowNull: false,
+        allowNull: true,
         comment: "이메일",
       },
       phone: {
         type: Sequelize.STRING(16),
-        allowNull: false,
+        allowNull: true,
         comment: "휴대폰 번호",
+      },
+      provider: {
+        type: Sequelize.STRING(32),
+        allowNull: false,
+        comment: "소셜 로그인 제공자",
+      },
+      provider_id: {
+        type: Sequelize.STRING(128),
+        allowNull: false,
+        comment: "소셜 제공자의 유저 고유 ID",
       },
       role: {
         type: Sequelize.STRING(32),
@@ -43,11 +48,11 @@ module.exports = {
         comment: "마케팅 수신 동의 여부",
       },
       team_id: {
-        type: Sequelize.STRING(64),
+        type: Sequelize.STRING(128),
         allowNull: true,
         comment: "가입한 팀",
       },
-      last_login_dt: {
+      last_login_at: {
         type: Sequelize.DATE,
         allowNull: true,
         comment: "마지막 로그인 일시",
@@ -72,7 +77,15 @@ module.exports = {
         comment: "삭제 일시",
       },
     });
+
+    // provider + provider_id 조합 UNIQUE 제약 추가
+    await queryInterface.addConstraint("users", {
+      fields: ["provider", "provider_id"],
+      type: "unique",
+      name: "unique_provider_providerId",
+    });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("users");
   },

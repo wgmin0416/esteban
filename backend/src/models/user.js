@@ -4,7 +4,7 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-      // 여기에 모델 간 관계 설정 (예: User.belongsTo(models.Team); 등)
+      // 추후 관계 설정 시 작성
     }
   }
 
@@ -12,30 +12,34 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: {
         type: DataTypes.INTEGER,
-        autoIncrement: true,
         primaryKey: true,
-        allowNull: false,
+        autoIncrement: true,
         comment: "sequence",
       },
       username: {
-        type: DataTypes.STRING(64),
-        allowNull: false,
+        type: DataTypes.STRING(16),
+        allowNull: true,
         comment: "이름",
-      },
-      password: {
-        type: DataTypes.STRING(256),
-        allowNull: false,
-        comment: "비밀번호",
       },
       email: {
         type: DataTypes.STRING(64),
-        allowNull: false,
+        allowNull: true,
         comment: "이메일",
       },
       phone: {
         type: DataTypes.STRING(16),
-        allowNull: false,
+        allowNull: true,
         comment: "휴대폰 번호",
+      },
+      provider: {
+        type: DataTypes.STRING(32),
+        allowNull: false,
+        comment: "소셜 로그인 제공자",
+      },
+      provider_id: {
+        type: DataTypes.STRING(128),
+        allowNull: false,
+        comment: "소셜 제공자의 유저 고유 ID",
       },
       role: {
         type: DataTypes.STRING(32),
@@ -50,11 +54,11 @@ module.exports = (sequelize, DataTypes) => {
         comment: "마케팅 수신 동의 여부",
       },
       team_id: {
-        type: DataTypes.STRING(64),
+        type: DataTypes.STRING(128),
         allowNull: true,
         comment: "가입한 팀",
       },
-      last_login_dt: {
+      last_login_at: {
         type: DataTypes.DATE,
         allowNull: true,
         comment: "마지막 로그인 일시",
@@ -62,13 +66,13 @@ module.exports = (sequelize, DataTypes) => {
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: DataTypes.NOW,
         comment: "생성 일시",
       },
       updated_at: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: DataTypes.NOW,
         comment: "수정 일시",
       },
       deleted_at: {
@@ -84,8 +88,9 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
       createdAt: "created_at",
       updatedAt: "updated_at",
-      paranoid: true, // deleted_at 컬럼을 soft delete 용으로 사용
+      paranoid: true,
       deletedAt: "deleted_at",
+      underscored: true,
     }
   );
 
