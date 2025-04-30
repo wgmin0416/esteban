@@ -46,7 +46,6 @@ const LoginPage = () => {
         response_type: 'code',
         client_id: import.meta.env.VITE_NAVER_CLIENT_ID,
         redirect_uri: import.meta.env.VITE_NAVER_REDIRECT_URL,
-        auth_type: 'reprompt',
         state: crypto.randomUUID(),
       };
       const qs = new URLSearchParams(options);
