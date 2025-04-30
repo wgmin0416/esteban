@@ -9,6 +9,6 @@ router.get('/id-duplicate-check', userController.checkDuplicateUserId);
 // 소셜 로그인
 router.get('/google/callback', userController.googleLoginCallback);
 router.get('/naver/callback', userController.naverLoginCallback);
-// router.get('/kakao/callback', userController.kakaoCallback);
+router.get('/kakao/callback', userController.kakaoLoginCallback);
 
 module.exports = router;

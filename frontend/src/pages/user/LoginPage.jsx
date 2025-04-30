@@ -38,7 +38,6 @@ const LoginPage = () => {
         prompt: 'select_account',
       };
       const qs = new URLSearchParams(options);
-      console.log(`${rootUrl}?${qs.toString()}`);
       window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
     } else if (provider === 'naver') {
       const rootUrl = 'https://nid.naver.com/oauth2.0/authorize';
@@ -49,9 +48,17 @@ const LoginPage = () => {
         state: crypto.randomUUID(),
       };
       const qs = new URLSearchParams(options);
-      console.log(`${rootUrl}?${qs.toString()}`);
       window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
     } else if (provider === 'kakao') {
+      const rootUrl = 'https://kauth.kakao.com/oauth/authorize';
+      const options = {
+        response_type: 'code',
+        client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
+        redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URL,
+        state: crypto.randomUUID(),
+      };
+      const qs = new URLSearchParams(options);
+      window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
     }
   };
   return (
