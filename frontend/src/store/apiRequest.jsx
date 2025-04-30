@@ -1,23 +1,23 @@
-import axios from "axios";
+import axios from 'axios';
 
 const apiRequest = async (method, url, data) => {
   try {
     if (url) {
       url = `${import.meta.env.VITE_API_URL}${url}`;
     } else {
-      throw new Error("URL is required");
+      throw new Error('URL is required');
     }
-    if (method === "get") {
+    if (method === 'get') {
       url = await buildQueryString(url, data);
       const response = await axios.get(url, data);
       return response.data;
-    } else if (method === "post") {
+    } else if (method === 'post') {
       const response = await axios.post(url, data);
       return response.data;
-    } else if (method === "put") {
+    } else if (method === 'put') {
       const response = await axios.put(url, data);
       return response.data;
-    } else if (method === "delete") {
+    } else if (method === 'delete') {
       url = await buildQueryString(url, data);
       const response = await axios.delete(url, data);
       return response.data;
@@ -35,8 +35,8 @@ const buildQueryString = async (url, data) => {
   const query = Object.entries(data)
     .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join("&");
+    .join('&');
   return query ? `${url}?${query}` : url;
-}
+};
 
 export default apiRequest;
