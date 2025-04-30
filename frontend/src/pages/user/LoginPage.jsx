@@ -9,7 +9,7 @@ const LoginPage = () => {
     const handleMessage = (event) => {
       if (!event.origin === import.meta.env.VITE_FRONT_URL) {
         alert('잘못된 요청입니다.');
-        navigate('/');
+        navigate('/login');
       }
       if (event.data?.status === 'join') {
         alert(event.data.message);
@@ -41,6 +41,17 @@ const LoginPage = () => {
       console.log(`${rootUrl}?${qs.toString()}`);
       window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
     } else if (provider === 'naver') {
+      const rootUrl = 'https://nid.naver.com/oauth2.0/authorize';
+      const options = {
+        response_type: 'code',
+        client_id: import.meta.env.VITE_NAVER_CLIENT_ID,
+        redirect_uri: import.meta.env.VITE_NAVER_REDIRECT_URL,
+        auth_type: 'reprompt',
+        state: crypto.randomUUID(),
+      };
+      const qs = new URLSearchParams(options);
+      console.log(`${rootUrl}?${qs.toString()}`);
+      window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
     } else if (provider === 'kakao') {
     }
   };

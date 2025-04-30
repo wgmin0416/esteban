@@ -55,7 +55,7 @@ const confirmEmail = async (req, res) => {
   }
 };
 
-// Google login callback (Authorization Code 수령)
+// 구글 로그인 콜백 처리
 const googleLoginCallback = async (req, res) => {
   // 1. Authorization Code로 Access Token 요청
   // 2. Access token으로 사용자 정보 요청
@@ -124,7 +124,7 @@ const googleLoginCallback = async (req, res) => {
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role, provider: user.provider },
         process.env.JWT_ACCESS_SECRET_KEY,
-        { expiresIn: '1m' }
+        { expiresIn: '2m' }
       );
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
@@ -134,27 +134,21 @@ const googleLoginCallback = async (req, res) => {
 
       // 5. redis에 refresh token 저장
       await redisClient.set(user.id.toString(), hashedRefreshToken, {
-        EX: 60 * 60 * 24,
+        EX: 60 * 60 * 24 * 7,
       });
 
-      // 6. cookie에 token 전달
-      // access token
+      // 6. Access token 전달 (Cookie)
       res.cookie('access_token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 15 * 60 * 1000, // 10분 유효
+        maxAge: 2 * 60 * 1000, // 2분 유효
       });
-      // refresh token
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일 유효
-      });
+
       // /oauth로 redirect 후 token을 storage에 저장하려고 하였으나 보안 및 redirection 문제로 저장하지 않기로 함
       // 부모창의 home으로 이동하도록 변경
       // res.redirect(`${process.env.FRONT_URL}/oauth`);
+
       res.send(`
         <html>
           <body>
@@ -175,7 +169,119 @@ const googleLoginCallback = async (req, res) => {
   }
 };
 
-module.exports = { joinUser, checkDuplicateUserId, googleLoginCallback };
+const naverLoginCallback = async (req, res) => {
+  // 1. Authorization Code로 Access Token 요청
+  // 2. Access token으로 사용자 정보 요청
+  // 3. 사용자 DB 조회
+  // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
+  // 4-2. 등록 된 사용자일 경우 token 발급
+
+  // 취소 버튼 눌렀을 때 에러 처리 추가하기 !
+  // Safari가 ‘localhost’ 서버에 연결할 수 없기 때문에 Safari에서 `localhost:3000/api/v1/user/naver/callback?error=access_denied&error_description=Canceled+By+User&state=fc7c5264-d4a4-4794-99b6-f72904247db1’ 페이지를 열 수 없습니다.
+
+  const { code, state } = req.query;
+  try {
+    // 1. Authorization Code로 Access Token 요청
+    const tokenRes = await axios.get('https://nid.naver.com/oauth2.0/token', {
+      params: {
+        grant_type: 'authorization_code',
+        client_id: process.env.NAVER_CLIENT_ID,
+        client_secret: process.env.NAVER_CLIENT_SECRET,
+        code,
+        state,
+      },
+    });
+
+    const accessToken = tokenRes.data.access_token;
+    /// 2. Access token으로 사용자 정보 요청
+    const userRes = await axios.get('https://openapi.naver.com/v1/nid/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log('userRes: ', userRes);
+
+    const { id, email, name } = userRes.data.response;
+
+    // 3. 사용자 DB 조회
+    const user = await User.findOne({
+      where: {
+        provider: 'naver',
+        provider_id: id,
+      },
+    });
+
+    if (!user) {
+      // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
+      await User.create({
+        username: name,
+        email: email,
+        provider: 'naver',
+        provider_id: id,
+      });
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage(
+                { type: 'SOCIAL_LOGIN', status: 'join', message: '회원가입이 완료되었습니다. 로그인 후 이용해주세요.' },
+                '${process.env.FRONT_URL}'
+              );
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    } else {
+      // 4-2. 등록 된 사용자일 경우 token 발급
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, provider: user.provider },
+        process.env.JWT_ACCESS_SECRET_KEY,
+        { expiresIn: '2m' }
+      );
+      const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
+        expiresIn: '7d',
+      });
+      // refresh token 해싱
+      const hashedRefreshToken = await hashValue(refreshToken);
+
+      // 5. redis에 refresh token 저장
+      await redisClient.set(user.id.toString(), hashedRefreshToken, {
+        EX: 60 * 60 * 24 * 7,
+      });
+
+      // 6. Access token 전달 (Cookie)
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Strict',
+        maxAge: 2 * 60 * 1000, // 2분 유효
+      });
+
+      // /oauth로 redirect 후 token을 storage에 저장하려고 하였으나 보안 및 redirection 문제로 저장하지 않기로 함
+      // 부모창의 home으로 이동하도록 변경
+      // res.redirect(`${process.env.FRONT_URL}/oauth`);
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage(
+                { type: 'SOCIAL_LOGIN', status: 'login', message: '로그인에 성공했습니다. 환영합니다!' },
+                '${process.env.FRONT_URL}'
+              );
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Naver OAuth 처리 중 오류 발생' });
+  }
+};
+module.exports = { joinUser, checkDuplicateUserId, googleLoginCallback, naverLoginCallback };
 
 // RESTful 스타일
 
