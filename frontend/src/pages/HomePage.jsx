@@ -1,12 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import userStore from '../store/userStore';
+import { useEffect } from 'react';
 
 const HomePage = () => {
   return (
     <>
       <div>
-        <p>
-          <Link to="/join">Join</Link>
-        </p>
         <p>
           <Link to="/login">Login</Link>
         </p>

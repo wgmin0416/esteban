@@ -1,6 +1,5 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import JoinPage from './pages/user/JoinPage';
 import LoginPage from './pages/user/LoginPage';
 import ProfilePage from './pages/user/ProfilePage';
 import NotfoundPage from './pages/error/NotfoundPage';
@@ -14,7 +13,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/join" element={<JoinPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/profile/:userid"
