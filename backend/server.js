@@ -1,37 +1,46 @@
-const express = require("express");
+const express = require('express');
 // 환경 변수 설정
-const dotenv = require("dotenv");
+const dotenv = require('dotenv');
 dotenv.config();
-const cors = require("cors");
-const routes = require("./src/routes");
+const cors = require('cors');
+const routes = require('./src/routes');
 const app = express();
-const { sequelize } = require("./src/models");
+const { sequelize } = require('./src/models');
+const cookieParser = require('cookie-parser');
 
 // 미들웨어 설정
-app.use(cors()); // CORS 허용
+// CORS 허용
+app.use(
+  cors({
+    origin: process.env.FRONT_URL,
+    credentials: true,
+  })
+);
 app.use(express.json()); // JSON 요청 본문 파싱
+// cookie-parser
+app.use(cookieParser());
 
 // 데이터베이스 연결
 sequelize
   .sync()
   .then(() => {
-    console.log("Database synced");
+    console.log('Database synced');
   })
   .catch((error) => {
-    console.error("Error syncing database:", error);
+    console.error('Error syncing database:', error);
   });
 
 // api 라우트 설정
-app.use("/api/v1", routes);
+app.use('/api/v1', routes);
 
 // 404 에러 처리 미들웨어
 app.use((req, res, next) => {
-  res.status(404).json({ message: "Not found" });
+  res.status(404).json({ message: 'Not found' });
 });
 
 // 서버 실행
-app.set("port", process.env.PORT || 3000);
-const PORT = app.get("port");
+app.set('port', process.env.PORT || 3000);
+const PORT = app.get('port');
 app.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`);
 });

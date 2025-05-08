@@ -2,7 +2,7 @@ const { User } = require('../models/index.js');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
-const { hashValue, compareHash } = require('../utils/bcrypt.js');
+const { hashValue } = require('../utils/bcrypt.js');
 
 // 회원가입
 const joinUser = async (req, res) => {
@@ -102,19 +102,7 @@ const googleLoginCallback = async (req, res) => {
         provider: 'google',
         provider_id: id,
       });
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'join', message: '회원가입이 완료되었습니다. 로그인 후 이용해주세요.' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
       const accessToken = jwt.sign(
@@ -137,23 +125,11 @@ const googleLoginCallback = async (req, res) => {
       res.cookie('access_token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        sameSite: 'lax',
         maxAge: 2 * 60 * 1000, // 2분 유효
       });
 
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'login', message: '로그인에 성공했습니다. 환영합니다!' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
     console.error(err);
@@ -207,19 +183,7 @@ const naverLoginCallback = async (req, res) => {
         provider: 'naver',
         provider_id: id,
       });
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'join', message: '회원가입이 완료되었습니다. 로그인 후 이용해주세요.' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
       const accessToken = jwt.sign(
@@ -246,19 +210,7 @@ const naverLoginCallback = async (req, res) => {
         maxAge: 2 * 60 * 1000, // 2분 유효
       });
 
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'login', message: '로그인에 성공했습니다. 환영합니다!' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
     console.error(err);
@@ -314,19 +266,7 @@ const kakaoLoginCallback = async (req, res) => {
         provider: 'kakao',
         provider_id: id,
       });
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'join', message: '회원가입이 완료되었습니다. 로그인 후 이용해주세요.' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
       const accessToken = jwt.sign(
@@ -353,19 +293,7 @@ const kakaoLoginCallback = async (req, res) => {
         maxAge: 2 * 60 * 1000, // 2분 유효
       });
 
-      res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage(
-                { type: 'SOCIAL_LOGIN', status: 'login', message: '로그인에 성공했습니다. 환영합니다!' },
-                '${process.env.FRONT_URL}'
-              );
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
     console.error(err);
@@ -373,10 +301,85 @@ const kakaoLoginCallback = async (req, res) => {
   }
 };
 
+// 로그인 확인
+const authCheck = async (req, res) => {
+  // F/E Cookie access_token과 Redis key 존재 확인
+  try {
+    const token = req.cookies.access_token; // F/E Cookie access_token
+    const decoded = jwt.decode(token); // access_token parsing
+    if (!decoded.id) {
+      return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
+    }
+
+    const exists = await redisClient.exists(decoded.id.toString()); // Redis key check
+    if (token && exists) {
+      return res.json({ success: true, message: '로그인 되었습니다.' });
+    } else {
+      return res.json({ success: false, message: '로그인 중 오류가 발생했습니다.' });
+    }
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, message: '로그인 중 오류가 발생했습니다.' });
+  }
+};
+
+// 로그아웃
+const logout = async (req, res) => {
+  // Redis key값 제거
+  // Cookie access_token 제거
+  try {
+    const token = req.cookies.access_token; // F/E Cookie access_token
+    console.log('token: ', token);
+    const decoded = jwt.decode(token); // access_token parsing
+    console.log('decoded: ', decoded);
+    if (!decoded.id) {
+      return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
+    }
+
+    const exists = await redisClient.exists(decoded.id.toString()); // Redis key check
+    if (exists) {
+      // Redis key값 제거
+      await redisClient.del(decoded.id.toString());
+    }
+
+    // Cookie access_token 제거
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      path: '/',
+    });
+
+    res.json({ success: true, message: '로그아웃 되었습니다.' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, message: '로그아웃 중 오류가 발생했습니다.' });
+  }
+};
+
+// 회원정보 조회
+const myInfo = async (req, res) => {
+  try {
+    const token = req.cookies.access_token; // F/E Cookie access_token
+    console.log('token: ', token);
+    const decoded = jwt.decode(token); // access_token parsing
+    console.log('decoded: ', decoded);
+    const user = await User.findOne({ where: { id: decoded.id } });
+    console.log('user: ', user);
+    if (!user) return res.json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+    res.json(user.dataValues);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+  }
+};
 module.exports = {
   joinUser,
   checkDuplicateUserId,
   googleLoginCallback,
   naverLoginCallback,
   kakaoLoginCallback,
+  authCheck,
+  logout,
+  myInfo,
 };

@@ -1,14 +1,32 @@
 import { Link } from 'react-router-dom';
-import userStore from '../store/userStore';
+import useAuthStore from '../store/useAuthStore';
 import { useEffect } from 'react';
 
 const HomePage = () => {
+  const isLogin = useAuthStore((state) => state.isLogin);
+  const setIsLogin = useAuthStore((state) => state.setIsLogin);
+  const logout = useAuthStore((state) => state.logout);
+  // const userLogout = async () => {
+  //   const res = await logout();
+  //   if (res.success) {
+  //     setIsLogin(false);
+  //   }
+  // };
+
+  // useEffect(() => {});
+
   return (
     <>
       <div>
-        <p>
-          <Link to="/login">Login</Link>
-        </p>
+        {!isLogin ? (
+          <p>
+            <Link to="/login">Login</Link>
+          </p>
+        ) : (
+          <p>
+            <button onClick={() => logout()}>Logout</button>
+          </p>
+        )}
         <p>
           <Link to="/profile">Profile</Link>
         </p>

@@ -1,76 +1,60 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
 
 const LoginPage = () => {
+  const setIsLogin = useAuthStore((state) => state.setIsLogin);
+  const setUserInfo = useAuthStore((state) => state.setUserInfo);
+  const requestGoogleLogin = useAuthStore((state) => state.requestGoogleLogin);
+  const requestNaverLogin = useAuthStore((state) => state.requestNaverLogin);
+  const requestKakaoLogin = useAuthStore((state) => state.requestKakaoLogin);
+  const myInfo = useAuthStore((state) => state.myInfo);
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (!event.origin === import.meta.env.VITE_FRONT_URL) {
+      console.log('로그인 후 LoginPage 진입');
+      if (event.origin !== import.meta.env.VITE_FRONT_URL) {
         alert('잘못된 요청입니다.');
         navigate('/login');
       }
-      if (event.data?.status === 'join') {
-        alert(event.data.message);
+      if (event.data?.type === 'JOIN_SUCCESS') {
+        // 회원가입
+        alert('회원 가입되었습니다. 로그인 후 이용해주세요.');
         navigate('/login');
-      } else if (event.data?.status === 'login') {
+      } else if (event.data?.type === 'LOGIN_SUCCESS') {
+        // 로그인 성공
+        setIsLogin(true);
+        // 회원정보 조회
+        const res = myInfo();
+        setUserInfo(res);
         navigate('/');
+      } else if (event.data?.type === 'LOGIN_FAILURE') {
+        // 로그인 실패
+        alert('로그인에 실패했습니다.');
       }
     };
-
     window.addEventListener('message', handleMessage);
-
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate]);
 
-  const handleLogin = (provider) => {
-    if (provider === 'google') {
-      const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
-      const options = {
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
-        response_type: 'code',
-        scope: 'openid email profile',
-        access_type: 'online', // referesh token 발급 안 받음
-        include_granted_scopes: 'false', // 이전에 승인한 권한 중복 묻지 않기
-        state: crypto.randomUUID(), // CSRF 공격 방지
-        prompt: 'select_account',
-      };
-      const qs = new URLSearchParams(options);
-      window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-    } else if (provider === 'naver') {
-      const rootUrl = 'https://nid.naver.com/oauth2.0/authorize';
-      const options = {
-        response_type: 'code',
-        client_id: import.meta.env.VITE_NAVER_CLIENT_ID,
-        redirect_uri: import.meta.env.VITE_NAVER_REDIRECT_URL,
-        state: crypto.randomUUID(),
-      };
-      const qs = new URLSearchParams(options);
-      window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-    } else if (provider === 'kakao') {
-      const rootUrl = 'https://kauth.kakao.com/oauth/authorize';
-      const options = {
-        response_type: 'code',
-        client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
-        redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URL,
-        state: crypto.randomUUID(),
-      };
-      const qs = new URLSearchParams(options);
-      window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-    }
-  };
+  // 로그인 페이지에서
+  useEffect(() => {
+    console.log('로그인 페이지에서 뒤로가기 또는 로그인 후 로그인 URI로 진입했을 때');
+    // 로그인 확인 API 호출
+    // navigate('/'); // 이미 로그인했으면 홈으로 리다이렉트
+  }, []);
+
   return (
     <>
       <div>
         <Link to="/">Home</Link>
-        <h1>login</h1>
+        <h1>로그인</h1>
         <div>
-          <h1>로그인</h1>
-          <button onClick={() => handleLogin('google')}>구글 로그인</button>
-          <button onClick={() => handleLogin('naver')}>네이버 로그인</button>
-          <button onClick={() => handleLogin('kakao')}>카카오 로그인</button>
+          <button onClick={() => requestGoogleLogin()}>구글 로그인</button>
+          <button onClick={() => requestNaverLogin()}>네이버 로그인</button>
+          <button onClick={() => requestKakaoLogin()}>카카오 로그인</button>
         </div>
       </div>
     </>
