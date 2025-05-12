@@ -2,7 +2,6 @@ const { User } = require('../models/index.js');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
-const { hashValue } = require('../utils/bcrypt.js');
 
 // 회원가입
 const joinUser = async (req, res) => {
@@ -113,11 +112,9 @@ const googleLoginCallback = async (req, res) => {
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
-      // refresh token 해싱
-      const hashedRefreshToken = await hashValue(refreshToken);
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), hashedRefreshToken, {
+      await redisClient.set(user.id.toString(), refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
@@ -194,11 +191,9 @@ const naverLoginCallback = async (req, res) => {
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
-      // refresh token 해싱
-      const hashedRefreshToken = await hashValue(refreshToken);
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), hashedRefreshToken, {
+      await redisClient.set(user.id.toString(), refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
@@ -277,11 +272,9 @@ const kakaoLoginCallback = async (req, res) => {
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
-      // refresh token 해싱
-      const hashedRefreshToken = await hashValue(refreshToken);
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), hashedRefreshToken, {
+      await redisClient.set(user.id.toString(), refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 

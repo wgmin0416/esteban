@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const { hashValue } = require('../utils/bcrypt');
 const redisClient = require('../config/redisClient');
 
 // 인증 체크
@@ -49,11 +48,9 @@ const authMiddleware = async (req, res, next) => {
       const newRefreshToken = jwt.sign({ id: req.user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
-      // refresh token 해싱
-      const hashedNewRefreshToken = await hashValue(newRefreshToken);
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(req.user.id.toString(), hashedNewRefreshToken, {
+      await redisClient.set(req.user.id.toString(), newRefreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
