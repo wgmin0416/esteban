@@ -2,6 +2,7 @@ const { User } = require('../models/index.js');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
+const config = require('../config/config.js');
 
 // 회원가입
 const joinUser = async (req, res) => {
@@ -119,12 +120,7 @@ const googleLoginCallback = async (req, res) => {
       });
 
       // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 2 * 60 * 1000, // 2분 유효
-      });
+      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
@@ -198,12 +194,7 @@ const naverLoginCallback = async (req, res) => {
       });
 
       // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 2 * 60 * 1000, // 2분 유효
-      });
+      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
@@ -279,12 +270,7 @@ const kakaoLoginCallback = async (req, res) => {
       });
 
       // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 2 * 60 * 1000, // 2분 유효
-      });
+      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
@@ -322,9 +308,7 @@ const logout = async (req, res) => {
   // Cookie access_token 제거
   try {
     const token = req.cookies.access_token; // F/E Cookie access_token
-    console.log('token: ', token);
     const decoded = jwt.decode(token); // access_token parsing
-    console.log('decoded: ', decoded);
     if (!decoded.id) {
       return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
     }
@@ -336,13 +320,7 @@ const logout = async (req, res) => {
     }
 
     // Cookie access_token 제거
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      path: '/',
-    });
-
+    res.clearCookie('access_token', { ...config.accessToken.cookieOptions, path: '/' });
     res.json({ success: true, message: '로그아웃 되었습니다.' });
   } catch (e) {
     console.error(e);
@@ -354,18 +332,18 @@ const logout = async (req, res) => {
 const myInfo = async (req, res) => {
   try {
     const token = req.cookies.access_token; // F/E Cookie access_token
-    console.log('token: ', token);
     const decoded = jwt.decode(token); // access_token parsing
-    console.log('decoded: ', decoded);
     const user = await User.findOne({ where: { id: decoded.id } });
-    console.log('user: ', user);
-    if (!user) return res.json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+    if (!user) {
+      return res.json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+    }
     res.json(user.dataValues);
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
   }
 };
+
 module.exports = {
   joinUser,
   checkDuplicateUserId,

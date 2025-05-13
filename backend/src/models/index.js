@@ -1,28 +1,30 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
-const Sequelize = require("sequelize");
-const env = process.env.NODE_ENV || "development";
-const config = require(path.join(__dirname, "..", "config", "config"))[env];
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const env = process.env.NODE_ENV || 'development';
+const sequelizeConfig = require(path.join(__dirname, '..', 'config', 'config')).sequelizeConfig[
+  env
+];
 const db = {};
 
-const sequelize = config.use_env_variable
-  ? new Sequelize(process.env[config.use_env_variable], config)
-  : new Sequelize(config.database, config.username, config.password, config);
+const sequelize = sequelizeConfig.use_env_variable
+  ? new Sequelize(process.env[config.use_env_variable], sequelizeConfig)
+  : new Sequelize(
+      sequelizeConfig.database,
+      sequelizeConfig.username,
+      sequelizeConfig.password,
+      sequelizeConfig
+    );
 
 fs.readdirSync(__dirname)
   .filter(
     (file) =>
-      file.endsWith(".js") &&
-      file !== path.basename(__filename) &&
-      !file.includes(".test.js")
+      file.endsWith('.js') && file !== path.basename(__filename) && !file.includes('.test.js')
   )
   .forEach((file) => {
-    const model = require(path.join(__dirname, file))(
-      sequelize,
-      Sequelize.DataTypes
-    );
+    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
     db[model.name] = model;
   });
 
