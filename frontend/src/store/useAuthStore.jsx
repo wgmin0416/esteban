@@ -5,16 +5,16 @@ const useAuthStore = create((set) => ({
   // 로그인 여부
   isLogin: false,
   setIsLogin: (status) => set({ isLogin: status }),
-  // 회원 정보
-  userInfo: {
+  // 내 정보
+  myInfo: {
     id: '',
     username: '',
     email: '',
     phone: '',
   },
-  setUserInfo: (value) =>
+  setMyInfo: (value) =>
     set({
-      userInfo: value,
+      myInfo: value,
     }),
   // 구글 로그인
   requestGoogleLogin: () => {
@@ -63,7 +63,7 @@ const useAuthStore = create((set) => ({
         withCredentials: true,
       });
       if (response.success) {
-        set({ isLogin: false });
+        set({ isLogin: false, myInfo: {} });
       }
       return;
     } catch (error) {
@@ -71,14 +71,18 @@ const useAuthStore = create((set) => ({
     }
   },
   // 회원정보
-  myInfo: async () => {
+  getMyInfo: async () => {
     try {
+      console.log('getMyInfo');
       const response = await apiRequest('get', '/user/my-info', null, {
         withCredentials: true,
       });
-      return response;
+      if (response?.data) {
+        set({ myInfo: response.data });
+      }
     } catch (error) {
       console.error(error);
+      throw error;
     }
   },
 }));
