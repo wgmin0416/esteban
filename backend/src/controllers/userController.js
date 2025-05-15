@@ -105,17 +105,15 @@ const googleLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, provider: user.provider },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        { expiresIn: '2m' }
-      );
+      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
+        expiresIn: '5m',
+      });
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), refreshToken, {
+      await redisClient.set(`${user.id}`, refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
@@ -179,17 +177,15 @@ const naverLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, provider: user.provider },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        { expiresIn: '2m' }
-      );
+      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
+        expiresIn: '5m',
+      });
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), refreshToken, {
+      await redisClient.set(`${user.id}`, refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
@@ -255,17 +251,15 @@ const kakaoLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, provider: user.provider },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        { expiresIn: '2m' }
-      );
+      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
+        expiresIn: '5m',
+      });
       const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
         expiresIn: '7d',
       });
 
       // 5. redis에 refresh token 저장
-      await redisClient.set(user.id.toString(), refreshToken, {
+      await redisClient.set(`${user.id}`, refreshToken, {
         EX: 60 * 60 * 24 * 7,
       });
 
@@ -290,7 +284,7 @@ const authCheck = async (req, res) => {
       return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
     }
 
-    const exists = await redisClient.exists(decoded.id.toString()); // Redis key check
+    const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
     if (token && exists) {
       return res.json({ success: true, message: '로그인 되었습니다.' });
     } else {
@@ -309,18 +303,18 @@ const logout = async (req, res) => {
   try {
     const token = req.cookies.access_token; // F/E Cookie access_token
     const decoded = jwt.decode(token); // access_token parsing
-    if (!decoded.id) {
+    if (!decoded || !decoded.id) {
       return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
     }
 
-    const exists = await redisClient.exists(decoded.id.toString()); // Redis key check
+    const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
     if (exists) {
       // Redis key값 제거
-      await redisClient.del(decoded.id.toString());
+      await redisClient.del(`${decoded.id}`);
     }
 
     // Cookie access_token 제거
-    res.clearCookie('access_token', { ...config.accessToken.cookieOptions, path: '/' });
+    res.clearCookie('access_token', config.accessToken.cookieOptions);
     res.json({ success: true, message: '로그아웃 되었습니다.' });
   } catch (e) {
     console.error(e);
@@ -331,13 +325,13 @@ const logout = async (req, res) => {
 // 회원정보 조회
 const myInfo = async (req, res) => {
   try {
-    const token = req.cookies.access_token; // F/E Cookie access_token
-    const decoded = jwt.decode(token); // access_token parsing
+    const token = req.cookies.access_token;
+    const decoded = jwt.decode(token);
     const user = await User.findOne({ where: { id: decoded.id } });
     if (!user) {
       return res.json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
     }
-    res.json(user.dataValues);
+    res.status(200).json({ success: true, data: user.dataValues });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });

@@ -30,9 +30,10 @@ const config = {
     expiresIn: '5m',
     cookieOptions: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // 프로덕션에서만 HTTPS
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
       maxAge: 1000 * 60 * 5, // 5분
+      path: '/',
     },
   },
   refreshToken: {

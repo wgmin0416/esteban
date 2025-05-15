@@ -1,72 +1,96 @@
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient');
+const config = require('../config/config');
+const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
+const { promisify } = require('util');
 
-// 인증 체크
+// 로그아웃
+const logout = async (res, userId) => {
+  if (userId) {
+    await redisClient.del(`${userId}`);
+  }
+  res.clearCookie('access_token', clearCookieOptions);
+  return res.status(401).json({
+    success: false,
+    message: '인증이 만료되었습니다. 다시 로그인 해주세요.',
+  });
+};
+
+// 인증 미들웨어
 const authMiddleware = async (req, res, next) => {
-  // 1. Access token 검증
-  // 2. Access token 만료 시 Redis Refresh token 조회
-  // 3-1. Redis Refresh token이 없을 경우 로그아웃 처리
-  // 3-2. Redis Refresh token이 있을 경우 unhashing 후 검증
   try {
-    const accessToken = req.cookies['access_token'];
-    console.log('accessToken: ', accessToken);
-
-    // API 요청 시 Access token 없을 경우 401
+    const accessToken = req.cookies.access_token;
+    // 1. Access Token이 없을 경우 로그아웃
     if (!accessToken) {
-      return res.status(401).json({ success: false, message: 'Access token missing' });
+      return logout(res);
     }
 
-    // 1. Access token 검증
-    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_KEY, async (err, decoded) => {
-      if (!err && decoded) {
-        req.user = decoded;
-        console.log('Access token 유효');
-        return next(); // Access token 유효 시 컨트롤러 이동
+    // Access Token 검증
+    const verifyAsync = promisify(jwt.verify);
+    try {
+      await verifyAsync(accessToken, process.env.JWT_ACCESS_SECRET_KEY);
+      // Access Token 유효
+      return next();
+    } catch (e) {
+      // 2. Access Token이 만료 된 경우 Refresh Token 조회
+      if (e.name === 'TokenExpiredError') {
+        // Access Token의 id 조회
+        const decodedAccessToken = jwt.decode(accessToken);
+        if (!decodedAccessToken?.id) {
+          return res
+            .status(401)
+            .json({ success: false, message: '잘못된 토큰입니다. 다시 로그인 해주세요.' });
+        }
+        // Refresh Token 조회
+        const refreshToken = await redisClient.get(`${decodedAccessToken.id}`);
+        if (!refreshToken) {
+          return res
+            .status(401)
+            .json({ success: false, message: '인증이 만료되었습니다. 다시 로그인 해주세요.' });
+        }
+        // Refresh Token 검증
+        try {
+          const decodedRefreshToken = await verifyAsync(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET_KEY
+          );
+
+          // Access Token 갱신
+          res.clearCookie('access_token', clearCookieOptions); // 기존 Access Token 삭제
+          const newAccessToken = jwt.sign(
+            { id: decodedAccessToken.id },
+            process.env.JWT_ACCESS_SECRET_KEY,
+            { expiresIn: '2m' }
+          );
+          // Refresh Token 갱신
+          await redisClient.del(`${decodedAccessToken.id}`); // 기존 Refresh Token 삭제
+          const newRefreshToken = jwt.sign(
+            { id: decodedAccessToken.id },
+            process.env.JWT_REFRESH_SECRET_KEY,
+            { expiresIn: '7d' }
+          );
+          await redisClient.set(`${decodedAccessToken.id}`, newRefreshToken, {
+            EX: 60 * 60 * 24 * 7,
+          });
+
+          // Access token 전달 (Cookie)
+          res.cookie('access_token', newAccessToken, config.accessToken.cookieOptions);
+          return next();
+        } catch (e) {
+          // Refresh Token 만료
+          res.clearCookie('access_token', clearCookieOptions);
+          res
+            .status(401)
+            .json({ success: false, message: '인증이 만료되었습니다. 다시 로그인 해주세요.' });
+        }
+      } else {
+        throw e;
       }
-
-      // 2. Access token 만료 시 Redis Refresh token 조회
-      // Redis에 존재하지 않을 경우 만료(bcrypt 단방향 암호화로 토큰 복호화 후 검증은 불가)
-      console.log('Access token 만료, Redis Refresh token 조회');
-      const redisRefreshToken = await redisClient.get(req.user.id);
-      if (!redisRefreshToken) {
-        console.log('Redis Refresh token 없음. 만료 처리');
-        return res.status(401).json({ success: false, message: '인증이 만료되어 로그아웃됩니다.' });
-      }
-
-      // Redis에 존재할 경우 Access token과 Refresh token 재발급
-      console.log('Redis에 Refresh token 존재함. Access, Refresh 재발급');
-      const newAccessToken = jwt.sign(
-        {
-          id: req.user.id,
-          email: req.user.email,
-          role: req.user.role,
-          provider: req.user.provider,
-        },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        { expiresIn: '1m' }
-      );
-      const newRefreshToken = jwt.sign({ id: req.user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
-        expiresIn: '7d',
-      });
-
-      // 5. redis에 refresh token 저장
-      await redisClient.set(req.user.id.toString(), newRefreshToken, {
-        EX: 60 * 60 * 24 * 7,
-      });
-
-      // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 15 * 60 * 1000, // 10분 유효
-      });
-      return next(); // 재발급 후 컨트롤러로 이동
-    });
+    }
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Authentication middleware error' });
+    console.error('[authMiddleware error]', err);
+    return res.status(500).json({ success: false, message: '서버 오류로 인증이 실패했습니다.' });
   }
 };
 
-module.exports = { authMiddleware };
+module.exports = authMiddleware;
