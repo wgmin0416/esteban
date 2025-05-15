@@ -9,12 +9,13 @@ import ProfilePage from './pages/user/ProfilePage';
 import NotfoundPage from './pages/error/NotfoundPage';
 import AuthPage from './pages/auth/AuthPage';
 import HomePage from './pages/HomePage';
+import MemberPage from './pages/team/memberPage';
 // store
 import useAuthStore from './store/useAuthStore';
 
 function App() {
-  const { isLogin } = useAuthStore((state) => state.isLogin);
-  let isAuthenticated = isLogin;
+  // const { isLogin } = useAuthStore((state) => state.isLogin);
+  // let isAuthenticated = isLogin;
 
   return (
     <Router>
@@ -25,11 +26,12 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <ProfilePage />
-            </ProtectedRoute>
+            // <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ProfilePage />
+            // * </ProtectedRoute>
           }
         />
+        <Route path="team/members" element={<MemberPage />} />
         <Route path="*" element={<NotfoundPage />} />
       </Routes>
     </Router>

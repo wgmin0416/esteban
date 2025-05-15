@@ -13,7 +13,9 @@ const HomePage = () => {
   //   }
   // };
 
-  // useEffect(() => {});
+  useEffect(() => {
+    console.log('myInfo changed: ', isLogin);
+  }, [isLogin]);
 
   return (
     <>
@@ -25,11 +27,12 @@ const HomePage = () => {
         ) : (
           <p>
             <button onClick={() => logout()}>Logout</button>
+            <br />
+            <Link to="/team/members">team members</Link>
+            <Link to="/profile">Profile</Link>
           </p>
         )}
-        <p>
-          <Link to="/profile">Profile</Link>
-        </p>
+
         <h1>HomePage</h1>
         <p>This is the Home page.</p>
       </div>
