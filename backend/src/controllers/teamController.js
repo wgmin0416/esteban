@@ -1,3 +1,4 @@
+const { BadGatewayError } = require('../errors/index.js');
 const { User } = require('../models/index.js');
 
 // 전체 회원 조회
@@ -8,9 +9,8 @@ const getMembers = async (req, res) => {
     const members = await User.findAll({ where });
     // 조회
     return res.status(200).json({ success: true, data: members });
-  } catch (e) {
-    console.error(e);
-    throw e;
+  } catch (err) {
+    throw new BadGatewayError();
   }
 };
 
@@ -24,9 +24,8 @@ const getMember = async (req, res) => {
     const members = User.findAll({ where });
     // 조회
     return res.status(200).json({ success: true, data: members });
-  } catch (e) {
-    console.error(e);
-    throw e;
+  } catch (err) {
+    throw new BadGatewayError();
   }
 };
 

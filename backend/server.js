@@ -7,6 +7,7 @@ const routes = require('./src/routes');
 const app = express();
 const { sequelize } = require('./src/models');
 const cookieParser = require('cookie-parser');
+const errorHandler = require('./src/middleware/errorHandler');
 
 // 미들웨어 설정
 // CORS 허용
@@ -33,14 +34,25 @@ sequelize
 // api 라우트 설정
 app.use('/api/v1', routes);
 
-// 404 에러 처리 미들웨어
-app.use((req, res, next) => {
-  res.status(404).json({ message: 'Not found' });
-});
+// 에러 핸들러
+app.use(errorHandler);
 
 // 서버 실행
 app.set('port', process.env.PORT || 3000);
 const PORT = app.get('port');
 app.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`);
+});
+
+// error
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException error: ', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('unhandledRejection error:', reason);
+  server.close(() => {
+    process.exit(1);
+  });
 });

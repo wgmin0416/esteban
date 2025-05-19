@@ -3,53 +3,8 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
-
-// 회원가입
-const joinUser = async (req, res) => {
-  try {
-    const { email, username, password, phone } = req.body;
-
-    // 1. 기존 회원 체크
-    const dbEmail = await User.findOne({ where: { email } });
-    if (dbEmail) {
-      return res.status(400).json({ message: '이미 사용 중인 아이디입니다.' });
-    }
-
-    // 2. email 인증
-    // 3. 회원가입
-    const createdUser = await User.create({ username, password, email, phone });
-
-    res.json({ message: `User ${username} registered successfully` });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-// 중복 가입 체크
-const checkDuplicateUserId = async (req, res) => {
-  try {
-    const { email } = req.query;
-    const dbEmail = await User.findOne({ where: { email } });
-    if (!dbEmail) {
-      return res.status(200).json({ success: true, message: '사용할 수 있는 아이디입니다.' });
-    }
-    res.status(400).json({ success: false, message: '이미 사용 중인 아이디입니다.' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-};
-
-// 이메일 인증
-const confirmEmail = async (req, res) => {
-  try {
-    const { email } = req.query;
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
+const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
+const { BadRequestError, BadGatewayError, UnauthorizedError } = require('../errors');
 
 // 구글 로그인 콜백 처리
 const googleLoginCallback = async (req, res) => {
@@ -60,7 +15,6 @@ const googleLoginCallback = async (req, res) => {
   // 4-2. 등록 된 사용자일 경우 token 발급
 
   const code = req.query.code; // Authorization Code
-
   try {
     // 1. Authorization Code로 Access Token 요청
     const tokenRes = await axios.post('https://oauth2.googleapis.com/token', null, {
@@ -123,8 +77,7 @@ const googleLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Google OAuth 처리 중 오류 발생' });
+    throw new BadGatewayError('Google 로그인 중 오류가 발생했습니다.');
   }
 };
 
@@ -195,8 +148,7 @@ const naverLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Naver OAuth 처리 중 오류 발생' });
+    throw new BadGatewayError('Naver 로그인 중 오류가 발생했습니다.');
   }
 };
 
@@ -269,8 +221,7 @@ const kakaoLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Kakao OAuth 처리 중 오류 발생' });
+    throw new BadGatewayError('Kakao 로그인 중 오류가 발생했습니다.');
   }
 };
 
@@ -291,8 +242,7 @@ const authCheck = async (req, res) => {
       return res.json({ success: false, message: '로그인 중 오류가 발생했습니다.' });
     }
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: '로그인 중 오류가 발생했습니다.' });
+    throw new BadGatewayError();
   }
 };
 
@@ -304,7 +254,7 @@ const logout = async (req, res) => {
     const token = req.cookies.access_token; // F/E Cookie access_token
     const decoded = jwt.decode(token); // access_token parsing
     if (!decoded || !decoded.id) {
-      return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
+      throw new UnauthorizedError('인증이 만료되어 로그아웃됩니다.');
     }
 
     const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
@@ -314,11 +264,10 @@ const logout = async (req, res) => {
     }
 
     // Cookie access_token 제거
-    res.clearCookie('access_token', config.accessToken.cookieOptions);
-    res.json({ success: true, message: '로그아웃 되었습니다.' });
+    res.clearCookie('access_token', clearCookieOptions);
+    res.status(200).json({ success: true, message: '로그아웃 되었습니다.' });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: '로그아웃 중 오류가 발생했습니다.' });
+    throw new BadGatewayError();
   }
 };
 
@@ -329,18 +278,15 @@ const myInfo = async (req, res) => {
     const decoded = jwt.decode(token);
     const user = await User.findOne({ where: { id: decoded.id } });
     if (!user) {
-      return res.json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+      throw new BadRequestError('존재하지 않는 회원입니다.');
     }
     res.status(200).json({ success: true, data: user.dataValues });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: '회원 조회 중 오류가 발생했습니다.' });
+    throw new BadGatewayError();
   }
 };
 
 module.exports = {
-  joinUser,
-  checkDuplicateUserId,
   googleLoginCallback,
   naverLoginCallback,
   kakaoLoginCallback,
