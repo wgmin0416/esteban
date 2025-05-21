@@ -11,7 +11,6 @@ const useAuthCheck = () => {
   }));
 
   useEffect(() => {
-    console.log('userAuthCheck!!');
     const checkAuth = async () => {
       const token = Cookies.get('access_token');
       if (!token) {
@@ -28,7 +27,7 @@ const useAuthCheck = () => {
           },
         });
 
-        setLogin(res.data); // userInfo 설정 및 isLogin = true
+        setIsLogin(res.data); // userInfo 설정 및 isLogin = true
       } catch (err) {
         console.error('유효하지 않은 토큰입니다.', err);
         logout(); // 상태 초기화

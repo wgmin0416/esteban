@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import apiRequest from '../../store/apiRequest';
+import apiRequest from '../../lib/apiRequest';
 
 const AuthPage = () => {
   useEffect(() => {
@@ -16,18 +16,27 @@ const AuthPage = () => {
     // httpOnly(true) Cookie는 F/E에 존재하는지 유무 확인 불가
     // ! 해당 요청 시 token의 만료 여부는 확인하지 않음
     const tokenCheckReq = async () => {
-      const tokenCheckRes = await apiRequest('get', '/user/auth-check', null, {
-        withCredentials: true,
-      });
-      console.log('tokenCheckRes.success: ', tokenCheckRes.success);
+      try {
+        const tokenCheckRes = await apiRequest('get', '/user/auth-check', null, {
+          withCredentials: true,
+        });
+        console.log('tokenCheckRes.success: ', tokenCheckRes.success);
 
-      if (!tokenCheckRes.success) {
+        if (!tokenCheckRes.success) {
+          window.opener.postMessage({ type: 'LOGIN_FAILURE' }, window.location.origin);
+        } else {
+          // Access token 있을 경우
+          window.opener.postMessage({ type: 'LOGIN_SUCCESS' }, window.location.origin);
+        }
+        setTimeout(() => {
+          window.close();
+        }, 100);
+      } catch (err) {
+        // 실패 시에도 메시지 전송 후 닫기
         window.opener.postMessage({ type: 'LOGIN_FAILURE' }, window.location.origin);
-        window.close();
-      } else {
-        // Access token 있을 경우
-        window.opener.postMessage({ type: 'LOGIN_SUCCESS' }, window.location.origin);
-        window.close();
+        setTimeout(() => {
+          window.close();
+        }, 100); // 100ms만으로도 충분
       }
     };
     tokenCheckReq();
