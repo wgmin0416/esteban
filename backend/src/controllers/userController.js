@@ -5,6 +5,7 @@ const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
 const { BadRequestError, BadGatewayError, UnauthorizedError } = require('../errors');
+const logger = require('../utils/logger.js');
 
 // 구글 로그인 콜백 처리
 const googleLoginCallback = async (req, res) => {
@@ -50,12 +51,13 @@ const googleLoginCallback = async (req, res) => {
 
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
-      await User.create({
+      const createdUser = await User.create({
         username: name,
         email: email,
         provider: 'google',
         provider_id: id,
       });
+      logger.info(`JOIN ${createdUser.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
@@ -74,6 +76,7 @@ const googleLoginCallback = async (req, res) => {
       // 6. Access token 전달 (Cookie)
       res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
+      logger.info(`LOGIN ${user.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
@@ -121,12 +124,13 @@ const naverLoginCallback = async (req, res) => {
 
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
-      await User.create({
+      const createdUser = await User.create({
         username: name,
         email: email,
         provider: 'naver',
         provider_id: id,
       });
+      logger.info(`JOIN ${createdUser.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
@@ -145,6 +149,7 @@ const naverLoginCallback = async (req, res) => {
       // 6. Access token 전달 (Cookie)
       res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
+      logger.info(`LOGIN ${user.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
@@ -194,12 +199,13 @@ const kakaoLoginCallback = async (req, res) => {
 
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
-      await User.create({
+      const createdUser = await User.create({
         username: name,
         email: email,
         provider: 'kakao',
         provider_id: id,
       });
+      logger.info(`JOIN ${createdUser.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
@@ -218,6 +224,7 @@ const kakaoLoginCallback = async (req, res) => {
       // 6. Access token 전달 (Cookie)
       res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
 
+      logger.info(`LOGIN ${user.id}`);
       res.redirect(`${process.env.FRONT_URL}/auth`);
     }
   } catch (err) {
@@ -230,16 +237,23 @@ const authCheck = async (req, res) => {
   // F/E Cookie access_token과 Redis key 존재 확인
   try {
     const token = req.cookies.access_token; // F/E Cookie access_token
+    if (!token) {
+      logger.error('Access token was not found in cookie');
+      throw new UnauthorizedError();
+    }
+
     const decoded = jwt.decode(token); // access_token parsing
     if (!decoded.id) {
-      return res.json({ success: false, message: '토큰 정보에 회원 ID가 존재하지 않습니다.' });
+      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
+      throw new UnauthorizedError();
     }
 
     const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
-    if (token && exists) {
+    if (exists) {
       return res.json({ success: true, message: '로그인 되었습니다.' });
     } else {
-      return res.json({ success: false, message: '로그인 중 오류가 발생했습니다.' });
+      logger.error('Refresh token was not found in redis');
+      throw new UnauthorizedError();
     }
   } catch (e) {
     throw new BadGatewayError();
@@ -252,15 +266,24 @@ const logout = async (req, res) => {
   // Cookie access_token 제거
   try {
     const token = req.cookies.access_token; // F/E Cookie access_token
+    if (!token) {
+      logger.error('Access token was not found in cookie');
+      throw new UnauthorizedError();
+    }
+
     const decoded = jwt.decode(token); // access_token parsing
     if (!decoded || !decoded.id) {
-      throw new UnauthorizedError('인증이 만료되어 로그아웃됩니다.');
+      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
+      throw new UnauthorizedError();
     }
 
     const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
     if (exists) {
       // Redis key값 제거
       await redisClient.del(`${decoded.id}`);
+    } else {
+      logger.error('Refresh token was not found in redis');
+      throw new UnauthorizedError();
     }
 
     // Cookie access_token 제거
@@ -271,14 +294,24 @@ const logout = async (req, res) => {
   }
 };
 
-// 회원정보 조회
+// 내 정보 조회
 const myInfo = async (req, res) => {
   try {
     const token = req.cookies.access_token;
+    if (!token) {
+      logger.error('Access token was not found in cookie');
+      throw new UnauthorizedError();
+    }
+
     const decoded = jwt.decode(token);
+    if (!decoded || !decoded.id) {
+      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
+      throw new UnauthorizedError();
+    }
+
     const user = await User.findOne({ where: { id: decoded.id } });
     if (!user) {
-      throw new BadRequestError('존재하지 않는 회원입니다.');
+      throw new UnauthorizedError();
     }
     res.status(200).json({ success: true, data: user.dataValues });
   } catch (e) {

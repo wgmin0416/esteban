@@ -12,7 +12,7 @@ router.get('/kakao/callback', userController.kakaoLoginCallback);
 router.get('/auth-check', userController.authCheck);
 // 로그아웃
 router.get('/logout', userController.logout);
-// 회원정보 조회
+// 내 정보 조회
 router.get('/my-info', authMiddleware, userController.myInfo);
 
 module.exports = router;
