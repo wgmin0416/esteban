@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import apiRequest from './apiRequest';
+import apiRequest from '../lib/apiRequest';
 
 const useAuthStore = create((set) => ({
   // 로그인 여부

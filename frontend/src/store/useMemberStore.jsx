@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import apiRequest from './apiRequest';
+import apiRequest from '../lib/apiRequest';
 
 const useMemberStore = create((set) => ({
   // 회원 목록
