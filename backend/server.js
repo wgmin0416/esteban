@@ -1,15 +1,18 @@
-const express = require('express');
 // 환경 변수 설정
 const dotenv = require('dotenv');
 dotenv.config();
+const express = require('express');
+const app = express();
 const cors = require('cors');
 const routes = require('./src/routes');
-const app = express();
 const { sequelize } = require('./src/models');
 const cookieParser = require('cookie-parser');
 const errorHandler = require('./src/middleware/errorHandler');
+const httpLogger = require('./src/utils/httpLogger');
+const logger = require('./src/utils/logger');
 
-// 미들웨어 설정
+app.use(httpLogger); // HTTP 요청 로그
+
 // CORS 허용
 app.use(
   cors({
@@ -41,17 +44,17 @@ app.use(errorHandler);
 app.set('port', process.env.PORT || 3000);
 const PORT = app.get('port');
 app.listen(PORT, () => {
-  console.log(`서버 실행 중: http://localhost:${PORT}`);
+  logger.info(`서버 실행 중: http://localhost:${PORT}`);
 });
 
 // error
 process.on('uncaughtException', (err) => {
-  console.error('uncaughtException error: ', err);
+  logger.error('uncaughtException error: ', err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('unhandledRejection error:', reason);
+  logger.error('unhandledRejection error:', reason);
   server.close(() => {
     process.exit(1);
   });
