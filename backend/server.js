@@ -43,7 +43,7 @@ app.use(errorHandler);
 // 서버 실행
 app.set('port', process.env.PORT || 3000);
 const PORT = app.get('port');
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`서버 실행 중: http://localhost:${PORT}`);
 });
 
@@ -56,6 +56,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('unhandledRejection error:', reason);
   server.close(() => {
-    process.exit(1);
+    process.exit(1); // 서버 종료 후 프로세스 종료
   });
 });
