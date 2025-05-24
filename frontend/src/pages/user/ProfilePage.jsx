@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
-import useAuthStore from '../../store/useAuthStore';
 import { useEffect } from 'react';
+import useAuthStore from '../../store/useAuthStore';
 
 const ProfilePage = () => {
   const myInfo = useAuthStore((state) => state.myInfo);
+  const getMyInfo = useAuthStore((state) => state.getMyInfo);
   useEffect(() => {
-    console.log('myInfo changed: ', myInfo);
-  }, [myInfo]);
+    getMyInfo();
+  }, []);
   return (
     <>
       <div>
