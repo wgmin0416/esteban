@@ -15,10 +15,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function AppRoutes() {
   const navigate = useNavigate();
-
   useEffect(() => {
     setNavigator(navigate);
   }, [navigate]);
+
+  const isLogin = useAuthStore((state) => state.isLogin);
 
   return (
     <Routes>
@@ -28,7 +29,7 @@ function AppRoutes() {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute isAuthenticated={isLogin}>
             <ProfilePage />
           </ProtectedRoute>
         }
@@ -36,7 +37,7 @@ function AppRoutes() {
       <Route
         path="/team/members"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute isAuthenticated={isLogin}>
             <MemberPage />
           </ProtectedRoute>
         }
