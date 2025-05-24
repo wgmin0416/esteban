@@ -9,5 +9,5 @@ export const navigateTo = (...args) => {
     console.warn('navigate function is not set yet');
     return;
   }
-  navigateFn(...args); // navigateTo('/login')
+  navigateFn(...args);
 };
