@@ -87,4 +87,9 @@ const useAuthStore = create((set) => ({
   },
 }));
 
+export const logout = async () => {
+  const store = useAuthStore.getState(); // zustand store에서 상태 직접 접근
+  await store.logout(); // 실제 logout 실행
+};
+
 export default useAuthStore;
