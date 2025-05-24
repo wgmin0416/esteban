@@ -1,42 +1,34 @@
-import axios from 'axios';
+import axiosInstance from './axiosInstance';
+import { logout } from '../store/useAuthStore';
 
-const apiRequest = async (method, url, data, options) => {
+const apiRequest = async (method, url, data = {}, options = {}) => {
   try {
-    if (!url) throw new Error('URL is required');
-    url = `${import.meta.env.VITE_API_URL}${url}`;
-
-    if (method === 'get') {
-      url = buildQueryString(url, data);
-      const response = await axios.get(url, options);
-      return response.data;
-    } else if (method === 'post') {
-      const response = await axios.post(url, data, options);
-      return response.data;
-    } else if (method === 'put') {
-      const response = await axios.put(url, data, options);
-      return response.data;
-    } else if (method === 'delete') {
-      url = buildQueryString(url, data);
-      const response = await axios.delete(url, { ...options, data: data });
-      return response.data;
+    if (!url) {
+      throw new Error('URL is required');
     }
-    throw new Error('Invalid method');
+    const config = {
+      method,
+      url,
+      ...options,
+    };
+    if (['get', 'delete'].includes(method.toLowerCase())) {
+      config.url = buildQueryString(url, data);
+    } else {
+      config.data = data;
+    }
+    const response = await axiosInstance.request(config);
+    return response.data;
   } catch (error) {
-    console.log(method, url, data, options);
-    console.error(error);
+    const status = error?.response?.status;
+    console.error('[API ERROR]', status, error);
 
-    if (error.response) {
-      const status = error.response.status;
-
+    if (status) {
       switch (status) {
         case 400:
-          alert('잘못된 요청입니다. 입력값을 확인해주세요.');
+          alert('잘못된 요청입니다.');
           break;
         case 401:
-          alert('로그인이 필요합니다.');
-          // 상태관리 로그아웃 예시
-          useAuthStore.getState().logout();
-          window.location.href = '/login';
+          await logout();
           break;
         case 403:
           alert('권한이 없습니다.');
@@ -56,14 +48,12 @@ const apiRequest = async (method, url, data, options) => {
 };
 
 const buildQueryString = (url, data) => {
-  if (!data || Object.keys(data).length === 0) {
-    return url;
-  }
+  if (!data || Object.keys(data).length === 0) return url;
   const query = Object.entries(data)
     .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&');
-  return query ? `${url}?${query}` : url;
+  return `${url}?${query}`;
 };
 
 export default apiRequest;
