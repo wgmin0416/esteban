@@ -12,12 +12,10 @@ const AuthPage = () => {
       return;
     }
 
-    // 2. 로그인 시 Cookie에 Access token이 있는지 B/E 검증
-    // httpOnly(true) Cookie는 F/E에 존재하는지 유무 확인 불가
-    // ! 해당 요청 시 token의 만료 여부는 확인하지 않음
+    // 2. 로그인 시 /user/my-info API를 통해 인증 여부 검증(auth middleware)
     const tokenCheckReq = async () => {
       try {
-        const tokenCheckRes = await apiRequest('get', '/user/auth-check', null, {
+        const tokenCheckRes = await apiRequest('get', '/user/my-info', null, {
           withCredentials: true,
         });
         console.log('tokenCheckRes.success: ', tokenCheckRes.success);

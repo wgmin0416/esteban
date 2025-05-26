@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
-const { BadRequestError, BadGatewayError, UnauthorizedError } = require('../errors');
+const { BadGatewayError, UnauthorizedError } = require('../errors');
 const logger = require('../utils/logger.js');
 
 // 구글 로그인 콜백 처리
@@ -232,98 +232,51 @@ const kakaoLoginCallback = async (req, res) => {
   }
 };
 
-// 로그인 확인
-const authCheck = async (req, res) => {
-  // F/E Cookie access_token과 Redis key 존재 확인
-  try {
-    const token = req.cookies.access_token; // F/E Cookie access_token
-    if (!token) {
-      logger.error('Access token was not found in cookie');
-      throw new UnauthorizedError();
-    }
-
-    const decoded = jwt.decode(token); // access_token parsing
-    if (!decoded.id) {
-      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
-      throw new UnauthorizedError();
-    }
-
-    const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
-    if (exists) {
-      return res.json({ success: true, message: '로그인 되었습니다.' });
-    } else {
-      logger.error('Refresh token was not found in redis');
-      throw new UnauthorizedError();
-    }
-  } catch (e) {
-    throw new BadGatewayError();
-  }
-};
-
 // 로그아웃
 const logout = async (req, res) => {
   // Redis key값 제거
   // Cookie access_token 제거
-  try {
-    const token = req.cookies.access_token; // F/E Cookie access_token
-    if (!token) {
-      logger.error('Access token was not found in cookie');
-      throw new UnauthorizedError();
-    }
-
+  const token = req.cookies.access_token; // F/E Cookie access_token
+  if (token) {
     const decoded = jwt.decode(token); // access_token parsing
-    if (!decoded || !decoded.id) {
-      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
-      throw new UnauthorizedError();
+    if (decoded && decoded.id) {
+      const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
+      if (exists) {
+        // Redis key값 제거
+        await redisClient.del(`${decoded.id}`);
+      }
     }
-
-    const exists = await redisClient.exists(`${decoded.id}`); // Redis key check
-    if (exists) {
-      // Redis key값 제거
-      await redisClient.del(`${decoded.id}`);
-    } else {
-      logger.error('Refresh token was not found in redis');
-      throw new UnauthorizedError();
-    }
-
-    // Cookie access_token 제거
-    res.clearCookie('access_token', clearCookieOptions);
-    res.status(200).json({ success: true, message: '로그아웃 되었습니다.' });
-  } catch (e) {
-    throw new BadGatewayError();
   }
+  // Cookie access_token 제거
+  res.clearCookie('access_token', clearCookieOptions);
+  res.status(200).json({ success: true, message: '로그아웃 되었습니다.' });
 };
 
 // 내 정보 조회
 const myInfo = async (req, res) => {
-  try {
-    const token = req.cookies.access_token;
-    if (!token) {
-      logger.error('Access token was not found in cookie');
-      throw new UnauthorizedError();
-    }
-
-    const decoded = jwt.decode(token);
-    if (!decoded || !decoded.id) {
-      logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
-      throw new UnauthorizedError();
-    }
-
-    const user = await User.findOne({ where: { id: decoded.id } });
-    if (!user) {
-      throw new UnauthorizedError();
-    }
-    res.status(200).json({ success: true, data: user.dataValues });
-  } catch (e) {
-    throw new BadGatewayError();
+  const token = req.cookies.access_token;
+  if (!token) {
+    logger.error('Access token was not found in cookie');
+    throw new UnauthorizedError();
   }
+
+  const decoded = jwt.decode(token);
+  if (!decoded || !decoded.id) {
+    logger.error("Failed to decode JWT or Decoded JWT is missing 'id' field");
+    throw new UnauthorizedError();
+  }
+
+  const user = await User.findOne({ where: { id: decoded.id } });
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+  res.status(200).json({ success: true, data: user.dataValues });
 };
 
 module.exports = {
   googleLoginCallback,
   naverLoginCallback,
   kakaoLoginCallback,
-  authCheck,
   logout,
   myInfo,
 };
