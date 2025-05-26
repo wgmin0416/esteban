@@ -43,8 +43,11 @@ const LoginPage = () => {
   // 로그인 페이지에서
   useEffect(() => {
     console.log('로그인 페이지에서 뒤로가기 또는 로그인 후 로그인 URI로 진입했을 때');
-    // 로그인 확인 API 호출
-    // navigate('/'); // 이미 로그인했으면 홈으로 리다이렉트
+    const response = initMyInfo();
+    if (response.success) {
+      setIsLogin(true);
+      navigate('/');
+    }
   }, []);
 
   return (
