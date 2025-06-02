@@ -73,7 +73,6 @@ const useAuthStore = create((set) => ({
   // 회원정보
   getMyInfo: async () => {
     try {
-      console.log('getMyInfo');
       const response = await apiRequest('get', '/user/my-info', null, {
         withCredentials: true,
       });

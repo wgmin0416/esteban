@@ -1,0 +1,58 @@
+.nav-bar {
+  display: flex;
+  gap: 32px;
+  padding: 16px 48px;
+  border-bottom: 1px solid #93c5fd;
+  background-color: #f0f9ff;
+}
+
+.nav-bar {
+  /* 기본 라이트 모드용 */
+  background-color: #f0f9ff;
+  color: #1e3a8a;
+}
+
+.header.dark .nav-bar {
+  background-color: #111827; /* 더 어두운 네이비톤 */
+  color: white;
+}
+
+.nav-group {
+  position: relative;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.nav-group a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 28px;
+  left: 0;
+  background: white;
+  color: #1e3a8a;
+  border: 1px solid #60a5fa;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  min-width: 160px;
+  z-index: 10;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 8px 16px;
+  text-decoration: none;
+}
+
+.dropdown-menu a:hover {
+  background-color: #e0f2ff;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}

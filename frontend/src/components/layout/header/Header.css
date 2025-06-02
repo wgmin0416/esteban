@@ -1,0 +1,14 @@
+.header {
+  width: 100%;
+  font-family: sans-serif;
+}
+
+.header.light {
+  background-color: #e0f2ff;
+  color: #1e3a8a;
+}
+
+.header.dark {
+  background-color: #1f2937;
+  color: white;
+}

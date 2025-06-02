@@ -21,7 +21,7 @@ import NotfoundPage from './pages/error/NotfoundPage';
 // store
 import useAuthStore from './store/useAuthStore';
 // protected route
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './pages/ProtectedRoute';
 
 function AppRoutes() {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
+import LoginButtons from '../../components/login/LoginButtons';
 
 const LoginPage = () => {
   const setIsLogin = useAuthStore((state) => state.setIsLogin);
@@ -9,10 +9,12 @@ const LoginPage = () => {
   const requestGoogleLogin = useAuthStore((state) => state.requestGoogleLogin);
   const requestNaverLogin = useAuthStore((state) => state.requestNaverLogin);
   const requestKakaoLogin = useAuthStore((state) => state.requestKakaoLogin);
+
   const navigate = useNavigate();
   const initMyInfo = async () => {
     await getMyInfo();
   };
+
   useEffect(() => {
     const handleMessage = (event) => {
       console.log('로그인 후 LoginPage 진입');
@@ -40,9 +42,8 @@ const LoginPage = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate]);
 
-  // 로그인 페이지에서
+  // 로그인 페이지
   useEffect(() => {
-    console.log('로그인 페이지에서 뒤로가기 또는 로그인 후 로그인 URI로 진입했을 때');
     const response = initMyInfo();
     if (response.success) {
       setIsLogin(true);
@@ -52,15 +53,11 @@ const LoginPage = () => {
 
   return (
     <>
-      <div>
-        <Link to="/">Home</Link>
-        <h1>로그인</h1>
-        <div>
-          <button onClick={() => requestGoogleLogin()}>구글 로그인</button>
-          <button onClick={() => requestNaverLogin()}>네이버 로그인</button>
-          <button onClick={() => requestKakaoLogin()}>카카오 로그인</button>
-        </div>
-      </div>
+      <LoginButtons
+        requestGoogleLogin={requestGoogleLogin}
+        requestNaverLogin={requestNaverLogin}
+        requestKakaoLogin={requestKakaoLogin}
+      />
     </>
   );
 };
