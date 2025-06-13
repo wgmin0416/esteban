@@ -52,8 +52,8 @@ const googleLoginCallback = async (req, res) => {
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
       const createdUser = await User.create({
-        username: name,
-        email: email,
+        name,
+        email,
         provider: 'google',
         provider_id: id,
       });
@@ -125,8 +125,8 @@ const naverLoginCallback = async (req, res) => {
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
       const createdUser = await User.create({
-        username: name,
-        email: email,
+        name,
+        email,
         provider: 'naver',
         provider_id: id,
       });
@@ -200,8 +200,8 @@ const kakaoLoginCallback = async (req, res) => {
     if (!user) {
       // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
       const createdUser = await User.create({
-        username: name,
-        email: email,
+        name,
+        email,
         provider: 'kakao',
         provider_id: id,
       });

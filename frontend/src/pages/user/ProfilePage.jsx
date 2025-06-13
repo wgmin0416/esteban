@@ -15,7 +15,7 @@ const ProfilePage = () => {
         <h1>ProfilePage</h1>
         <p>This is the Profile page.</p>
         <p>id: {myInfo.id}</p>
-        <p>username: {myInfo.username}</p>
+        <p>name: {myInfo.name}</p>
         <p>email: {myInfo.email}</p>
         <p>phone: {myInfo.phone}</p>
       </div>
