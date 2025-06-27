@@ -13,6 +13,14 @@ const sequelizeConfig = {
   stage: {},
   production: {},
 };
+
+// migration 파일 생성
+// npx sequelize-cli migration:generate --name create-table-name --config src/config/sequelize.js
+
+// migration 실행
 // npx sequelize-cli db:migrate --config src/config/sequelize.js
+
+// migration 실행 취소
+// npx sequelize-cli db:migrate:undo --config src/config/sequelize.js
 
 module.exports = sequelizeConfig;

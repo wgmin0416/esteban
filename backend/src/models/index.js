@@ -8,7 +8,7 @@ const sequelizeConfig = require(path.join(__dirname, '..', 'config', 'sequelize'
 const db = {};
 
 const sequelize = sequelizeConfig.use_env_variable
-  ? new Sequelize(process.env[config.use_env_variable], sequelizeConfig)
+  ? new Sequelize(process.env[sequelizeConfig.use_env_variable], sequelizeConfig)
   : new Sequelize(
       sequelizeConfig.database,
       sequelizeConfig.username,
