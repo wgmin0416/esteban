@@ -28,7 +28,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         comment: '매치 ID',
-        references: { model: 'basketball_match', key: 'id' },
+        references: { model: 'basketball_matches', key: 'id' },
         onUpdate: 'CASCADE',
       },
       minutes: {
