@@ -196,13 +196,11 @@ module.exports = (sequelize, DataTypes) => {
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
         comment: '생성 일시',
       },
       updated_at: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
         comment: '수정 일시',
       },
     },
@@ -211,7 +209,6 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'BasketballMemberMatchRecord',
       tableName: 'basketball_member_match_records', // 복수형 테이블명
       timestamps: true,
-      paranoid: false,
       underscored: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
