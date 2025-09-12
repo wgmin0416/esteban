@@ -10,6 +10,9 @@ const cookieParser = require('cookie-parser');
 const errorHandler = require('./src/middleware/errorHandler');
 const httpLogger = require('./src/utils/httpLogger');
 const logger = require('./src/utils/logger');
+const yaml = require('yamljs');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = yaml.load('./src/docs/swagger.yaml');
 
 app.use(httpLogger); // HTTP 요청 로그
 
@@ -36,6 +39,9 @@ sequelize
 
 // api 라우트 설정
 app.use('/api/v1', routes);
+
+// swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // 에러 핸들러
 app.use(errorHandler);
