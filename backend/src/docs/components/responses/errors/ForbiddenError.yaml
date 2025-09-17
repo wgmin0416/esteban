@@ -1,0 +1,24 @@
+ForbiddenError:
+  description: 접근 권한이 없음
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: 이 리소스에 접근할 권한이 없습니다.
+          error:
+            type: string
+            example: FORBIDDEN
+          statusCode:
+            type: integer
+            example: 403
+        required:
+          - success
+          - message
+          - error
+          - statusCode

@@ -8,6 +8,9 @@ router.get('/google/callback', userController.googleLoginCallback);
 router.get('/naver/callback', userController.naverLoginCallback);
 router.get('/kakao/callback', userController.kakaoLoginCallback);
 
+// 관리자 로그인
+router.post('/admin-login', userController.adminLogin);
+
 // 로그아웃
 router.get('/logout', userController.logout);
 

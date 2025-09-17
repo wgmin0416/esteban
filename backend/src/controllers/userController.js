@@ -1,10 +1,10 @@
-const { User } = require('../models/index.js');
+const { User, Team, BasketballTeamMember } = require('../models/index.js');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
-const { BadGatewayError, UnauthorizedError } = require('../errors');
+const { BadGatewayError, UnauthorizedError, BadRequestError } = require('../errors');
 const logger = require('../utils/logger.js');
 
 // 구글 로그인 콜백 처리
@@ -232,6 +232,51 @@ const kakaoLoginCallback = async (req, res) => {
   }
 };
 
+// 관리자 로그인
+const adminLogin = async (req, res) => {
+  const adminId = req.body.id;
+  const adminPassword = req.body.password;
+
+  if (adminId !== process.env.ADMIN_ID) {
+    throw new BadRequestError('잘못된 관리자 아이디입니다.');
+  }
+  if (adminPassword !== process.env.ADMIN_PASSWORD) {
+    throw new BadRequestError('잘못된 관리자 비밀번호입니다.');
+  }
+
+  // 3. 사용자 DB 조회
+  const user = await User.findOne({
+    where: {
+      provider: adminId,
+    },
+  });
+
+  if (!user) {
+    throw new BadRequestError('관리자 계정이 없습니다.');
+  } else {
+    const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
+      expiresIn: '5m',
+    });
+    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
+      expiresIn: '7d',
+    });
+
+    // 5. redis에 refresh token 저장
+    await redisClient.set(`${user.id}`, refreshToken, {
+      EX: 60 * 60 * 24 * 7,
+    });
+
+    // 6. Access token 전달 (Cookie)
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: '관리자 계정 로그인 되었습니다.',
+        access_token: accessToken,
+      });
+  }
+};
+
 // 로그아웃
 const logout = async (req, res) => {
   // Redis key값 제거
@@ -266,7 +311,21 @@ const myInfo = async (req, res) => {
     throw new UnauthorizedError();
   }
 
-  const user = await User.findOne({ where: { id: decoded.id } });
+  const user = await User.findOne({
+    where: {
+      id: decoded.id,
+    },
+    include: [
+      {
+        model: Team,
+        as: 'teams',
+      },
+      {
+        model: BasketballTeamMember,
+        as: 'team_members',
+      },
+    ],
+  });
   if (!user) {
     throw new UnauthorizedError();
   }
@@ -277,6 +336,7 @@ module.exports = {
   googleLoginCallback,
   naverLoginCallback,
   kakaoLoginCallback,
+  adminLogin,
   logout,
   myInfo,
 };

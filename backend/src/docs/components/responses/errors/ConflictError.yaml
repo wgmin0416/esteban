@@ -1,0 +1,43 @@
+ConflictError:
+  description: 리소스 충돌 (중복, 동시성 문제, 비즈니스 규칙 위반)
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+            description: API 요청 처리 실패 (리소스 충돌)
+          message:
+            type: string
+            example: 이미 존재하는 리소스입니다.
+          error:
+            type: string
+            example: CONFLICT
+          statusCode:
+            type: integer
+            example: 409
+          details:
+            type: object
+            description: 충돌에 대한 추가 정보
+            properties:
+              conflictType:
+                type: string
+                enum: [DUPLICATE, CONCURRENT_MODIFICATION, BUSINESS_RULE_VIOLATION]
+                example: DUPLICATE
+              conflictingField:
+                type: string
+                example: email
+              currentValue:
+                type: string
+                example: user@example.com
+            example:
+              conflictType: 'DUPLICATE'
+              conflictingField: 'email'
+              currentValue: 'user@example.com'
+        required:
+          - success
+          - message
+          - error
+          - statusCode

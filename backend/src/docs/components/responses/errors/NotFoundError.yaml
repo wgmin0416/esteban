@@ -1,0 +1,24 @@
+NotFoundError:
+  description: 요청한 리소스를 찾을 수 없음
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: 요청한 리소스를 찾을 수 없습니다.
+          error:
+            type: string
+            example: NOT_FOUND
+          statusCode:
+            type: integer
+            example: 404
+        required:
+          - success
+          - message
+          - error
+          - statusCode

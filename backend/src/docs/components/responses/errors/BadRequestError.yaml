@@ -1,0 +1,38 @@
+BadRequestError:
+  description: 잘못된 요청 또는 유효성 검사 실패
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: 요청 데이터가 올바르지 않습니다.
+          error:
+            type: string
+            example: BAD_REQUEST
+          statusCode:
+            type: integer
+            example: 400
+          details:
+            type: array
+            items:
+              type: object
+              properties:
+                field:
+                  type: string
+                  example: email
+                message:
+                  type: string
+                  example: 유효한 이메일 주소를 입력해주세요.
+            example:
+              - field: 'email'
+                message: '유효한 이메일 주소를 입력해주세요.'
+        required:
+          - success
+          - message
+          - error
+          - statusCode

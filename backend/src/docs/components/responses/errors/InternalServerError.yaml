@@ -1,0 +1,24 @@
+InternalServerError:
+  description: 서버 내부 오류
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: 서버에서 오류가 발생했습니다.
+          error:
+            type: string
+            example: INTERNAL_SERVER_ERROR
+          statusCode:
+            type: integer
+            example: 500
+        required:
+          - success
+          - message
+          - error
+          - statusCode

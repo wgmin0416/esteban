@@ -1,0 +1,24 @@
+UnauthorizedError:
+  description: 인증이 필요하거나 유효하지 않은 토큰 (요청 처리 실패)
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: 인증이 필요합니다.
+          error:
+            type: string
+            example: UNAUTHORIZED
+          statusCode:
+            type: integer
+            example: 401
+        required:
+          - success
+          - message
+          - error
+          - statusCode
