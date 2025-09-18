@@ -1,5 +1,5 @@
 import React from 'react';
-import './LoginButtons.css'; // 스타일 파일을 따로 만들었다고 가정할게
+import './LoginButtons.css';
 
 const LoginButtons = ({ requestGoogleLogin, requestNaverLogin, requestKakaoLogin }) => {
   return (

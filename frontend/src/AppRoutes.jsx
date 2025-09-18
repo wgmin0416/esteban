@@ -16,6 +16,15 @@ import SchedulePage from './pages/lockerroom/SchedulePage';
 import BoardPage from './pages/lockerroom/BoardPage';
 import ManagementPage from './pages/lockerroom/ManagementPage';
 
+// join recruit page
+import JoinRecruitPage from './pages/joinRecruit/JoinRecruit';
+
+// match board page
+import MatchBoardPage from './pages/matchBoard/MatchBoard';
+
+// court board page
+import CourtBoardPage from './pages/courtBoard/CourtBoardPage';
+
 // error page
 import NotfoundPage from './pages/error/NotfoundPage';
 // store
@@ -57,8 +66,17 @@ function AppRoutes() {
       <Route path="/locker-room/rankings" element={<RankingsPage />} />
       <Route path="/locker-room/records" element={<RecordsPage />} />
       <Route path="/locker-room/schedule" element={<SchedulePage />} />
-      <Route path="/locker-room/board" element={<BoardPage />} />
+      <Route path="/locker-room/team-board" element={<BoardPage />} />
       <Route path="/locker-room/management" element={<ManagementPage />} />
+
+      {/* join or recruit */}
+      <Route path="/join-recruit" element={<JoinRecruitPage />} />
+
+      {/* match board */}
+      <Route path="/match-board" element={<MatchBoardPage />} />
+
+      {/* court board */}
+      <Route path="/court-board" element={<CourtBoardPage />} />
     </Routes>
   );
 }
