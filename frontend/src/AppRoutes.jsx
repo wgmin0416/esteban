@@ -6,7 +6,6 @@ import LoginPage from './pages/user/LoginPage';
 import ProfilePage from './pages/user/ProfilePage';
 import AuthPage from './pages/auth/AuthPage';
 import HomePage from './pages/HomePage';
-import MemberPage from './pages/team/memberPage';
 
 // locker room page
 import LockerRoomHomePage from './pages/lockerroom/LockerRoomHomePage';
@@ -53,30 +52,93 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
+      {/* <Route
         path="/team/members"
         element={
           <ProtectedRoute isAuthenticated={isLogin}>
             <MemberPage />
           </ProtectedRoute>
         }
-      />
+      /> */}
       {/* Locker Room */}
-      <Route path="/locker-room" element={<LockerRoomHomePage />} />
-      <Route path="/locker-room/rankings" element={<RankingsPage />} />
-      <Route path="/locker-room/records" element={<RecordsPage />} />
-      <Route path="/locker-room/schedule" element={<SchedulePage />} />
-      <Route path="/locker-room/team-board" element={<BoardPage />} />
-      <Route path="/locker-room/management" element={<ManagementPage />} />
+      <Route
+        path="/locker-room"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <LockerRoomHomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/rankings"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <RankingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/records"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <RecordsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/schedule"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <SchedulePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/team-board"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <BoardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/management"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <ManagementPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* join or recruit */}
-      <Route path="/join-recruit" element={<JoinRecruitPage />} />
+      <Route
+        path="/join-recruit"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <JoinRecruitPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* match board */}
-      <Route path="/match-board" element={<MatchBoardPage />} />
+      <Route
+        path="/match-board"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <MatchBoardPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* court board */}
-      <Route path="/court-board" element={<CourtBoardPage />} />
+      <Route
+        path="/court-board"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <CourtBoardPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
