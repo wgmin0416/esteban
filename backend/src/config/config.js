@@ -31,7 +31,7 @@ const config = {
     cookieOptions: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      sameSite: 'lax',
       maxAge: 1000 * 60 * 5, // 5분
       path: '/',
     },

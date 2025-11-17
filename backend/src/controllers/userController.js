@@ -61,12 +61,20 @@ const googleLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
-        expiresIn: '5m',
-      });
-      const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
-        expiresIn: '7d',
-      });
+      const accessToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_ACCESS_SECRET_KEY,
+        {
+          expiresIn: '5m',
+        }
+      );
+      const refreshToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_REFRESH_SECRET_KEY,
+        {
+          expiresIn: '7d',
+        }
+      );
 
       // 5. redis에 refresh token 저장
       await redisClient.set(`${user.id}`, refreshToken, {
@@ -134,12 +142,20 @@ const naverLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
-        expiresIn: '5m',
-      });
-      const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
-        expiresIn: '7d',
-      });
+      const accessToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_ACCESS_SECRET_KEY,
+        {
+          expiresIn: '5m',
+        }
+      );
+      const refreshToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_REFRESH_SECRET_KEY,
+        {
+          expiresIn: '7d',
+        }
+      );
 
       // 5. redis에 refresh token 저장
       await redisClient.set(`${user.id}`, refreshToken, {
@@ -209,12 +225,20 @@ const kakaoLoginCallback = async (req, res) => {
       res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
     } else {
       // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
-        expiresIn: '5m',
-      });
-      const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
-        expiresIn: '7d',
-      });
+      const accessToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_ACCESS_SECRET_KEY,
+        {
+          expiresIn: '5m',
+        }
+      );
+      const refreshToken = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_REFRESH_SECRET_KEY,
+        {
+          expiresIn: '7d',
+        }
+      );
 
       // 5. redis에 refresh token 저장
       await redisClient.set(`${user.id}`, refreshToken, {
@@ -246,6 +270,7 @@ const adminLogin = async (req, res) => {
 
   // 3. 사용자 DB 조회
   const user = await User.findOne({
+    attributes: ['id', 'role'],
     where: {
       provider: adminId,
     },
@@ -254,12 +279,20 @@ const adminLogin = async (req, res) => {
   if (!user) {
     throw new BadRequestError('관리자 계정이 없습니다.');
   } else {
-    const accessToken = jwt.sign({ id: user.id }, process.env.JWT_ACCESS_SECRET_KEY, {
-      expiresIn: '5m',
-    });
-    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET_KEY, {
-      expiresIn: '7d',
-    });
+    const accessToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_ACCESS_SECRET_KEY,
+      {
+        expiresIn: '5m',
+      }
+    );
+    const refreshToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_REFRESH_SECRET_KEY,
+      {
+        expiresIn: '7d',
+      }
+    );
 
     // 5. redis에 refresh token 저장
     await redisClient.set(`${user.id}`, refreshToken, {
@@ -267,13 +300,11 @@ const adminLogin = async (req, res) => {
     });
 
     // 6. Access token 전달 (Cookie)
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: '관리자 계정 로그인 되었습니다.',
-        access_token: accessToken,
-      });
+    res.status(200).json({
+      success: true,
+      message: '관리자 계정 로그인 되었습니다.',
+      access_token: accessToken,
+    });
   }
 };
 

@@ -18,7 +18,8 @@ const authMiddleware = async (req, res, next) => {
   // Access Token 검증
   const verifyAsync = promisify(jwt.verify);
   try {
-    await verifyAsync(accessToken, process.env.JWT_ACCESS_SECRET_KEY);
+    const decoded = await verifyAsync(accessToken, process.env.JWT_ACCESS_SECRET_KEY);
+    req.user = decoded;
     // Access Token 유효
     return next();
   } catch (e) {
@@ -45,14 +46,14 @@ const authMiddleware = async (req, res, next) => {
         // Access Token 갱신
         res.clearCookie('access_token', clearCookieOptions); // 기존 Access Token 삭제
         const newAccessToken = jwt.sign(
-          { id: decodedAccessToken.id },
+          { id: decodedAccessToken.id, role: decodedAccessToken.role },
           process.env.JWT_ACCESS_SECRET_KEY,
-          { expiresIn: '2m' }
+          { expiresIn: '5m' }
         );
         // Refresh Token 갱신
         await redisClient.del(`${decodedAccessToken.id}`); // 기존 Refresh Token 삭제
         const newRefreshToken = jwt.sign(
-          { id: decodedAccessToken.id },
+          { id: decodedAccessToken.id, role: decodedAccessToken.role },
           process.env.JWT_REFRESH_SECRET_KEY,
           { expiresIn: '7d' }
         );
@@ -62,6 +63,7 @@ const authMiddleware = async (req, res, next) => {
 
         // Access token 전달 (Cookie)
         res.cookie('access_token', newAccessToken, config.accessToken.cookieOptions);
+        req.user = decodedAccessToken;
         return next();
       } catch (e) {
         // Refresh Token 만료
