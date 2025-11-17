@@ -4,37 +4,26 @@ import { useEffect } from 'react';
 
 const HomePage = () => {
   const isLogin = useAuthStore((state) => state.isLogin);
-  const setIsLogin = useAuthStore((state) => state.setIsLogin);
   const logout = useAuthStore((state) => state.logout);
-  // const userLogout = async () => {
-  //   const res = await logout();
-  //   if (res.success) {
-  //     setIsLogin(false);
-  //   }
-  // };
 
   useEffect(() => {
-    console.log('myInfo changed: ', isLogin);
+    console.log('HomePage isLogin ? ', isLogin);
   }, [isLogin]);
 
   return (
     <>
       <div>
         {!isLogin ? (
-          <p>
-            <Link to="/login">Login</Link>
-          </p>
+          <p>로그인 후 이용 바랍니다.</p>
         ) : (
           <p>
-            <button onClick={() => logout()}>Logout</button>
+            {/* <button onClick={() => logout()}>로그아웃</button> */}
+            {/* <br /> */}
+            <Link to="/profile">프로필</Link>
             <br />
-            <Link to="/team/members">team members</Link>
-            <Link to="/profile">Profile</Link>
+            <Link to="/create-team">팀 만들기</Link>
           </p>
         )}
-
-        <h1>HomePage</h1>
-        <p>This is the Home page.</p>
       </div>
     </>
   );

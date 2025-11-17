@@ -1,14 +1,17 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 import './Topbar.css';
+import useAuthStore from '../../../../store/useAuthStore';
 
 const TopBar = ({
   isDarkMode,
   toggleTheme,
   language,
   toggleLanguage,
-  isLoggedIn,
+  isLogin,
+  handleLogout,
   showUserMenu,
   toggleUserMenu,
+  myInfo,
 }) => {
   const t = {
     login: language === 'KR' ? '로그인' : 'Login',
@@ -28,18 +31,19 @@ const TopBar = ({
           {language === 'KR' ? 'English' : '한글'}
         </button>
 
-        {isLoggedIn ? (
+        {isLogin ? (
           <div className="user-menu-container">
-            <button onClick={toggleUserMenu}>홍길동 ▼</button>
+            <Link to="/profile">{myInfo.name} 님</Link>
+            <button onClick={toggleUserMenu}>▼</button>
             {showUserMenu && (
               <div className="user-menu">
-                <a href="#">{t.myInfo}</a>
-                <a href="#">{t.logout}</a>
+                <Link to="/profile">{t.myInfo}</Link>
+                <button onClick={handleLogout}>{t.logout}</button>
               </div>
             )}
           </div>
         ) : (
-          <a href="#">{t.login}</a>
+          <Link to="login">{t.login}</Link>
         )}
       </div>
     </div>

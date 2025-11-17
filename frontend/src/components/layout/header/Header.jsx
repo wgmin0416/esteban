@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import useAuthStore from '../../../store/useAuthStore';
 import TopBar from './bar/TopBar';
 import NavBar from './bar/NavBar';
 import './Header.css';
+import { useEffect } from 'react';
 
 const Header = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const myInfo = useAuthStore((state) => state.myInfo);
+  const isLogin = useAuthStore((state) => state.isLogin);
+  const logout = useAuthStore((state) => state.logout);
+
+  useEffect(() => {
+    console.log('Header isLogin? ', isLogin);
+    console.log('Header myInfo: ', myInfo);
+  }, [isLogin]);
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [language, setLanguage] = useState('KR');
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
   const toggleUserMenu = () => setShowUserMenu(!showUserMenu);
   const toggleLanguage = () => setLanguage(language === 'KR' ? 'EN' : 'KR');
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <header className={`header ${isDarkMode ? 'dark' : 'light'}`}>
@@ -20,9 +34,11 @@ const Header = () => {
         toggleTheme={toggleTheme}
         language={language}
         toggleLanguage={toggleLanguage}
-        isLoggedIn={isLoggedIn}
+        isLogin={isLogin}
+        handleLogout={handleLogout}
         showUserMenu={showUserMenu}
         toggleUserMenu={toggleUserMenu}
+        myInfo={myInfo}
       />
       <NavBar language={language} />
     </header>

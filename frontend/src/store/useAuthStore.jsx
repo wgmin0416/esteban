@@ -6,12 +6,7 @@ const useAuthStore = create((set) => ({
   isLogin: false,
   setIsLogin: (status) => set({ isLogin: status }),
   // 내 정보
-  myInfo: {
-    id: '',
-    username: '',
-    email: '',
-    phone: '',
-  },
+  myInfo: {},
   setMyInfo: (value) =>
     set({
       myInfo: value,
@@ -77,7 +72,7 @@ const useAuthStore = create((set) => ({
         withCredentials: true,
       });
       if (response?.data) {
-        set({ myInfo: response.data });
+        set({ isLogin: true, myInfo: response.data });
       }
     } catch (error) {
       console.error(error);
