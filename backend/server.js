@@ -10,11 +10,26 @@ const cookieParser = require('cookie-parser');
 const errorHandler = require('./src/middleware/errorHandler');
 const httpLogger = require('./src/utils/httpLogger');
 const logger = require('./src/utils/logger');
-const yaml = require('yamljs');
+// Swagger
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = yaml.load('./src/docs/swagger.yaml');
+const swaggerJsdoc = require('swagger-jsdoc');
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Esteban API',
+      version: '1.0.0',
+    },
+    // components: {
+    //   schemas: {},
+    //   responses: {},
+    // },
+  },
+  apis: ['./src/routes/team/*.js', './src/routes/auth/*.js', './src/routes/user/*.js'],
+};
+const specs = swaggerJsdoc(options);
 
-app.use(httpLogger); // HTTP 요청 로그
+app.use(httpLogger);
 
 // CORS 허용
 app.use(
@@ -23,7 +38,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json()); // JSON 요청 본문 파싱
+app.use(express.json());
 // cookie-parser
 app.use(cookieParser());
 
@@ -41,7 +56,7 @@ sequelize
 app.use('/api/v1', routes);
 
 // swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // 에러 핸들러
 app.use(errorHandler);
@@ -62,6 +77,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('unhandledRejection error:', reason);
   server.close(() => {
-    process.exit(1); // 서버 종료 후 프로세스 종료
+    process.exit(1);
   });
 });
