@@ -93,11 +93,6 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 1,
         comment: '공개 여부',
       },
-      team_url: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        comment: '팀 로고 이미지 url',
-      },
       boost_promoted_at: {
         type: DataTypes.DATE,
         allowNull: true,
