@@ -256,6 +256,46 @@ const kakaoLoginCallback = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /user/admin-login:
+ *   post:
+ *     summary: 관리자 로그인
+ *     tags:
+ *       - User
+ *     requestBody:
+ *       description: |
+ *         - id(아이디)
+ *         - password(비밀번호)
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - password
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 example: estbadmin
+ *               password:
+ *                 type: string
+ *                 example: estb2009
+ *     responses:
+ *       200:
+ *         description: 관리자 로그인 성공 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 access_token:
+ *                   type: string
+ */
 // 관리자 로그인
 const adminLogin = async (req, res) => {
   const adminId = req.body.id;

@@ -2,10 +2,87 @@ const { BadGatewayError, BadRequestError, ForbiddenError } = require('../errors/
 const { User, Team, BasketballTeamMember, JoinRequest } = require('../models/index.js');
 
 // 팀 생성
+/**
+ * @swagger
+ * /team/create-team:
+ *   post:
+ *     summary: 팀 생성
+ *     tags:
+ *       - Team
+ *     requestBody:
+ *       description: |
+ *         - name(팀명)
+ *         - leader_id(팀 리더 회원 ID)
+ *         - sports(종목)
+ *         - leader_id(팀 리더 회원 ID)
+ *         - intro(팀 소개)
+ *         - leader_id(팀 리더 회원 ID)
+ *         - logo_url(로고 이미지 URL)
+ *         - region(주 활동 지역)
+ *         - is_public(공개 여부)
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - leader_id
+ *               - sports
+ *               - region
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Dream Team
+ *               leader_id:
+ *                 type: integer
+ *                 example: 1
+ *               sports:
+ *                 type: string
+ *                 example: basketball
+ *               intro:
+ *                 type: string
+ *                 example: "안녕하세요. Dream Team입니다."
+ *               logo_url:
+ *                 type: string
+ *                 example: ""
+ *               region:
+ *                 type: string
+ *                 example: 서울
+ *               established_at:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-11-27T17:00:00Z"
+ *               is_public:
+ *                 type: integer
+ *                 example: 1
+ *     responses:
+ *       201:
+ *         description: 팀 생성 성공 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ */
 const createTeam = async (req, res) => {
   try {
-    const { name, leader_id, sports, intro, logo_url, region, established_at, is_public } =
-      req.body;
+    const {
+      name,
+      leader_id,
+      sports,
+      intro,
+      logo_url,
+      region,
+      established_at,
+      is_public,
+      position,
+    } = req.body;
+
+    // 팀 정보 확인
     if (!leader_id) {
       throw new BadRequestError('리더 아이디가 존재하지 않습니다.');
     }
@@ -20,7 +97,7 @@ const createTeam = async (req, res) => {
     }
 
     // 팀 생성
-    await Team.create({
+    const createTeam = await Team.create({
       name,
       leader_id,
       sports,
@@ -31,6 +108,13 @@ const createTeam = async (req, res) => {
       is_public,
     });
 
+    // 팀 멤버 생성
+    await BasketballTeamMember.create({
+      team_id: createTeam.id,
+      user_id: leader_id,
+      role: 'leader',
+    });
+
     return res.status(201).json({ success: true });
   } catch (err) {
     throw new BadGatewayError('팀 생성 중 오류가 발생했습니다.');
@@ -38,6 +122,25 @@ const createTeam = async (req, res) => {
 };
 
 // 전체 회원 조회
+/**
+ * @swagger
+ * /team/members:
+ *   get:
+ *     summary: 팀 전체 회원 조회
+ *     tags:
+ *       - Team
+ *     responses:
+ *       200:
+ *         description: 팀 전체 회원 조회 성공 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ */
 const getMembers = async (req, res) => {
   try {
     // 검색조건

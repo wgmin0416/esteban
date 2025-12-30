@@ -1,4 +1,5 @@
 // 환경 변수 설정
+const path = require('path');
 const dotenv = require('dotenv');
 dotenv.config();
 const express = require('express');
@@ -20,12 +21,38 @@ const options = {
       title: 'Esteban API',
       version: '1.0.0',
     },
-    // components: {
-    //   schemas: {},
-    //   responses: {},
-    // },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    tags: [
+      {
+        name: 'User',
+        description: '회원 API',
+      },
+      {
+        name: 'Team',
+        description: '팀 API',
+      },
+    ],
+    servers: [
+      {
+        url: 'http://localhost:3000/api/v1',
+        description: 'Local server',
+      },
+    ],
   },
-  apis: ['./src/routes/team/*.js', './src/routes/auth/*.js', './src/routes/user/*.js'],
+  apis: [path.join(__dirname, 'src/controllers/*.js')],
 };
 const specs = swaggerJsdoc(options);
 
@@ -56,7 +83,17 @@ sequelize
 app.use('/api/v1', routes);
 
 // swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(specs, {
+    swaggerOptions: {
+      docExpansion: 'list',
+      filter: true,
+      showRequestHeaders: true,
+    },
+  })
+);
 
 // 에러 핸들러
 app.use(errorHandler);

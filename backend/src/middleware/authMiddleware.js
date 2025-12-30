@@ -4,10 +4,19 @@ const config = require('../config/config');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
 const { promisify } = require('util');
 const { logout } = require('../controllers/userController');
+const logger = require('../utils/logger');
 
 // 인증 미들웨어
 const authMiddleware = async (req, res, next) => {
-  const accessToken = req.cookies.access_token;
+  let accessToken = req.cookies.access_token;
+  // 개발 과정 관리자 계정 로그인
+  if (
+    (process.env.NODE_ENV === 'local' || process.env.NODE_ENV === 'development') &&
+    req.headers.authorization
+  ) {
+    // Authorization 헤더에서 "Bearer " 접두사 제거
+    accessToken = req.headers.authorization.replace(/^Bearer\s+/i, '');
+  }
   // 1. Access Token이 없을 경우 로그아웃
   if (!accessToken) {
     console.log('!access token');
