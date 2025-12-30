@@ -51,7 +51,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       position: {
         type: DataTypes.ENUM('guard', 'forward', 'center'),
-        allowNull: false,
+        allowNull: true,
         comment: '포지션',
       },
       uniform_number: {
