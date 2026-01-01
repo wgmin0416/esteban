@@ -76,6 +76,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 1,
         comment: '활동 중 여부',
       },
+      is_default: {
+        type: DataTypes.TINYINT(1),
+        allowNull: false,
+        defaultValue: 0,
+        comment: '기본 노출 팀 여부',
+      },
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,

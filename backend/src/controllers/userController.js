@@ -5,6 +5,7 @@ const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
 const { BadGatewayError, UnauthorizedError, BadRequestError } = require('../errors');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger.js');
 
 // 구글 로그인 콜백 처리
@@ -403,6 +404,190 @@ const myInfo = async (req, res) => {
   res.status(200).json({ success: true, data: user.dataValues });
 };
 
+// 내 정보 수정
+/**
+ * @swagger
+ * /user/update:
+ *   put:
+ *     summary: 내 정보 수정
+ *     tags:
+ *       - User
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               default_team_id:
+ *                 type: integer
+ *                 description: 기본 노출 팀 ID
+ *     responses:
+ *       200:
+ *         description: 내 정보 수정 성공
+ */
+const updateMyInfo = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { email, phone, default_team_id } = req.body;
+
+    if (!userId) {
+      throw new BadRequestError('사용자 정보가 없습니다.');
+    }
+
+    const updateData = {};
+
+    // 이메일 수정
+    if (email !== undefined) {
+      updateData.email = email && email.trim() !== '' ? email.trim() : null;
+    }
+
+    // 전화번호 수정
+    if (phone !== undefined) {
+      updateData.phone = phone && phone.trim() !== '' ? phone.trim() : null;
+    }
+
+    // 사용자 정보 업데이트
+    if (Object.keys(updateData).length > 0) {
+      await User.update(updateData, {
+        where: { id: userId },
+      });
+    }
+
+    // 기본 팀 설정
+    if (default_team_id !== undefined) {
+      // 해당 팀에 사용자가 속해있는지 확인
+      const teamMember = await BasketballTeamMember.findOne({
+        where: {
+          user_id: userId,
+          team_id: parseInt(default_team_id),
+          is_active: 1,
+        },
+      });
+
+      if (!teamMember) {
+        throw new BadRequestError('해당 팀의 멤버가 아닙니다.');
+      }
+
+      // 같은 user_id의 다른 팀들의 is_default를 0으로 설정
+      await BasketballTeamMember.update(
+        { is_default: 0 },
+        {
+          where: {
+            user_id: userId,
+            team_id: { [Op.ne]: parseInt(default_team_id) },
+            is_active: 1,
+          },
+        }
+      );
+
+      // 선택한 팀의 is_default를 1로 설정
+      await BasketballTeamMember.update(
+        { is_default: 1 },
+        {
+          where: {
+            user_id: userId,
+            team_id: parseInt(default_team_id),
+            is_active: 1,
+          },
+        }
+      );
+    }
+
+    // 업데이트된 사용자 정보 조회
+    const updatedUser = await User.findOne({
+      where: { id: userId },
+      include: [
+        {
+          model: Team,
+          as: 'teams',
+        },
+        {
+          model: BasketballTeamMember,
+          as: 'team_members',
+        },
+      ],
+    });
+
+    return res.status(200).json({ success: true, data: updatedUser.dataValues });
+  } catch (err) {
+    logger.error('내 정보 수정 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) {
+      throw err;
+    }
+    throw new BadGatewayError(`내 정보 수정 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 내가 속한 팀 목록 조회
+/**
+ * @swagger
+ * /user/my-teams:
+ *   get:
+ *     summary: 내가 속한 팀 목록 조회
+ *     tags:
+ *       - User
+ *     responses:
+ *       200:
+ *         description: 팀 목록 조회 성공
+ */
+const getMyTeams = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new BadRequestError('사용자 정보가 없습니다.');
+    }
+
+    // 사용자가 속한 팀 목록 조회
+    const teamMembers = await BasketballTeamMember.findAll({
+      where: {
+        user_id: userId,
+        is_active: 1,
+      },
+      include: [
+        {
+          model: Team,
+          as: 'team',
+          attributes: [
+            'id',
+            'name',
+            'leader_id',
+            'sports',
+            'intro',
+            'logo_url',
+            'region',
+            'established_at',
+            'is_public',
+          ],
+        },
+      ],
+      order: [
+        ['is_default', 'DESC'],
+        ['created_at', 'ASC'],
+      ],
+    });
+
+    const teams = teamMembers.map((tm) => ({
+      ...tm.team.dataValues,
+      role: tm.role,
+      is_default: tm.is_default,
+    }));
+
+    return res.status(200).json({ success: true, data: teams });
+  } catch (err) {
+    logger.error('내 팀 목록 조회 에러:', err);
+    if (err instanceof BadRequestError) {
+      throw err;
+    }
+    throw new BadGatewayError(`내 팀 목록 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
 module.exports = {
   googleLoginCallback,
   naverLoginCallback,
@@ -410,4 +595,6 @@ module.exports = {
   adminLogin,
   logout,
   myInfo,
+  updateMyInfo,
+  getMyTeams,
 };

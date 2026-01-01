@@ -16,5 +16,9 @@ router.get('/logout', userController.logout);
 
 // 내 정보 조회
 router.get('/my-info', authMiddleware, userController.myInfo);
+// 내 정보 수정
+router.put('/update', authMiddleware, userController.updateMyInfo);
+// 내가 속한 팀 목록 조회
+router.get('/my-teams', authMiddleware, userController.getMyTeams);
 
 module.exports = router;

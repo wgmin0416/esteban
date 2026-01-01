@@ -26,6 +26,8 @@ import CourtBoardPage from './pages/courtBoard/CourtBoardPage';
 
 // error page
 import NotfoundPage from './pages/error/NotfoundPage';
+// team page
+import CreateTeamPage from './pages/team/CreateTeamPage';
 // store
 import useAuthStore from './store/useAuthStore';
 // protected route
@@ -49,6 +51,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute isAuthenticated={isLogin}>
             <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-team"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin}>
+            <CreateTeamPage />
           </ProtectedRoute>
         }
       />

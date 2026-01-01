@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import PaginatedTable from '../../components/table/PaginatedTable';
-import useMemberStore from '../../store/useMemberStore';
+import useTeamStore from '../../store/useTeamStore';
 
 const ManagementPage = () => {
   const teamColumns = [
@@ -17,8 +17,8 @@ const ManagementPage = () => {
     { key: 'is_active', title: '활동 여부' },
   ];
 
-  const members = useMemberStore((state) => state.members);
-  const getMembers = useMemberStore((state) => state.getMembers);
+  const members = useTeamStore((state) => state.members);
+  const getMembers = useTeamStore((state) => state.getMembers);
   useEffect(() => {
     getMembers();
   }, []);

@@ -129,6 +129,13 @@ module.exports = (sequelize, DataTypes) => {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       deletedAt: 'deleted_at',
+      indexes: [
+        {
+          unique: true,
+          fields: ['name', 'sports'],
+          name: 'unique_team_name_sports',
+        },
+      ],
     }
   );
 

@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import useMemberStore from '../../store/useMemberStore';
+import useTeamStore from '../../store/useTeamStore';
 import { useEffect } from 'react';
 
 const MemberPage = () => {
-  const members = useMemberStore((state) => state.members);
-  const getMembers = useMemberStore((state) => state.getMembers);
+  const members = useTeamStore((state) => state.members);
+  const getMembers = useTeamStore((state) => state.getMembers);
   useEffect(() => {
     getMembers();
   }, []);
