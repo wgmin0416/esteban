@@ -1,0 +1,102 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.match-board-page {
+  @extend %page-container;
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    @extend %page-title;
+  }
+
+  .search-bar {
+    @extend %search-bar;
+
+    .date-filter-wrapper {
+      position: relative;
+
+      .btn-date-filter {
+        @include button-base;
+        background-color: white;
+        border: 1px solid $border-color;
+        color: $text-primary;
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        padding: $spacing-sm $spacing-md;
+        white-space: nowrap;
+        font-weight: 500;
+        box-shadow: 0 1px 2px $shadow-sm;
+
+        .calendar-icon {
+          font-size: $font-lg;
+        }
+
+        &:hover {
+          border-color: $primary-color;
+          color: $primary-color;
+          box-shadow: 0 2px 4px $shadow;
+        }
+      }
+
+      .btn-clear-filter {
+        @include button-base;
+        background-color: $background-gray;
+        border: 1px solid $border-color;
+        color: $text-light;
+        padding: $spacing-xs $spacing-sm;
+        margin-left: $spacing-xs;
+        font-size: $font-sm;
+        min-width: auto;
+
+        &:hover {
+          background-color: $error-light;
+          color: $error-color;
+          border-color: $error-color;
+        }
+      }
+
+      .date-picker-dropdown {
+        position: absolute;
+        top: calc(100% + $spacing-sm);
+        right: 0;
+        background: white;
+        border: 1px solid $border-color;
+        border-radius: $radius-lg;
+        box-shadow: 0 4px 12px $shadow-md;
+        padding: $spacing-md;
+        z-index: 100;
+
+        .date-input {
+          @include input-base;
+          width: auto;
+          min-width: 200px;
+        }
+      }
+    }
+  }
+
+  .board-container {
+    @extend %board-container;
+
+    .end-message {
+      text-align: center;
+      padding: $spacing-xl;
+      color: $text-light;
+      font-size: $font-sm;
+    }
+  }
+
+  .empty-state {
+    @extend %empty-state;
+  }
+
+  .loading-spinner {
+    @extend %loading-spinner;
+  }
+}

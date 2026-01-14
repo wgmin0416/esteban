@@ -1,0 +1,39 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.join-recruit-page {
+  @extend %page-container;
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    @extend %page-title;
+  }
+
+  .search-bar {
+    @extend %search-bar;
+  }
+
+  .board-container {
+    @extend %board-container;
+
+    .end-message {
+      text-align: center;
+      padding: $spacing-xl;
+      color: $text-light;
+      font-size: $font-sm;
+    }
+  }
+
+  .empty-state {
+    @extend %empty-state;
+  }
+
+  .loading-spinner {
+    @extend %loading-spinner;
+  }
+}

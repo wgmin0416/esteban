@@ -1,7 +1,9 @@
-import './NavBar.css';
-import { Link } from 'react-router-dom';
+import './NavBar.scss';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const NavBar = ({ language }) => {
+  const location = useLocation();
+  
   const t = {
     home: language === 'KR' ? '홈' : 'Home',
 
@@ -24,30 +26,57 @@ const NavBar = ({ language }) => {
   return (
     <nav className="nav-bar">
       <div className="nav-group">
-        <Link to="/">{t.home}</Link>
+        <NavLink 
+          to="/" 
+          className={({ isActive }) => isActive ? 'active' : ''}
+          end
+        >
+          {t.home}
+        </NavLink>
       </div>
 
       <div className="nav-group dropdown">
-        <Link to="/locker-room">{t.lockerRoom}</Link>
+        <NavLink 
+          to="/locker-room"
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          {t.lockerRoom}
+        </NavLink>
         <div className="dropdown-menu">
-          <Link to="/locker-room/rankings">{t.rankings}</Link>
-          <Link to="/locker-room/records">{t.records}</Link>
-          <Link to="/locker-room/schedule">{t.schedule}</Link>
-          <Link to="/locker-room/team-board">{t.teamBoard}</Link>
-          <Link to="/locker-room/management">{t.teamManagement}</Link>
+          <NavLink to="/locker-room/rankings">{t.rankings}</NavLink>
+          <NavLink to="/locker-room/records">{t.records}</NavLink>
+          <NavLink to="/locker-room/schedule">{t.schedule}</NavLink>
+          <NavLink to="/locker-room/team-board">{t.teamBoard}</NavLink>
+          <NavLink to="/locker-room/management">{t.teamManagement}</NavLink>
         </div>
       </div>
 
       <div className="nav-group dropdown">
-        <Link to="/join-recruit">{t.joinRecruit}</Link>
+        <NavLink 
+          to="/join-recruit"
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          {t.joinRecruit}
+        </NavLink>
       </div>
 
-      <Link to="/match-board" className="nav-group">
-        {t.matchBoard}
-      </Link>
-      <Link to="/court-board" className="nav-group">
-        {t.courtBoard}
-      </Link>
+      <div className="nav-group">
+        <NavLink 
+          to="/match-board"
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          {t.matchBoard}
+        </NavLink>
+      </div>
+      
+      <div className="nav-group">
+        <NavLink 
+          to="/court-board"
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          {t.courtBoard}
+        </NavLink>
+      </div>
     </nav>
   );
 };

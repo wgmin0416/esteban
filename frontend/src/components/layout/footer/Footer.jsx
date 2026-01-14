@@ -1,4 +1,4 @@
-import './Footer.css';
+import './Footer.scss';
 
 const Footer = () => {
   return (
@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="footer-container">
         {/* 회사 정보 */}
         <div className="footer-section">
-          <h2 className="footer-title">MyCompany</h2>
+          <h2 className="footer-title">Esteban</h2>
           <p>사업자등록번호: 123-45-67890</p>
           <p>대표자: 홍길동</p>
           <p>서울특별시 강남구 테헤란로 123</p>
@@ -49,7 +49,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="footer-bottom">© 2025 MyCompany. All rights reserved.</div>
+      <div className="footer-bottom">© 2025 Esteban. All rights reserved.</div>
     </footer>
   );
 };

@@ -1,0 +1,102 @@
+@use './variables' as *;
+
+// 반응형 믹스인
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) {
+      @content;
+    }
+  } @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md) {
+      @content;
+    }
+  } @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) {
+      @content;
+    }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) {
+      @content;
+    }
+  }
+}
+
+// 텍스트 말줄임
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// 플렉스 박스 중앙 정렬
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 플렉스 박스 공간 분배
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 카드 스타일
+@mixin card {
+  background: $background-card;
+  border-radius: $radius-lg;
+  box-shadow: 0 1px 3px $shadow-sm, 0 1px 2px $shadow;
+  border: 1px solid $border-light;
+  padding: $spacing-lg;
+  transition: all $transition-base;
+
+  &:hover {
+    box-shadow: 0 4px 6px $shadow-md, 0 2px 4px $shadow;
+    border-color: $border-color;
+    transform: translateY(-1px);
+  }
+}
+
+// 버튼 기본 스타일
+@mixin button-base {
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: $font-base;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all $transition-base;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 입력 필드 기본 스타일
+@mixin input-base {
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  font-size: $font-base;
+  transition: border-color $transition-base;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}

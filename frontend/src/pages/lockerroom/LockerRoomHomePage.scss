@@ -1,0 +1,344 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.locker-room-page {
+  @extend %page-container;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    @extend %page-title;
+  }
+
+  .locker-room-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+}
+
+// 빈 팀 상태
+.empty-team-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: $spacing-md;
+  }
+
+  h2 {
+    font-size: $font-2xl;
+    margin-bottom: $spacing-sm;
+    color: $text-primary;
+  }
+
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+
+  .btn {
+    @include button-base;
+    background: linear-gradient(135deg, $primary-color, $primary-light);
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 4px 6px $shadow-md;
+    font-weight: 600;
+
+    &:hover {
+      background: linear-gradient(135deg, $primary-hover, $primary-color);
+      box-shadow: 0 6px 12px $shadow-hover;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// 섹션 공통 스타일
+.section-header {
+  @include flex-between;
+  margin-bottom: $spacing-lg;
+
+  h2 {
+    font-size: $font-2xl;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0;
+  }
+}
+
+// 팀 정보 섹션
+.team-info-section {
+  .team-selector {
+    @include card;
+    margin-bottom: $spacing-lg;
+    padding: $spacing-lg;
+
+    h3 {
+      font-size: $font-lg;
+      margin-bottom: $spacing-md;
+      color: $text-primary;
+      font-weight: 600;
+    }
+
+    .team-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      .team-item {
+        @include flex-between;
+        padding: $spacing-md;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        background: white;
+
+        &.active {
+          border-color: $primary-color;
+          background: rgba($primary-color, 0.05);
+        }
+
+        .team-name {
+          font-weight: 600;
+          color: $text-primary;
+        }
+
+        .badge {
+          padding: $spacing-xs $spacing-sm;
+          border-radius: $radius-sm;
+          font-size: $font-xs;
+          font-weight: 600;
+
+          &.badge-primary {
+            background: linear-gradient(135deg, $primary-color, $primary-light);
+            color: white;
+            box-shadow: 0 2px 4px $shadow-sm;
+          }
+        }
+
+        .btn-sm {
+          padding: $spacing-xs $spacing-md;
+          font-size: $font-sm;
+        }
+      }
+    }
+  }
+
+  .team-info-card {
+    @include card;
+    display: flex;
+    gap: $spacing-xl;
+    flex-direction: column;
+
+    @include respond-to(md) {
+      flex-direction: row;
+    }
+
+    .team-logo {
+      flex-shrink: 0;
+      width: 150px;
+      height: 150px;
+      border-radius: $radius-lg;
+      overflow: hidden;
+      background: linear-gradient(135deg, $background-gray, #ffffff);
+      border: 2px solid $border-light;
+      @include flex-center;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .team-details {
+      flex: 1;
+
+      .team-name {
+        font-size: $font-2xl;
+        font-weight: 800;
+        margin-bottom: $spacing-lg;
+        color: $text-primary;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .team-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: $spacing-md;
+        margin-bottom: $spacing-lg;
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-xs;
+
+          .info-label {
+            font-size: $font-sm;
+            color: $text-light;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .info-value {
+            font-size: $font-base;
+            color: $text-primary;
+            font-weight: 600;
+          }
+        }
+      }
+
+      .team-intro {
+        padding-top: $spacing-lg;
+        border-top: 1px solid $border-color;
+
+        .info-label {
+          display: block;
+          font-size: $font-sm;
+          color: $text-light;
+          font-weight: 500;
+          margin-bottom: $spacing-sm;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        p {
+          color: $text-secondary;
+          line-height: 1.6;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+// 일정 섹션
+.schedule-section {
+  .schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .schedule-card {
+    @include card;
+    display: flex;
+    gap: $spacing-lg;
+    align-items: flex-start;
+
+    .schedule-date {
+      flex-shrink: 0;
+      width: 80px;
+      text-align: center;
+      padding: $spacing-md;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      border-radius: $radius-lg;
+      color: white;
+      box-shadow: 0 4px 6px $shadow-md;
+
+      .date-day {
+        font-size: $font-2xl;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .date-month {
+        font-size: $font-sm;
+        margin-top: $spacing-xs;
+        opacity: 0.9;
+      }
+    }
+
+    .schedule-details {
+      flex: 1;
+
+      .schedule-title {
+        font-size: $font-lg;
+        font-weight: 700;
+        margin-bottom: $spacing-sm;
+        color: $text-primary;
+      }
+
+      .schedule-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-md;
+        margin-bottom: $spacing-md;
+        font-size: $font-sm;
+        color: $text-secondary;
+
+        span {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+        }
+      }
+
+      .schedule-vote-btn {
+        margin-top: $spacing-sm;
+      }
+    }
+  }
+}
+
+// 버튼 스타일
+.btn {
+  @include button-base;
+
+  &.btn-primary {
+    background: linear-gradient(135deg, $primary-color, $primary-light);
+    color: white;
+    box-shadow: 0 4px 6px $shadow-md;
+    font-weight: 600;
+    border: none;
+
+    &:hover {
+      background: linear-gradient(135deg, $primary-hover, $primary-color);
+      box-shadow: 0 6px 12px $shadow-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  &.btn-secondary {
+    background-color: $background-gray;
+    color: $text-primary;
+    border-color: $border-color;
+    font-weight: 500;
+
+    &:hover {
+      background-color: $border-light;
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+  }
+
+  &.btn-link {
+    background: none;
+    border: none;
+    color: $primary-color;
+    padding: 0;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      color: $primary-hover;
+      transform: none;
+    }
+  }
+
+  &.btn-sm {
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-sm;
+  }
+}

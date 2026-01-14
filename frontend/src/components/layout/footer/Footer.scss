@@ -1,0 +1,108 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.footer {
+  background: linear-gradient(135deg, $text-primary, darken($text-primary, 5%));
+  color: white;
+  padding: $spacing-xxl $spacing-md $spacing-lg;
+  margin-top: auto;
+
+  .footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: $spacing-xl;
+    padding-bottom: $spacing-xl;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .footer-section {
+    h2.footer-title {
+      font-size: $font-xl;
+      font-weight: 800;
+      margin-bottom: $spacing-md;
+      background: linear-gradient(135deg, white, rgba(255, 255, 255, 0.8));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h3.footer-subtitle {
+      font-size: $font-lg;
+      font-weight: 700;
+      margin-bottom: $spacing-md;
+      color: white;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: $font-sm;
+      line-height: 1.6;
+      margin-bottom: $spacing-xs;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        margin-bottom: $spacing-sm;
+
+        a {
+          color: rgba(255, 255, 255, 0.8);
+          text-decoration: none;
+          font-size: $font-sm;
+          transition: all $transition-base;
+          display: inline-block;
+          padding: $spacing-xs 0;
+
+          &:hover {
+            color: white;
+            transform: translateX(4px);
+            padding-left: $spacing-sm;
+          }
+        }
+      }
+    }
+
+    .social-icons {
+      display: flex;
+      gap: $spacing-md;
+      margin-top: $spacing-md;
+
+      a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        text-decoration: none;
+        font-size: $font-lg;
+        transition: all $transition-base;
+        backdrop-filter: blur(10px);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateY(-4px) scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+  }
+
+  .footer-bottom {
+    margin-top: $spacing-xl;
+    text-align: center;
+    font-size: $font-xs;
+    color: rgba(255, 255, 255, 0.6);
+    padding-top: $spacing-lg;
+  }
+}

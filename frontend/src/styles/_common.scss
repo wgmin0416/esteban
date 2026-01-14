@@ -1,0 +1,174 @@
+@use './variables' as *;
+@use './mixins' as *;
+
+// 공통 컨테이너
+%container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+
+  @include respond-to(lg) {
+    padding: 0 $spacing-xl;
+  }
+}
+
+// 페이지 레이아웃
+%page-container {
+  min-height: calc(100vh - 200px);
+  padding: $spacing-xl $spacing-md;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+
+  @include respond-to(md) {
+    padding: $spacing-xxl $spacing-lg;
+  }
+}
+
+// 페이지 타이틀
+%page-title {
+  font-size: $font-3xl;
+  font-weight: 800;
+  margin-bottom: $spacing-xl;
+  color: $text-primary;
+  text-align: center;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  @include respond-to(md) {
+    text-align: left;
+  }
+}
+
+// 검색바 공통 스타일
+%search-bar {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  flex-direction: column;
+
+  @include respond-to(md) {
+    flex-direction: row;
+  }
+
+  .search-input-wrapper {
+    flex: 1;
+    position: relative;
+
+    .search-icon {
+      position: absolute;
+      left: $spacing-md;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-light;
+      font-size: $font-lg;
+    }
+
+    input {
+      @include input-base;
+      padding-left: 2.5rem;
+      background-color: white;
+      border-color: $border-color;
+
+      &:focus {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+    }
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: $spacing-sm;
+
+    @include respond-to(md) {
+      gap: $spacing-md;
+    }
+  }
+}
+
+// 게시판 공통 스타일
+%board-container {
+  .board-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .board-item {
+    @include card;
+    cursor: pointer;
+    transition: transform $transition-base;
+
+    &:hover {
+      transform: translateX(4px);
+    }
+
+    .board-item-header {
+      @include flex-between;
+      margin-bottom: $spacing-sm;
+
+      .board-item-title {
+        font-size: $font-lg;
+        font-weight: 600;
+        color: $text-primary;
+        @include text-ellipsis(1);
+        flex: 1;
+      }
+
+      .board-item-date {
+        font-size: $font-sm;
+        color: $text-light;
+        margin-left: $spacing-md;
+        white-space: nowrap;
+      }
+    }
+
+    .board-item-content {
+      font-size: $font-base;
+      color: $text-secondary;
+      @include text-ellipsis(2);
+      line-height: 1.6;
+    }
+
+    .board-item-footer {
+      @include flex-between;
+      margin-top: $spacing-md;
+      padding-top: $spacing-md;
+      border-top: 1px solid $border-light;
+
+      .board-item-meta {
+        display: flex;
+        gap: $spacing-md;
+        font-size: $font-sm;
+        color: $text-light;
+      }
+    }
+  }
+}
+
+// 로딩 스피너
+%loading-spinner {
+  @include flex-center;
+  padding: $spacing-xxl;
+  color: $primary-color;
+}
+
+// 빈 상태 메시지
+%empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl;
+  color: $text-light;
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: $spacing-md;
+    opacity: 0.6;
+  }
+
+  .empty-message {
+    font-size: $font-lg;
+    color: $text-secondary;
+  }
+}

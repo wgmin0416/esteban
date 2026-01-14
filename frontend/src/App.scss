@@ -1,0 +1,17 @@
+@use './styles/variables' as *;
+@use './styles/mixins' as *;
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+// 메인 컨텐츠 영역이 푸터를 밀어내도록
+main,
+.AppRoutes {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

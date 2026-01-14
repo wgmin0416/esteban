@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import './Topbar.css';
+import './TopBar.scss';
 import useAuthStore from '../../../../store/useAuthStore';
 
 const TopBar = ({
@@ -23,7 +23,10 @@ const TopBar = ({
 
   return (
     <div className="top-bar">
-      <div className="logo">🏀Esteban</div>
+      <div className="logo">
+        <span>🏀</span>
+        <span>Esteban</span>
+      </div>
 
       <div className="right-menu">
         <button onClick={toggleTheme}>{isDarkMode ? t.lightMode : t.darkMode}</button>

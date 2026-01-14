@@ -2,7 +2,7 @@ import { useState } from 'react';
 import useAuthStore from '../../../store/useAuthStore';
 import TopBar from './bar/TopBar';
 import NavBar from './bar/NavBar';
-import './Header.css';
+import './Header.scss';
 import { useEffect } from 'react';
 
 const Header = () => {

@@ -1,0 +1,210 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.home-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+}
+
+// 슬라이더 스타일
+.home-slider {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  background-color: $background-dark;
+
+  @include respond-to(md) {
+    height: 500px;
+  }
+
+  .slider-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .slider-wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
+  }
+
+  .slide {
+    position: relative;
+    min-width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .slide-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+      padding: $spacing-xl;
+      color: white;
+
+      .slide-title {
+        font-size: $font-2xl;
+        font-weight: 600;
+        margin: 0;
+
+        @include respond-to(md) {
+          font-size: $font-3xl;
+        }
+      }
+    }
+  }
+
+  .slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 2rem;
+    cursor: pointer;
+    @include flex-center;
+    transition: all $transition-base;
+    z-index: 10;
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    &.slider-btn-prev {
+      left: $spacing-md;
+    }
+
+    &.slider-btn-next {
+      right: $spacing-md;
+    }
+  }
+
+  .slider-indicators {
+    position: absolute;
+    bottom: $spacing-md;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: $spacing-sm;
+    z-index: 10;
+
+    .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      background: transparent;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &.active {
+        background: white;
+        transform: scale(1.2);
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.7);
+      }
+    }
+  }
+}
+
+// 메인 컨텐츠
+.home-content {
+  padding: $spacing-xxl $spacing-md;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .login-prompt {
+    @include flex-center;
+    flex-direction: column;
+    padding: $spacing-xxl;
+    text-align: center;
+
+    h2 {
+      font-size: $font-2xl;
+      margin-bottom: $spacing-lg;
+      color: $text-light;
+    }
+
+    .btn {
+      @include button-base;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      color: white;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 4px 6px $shadow-md;
+      font-weight: 600;
+
+      &:hover {
+        background: linear-gradient(135deg, $primary-hover, $primary-color);
+        box-shadow: 0 6px 12px $shadow-hover;
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .quick-links {
+    h2 {
+      font-size: $font-2xl;
+      margin-bottom: $spacing-xl;
+      color: $text-light;
+      text-align: center;
+    }
+
+    .quick-links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: $spacing-lg;
+
+      @include respond-to(md) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .quick-link-card {
+        @include card;
+        @include flex-center;
+        flex-direction: column;
+        text-decoration: none;
+        color: $text-primary;
+        padding: $spacing-xl;
+        background: linear-gradient(135deg, #ffffff, $background-gray);
+        border: 1px solid $border-light;
+
+        &:hover {
+          transform: translateY(-4px);
+          border-color: $primary-color;
+          background: linear-gradient(135deg, #ffffff, rgba($primary-color, 0.05));
+        }
+
+        .quick-link-icon {
+          font-size: 3rem;
+          margin-bottom: $spacing-md;
+        }
+
+        h3 {
+          font-size: $font-lg;
+          margin: 0;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
