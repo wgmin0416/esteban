@@ -93,10 +93,16 @@
   border: 1px solid $border-color;
   border-radius: $radius-md;
   font-size: $font-base;
+  background-color: white;
+  color: $text-primary;
   transition: border-color $transition-base;
 
   &:focus {
     outline: none;
     border-color: $primary-color;
+  }
+
+  &::placeholder {
+    color: $text-light;
   }
 }

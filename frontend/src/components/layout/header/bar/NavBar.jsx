@@ -35,20 +35,13 @@ const NavBar = ({ language }) => {
         </NavLink>
       </div>
 
-      <div className="nav-group dropdown">
+      <div className="nav-group">
         <NavLink 
           to="/locker-room"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
           {t.lockerRoom}
         </NavLink>
-        <div className="dropdown-menu">
-          <NavLink to="/locker-room/rankings">{t.rankings}</NavLink>
-          <NavLink to="/locker-room/records">{t.records}</NavLink>
-          <NavLink to="/locker-room/schedule">{t.schedule}</NavLink>
-          <NavLink to="/locker-room/team-board">{t.teamBoard}</NavLink>
-          <NavLink to="/locker-room/management">{t.teamManagement}</NavLink>
-        </div>
       </div>
 
       <div className="nav-group dropdown">

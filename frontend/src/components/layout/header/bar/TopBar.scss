@@ -5,12 +5,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-md $spacing-xl;
+  padding: $spacing-md $spacing-md;
   background: linear-gradient(135deg, #ffffff, $background-gray);
   border-bottom: 1px solid $border-light;
+  width: 100%;
+  box-sizing: border-box;
 
   @include respond-to(md) {
-    padding: $spacing-lg $spacing-xxl;
+    padding: $spacing-lg $spacing-md;
   }
 
   .logo {

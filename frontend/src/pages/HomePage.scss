@@ -11,8 +11,10 @@
   position: relative;
   width: 100%;
   height: 400px;
-  overflow: hidden;
-  background-color: $background-dark;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  padding: $spacing-xl 0;
 
   @include respond-to(md) {
     height: 500px;
@@ -21,7 +23,12 @@
   .slider-container {
     position: relative;
     width: 100%;
+    max-width: $container-width;
     height: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: $radius-lg;
+    background-color: $background-dark;
   }
 
   .slider-wrapper {
@@ -128,7 +135,7 @@
   padding: $spacing-xxl $spacing-md;
 
   .container {
-    max-width: 1200px;
+    max-width: $container-width;
     margin: 0 auto;
   }
 

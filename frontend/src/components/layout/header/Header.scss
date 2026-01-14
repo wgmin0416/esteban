@@ -1,12 +1,26 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
-.header {
+.header-wrapper {
   width: 100%;
+  background: white;
+  border-bottom: 1px solid $border-light;
+}
+
+.header {
+  max-width: $container-width;
+  width: 100%;
+  margin: 0 auto;
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: white;
+  background: transparent;
   box-shadow: 0 2px 8px $shadow-sm;
-  border-bottom: 1px solid $border-light;
+  box-sizing: border-box;
+  
+  .header-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }

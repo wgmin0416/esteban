@@ -6,12 +6,54 @@
   @extend %page-container;
 
   .container {
-    max-width: 1000px;
+    max-width: $container-width;
     margin: 0 auto;
   }
 
   .page-title {
     @extend %page-title;
+  }
+
+  .type-toggle {
+    display: flex;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xl;
+    background: $background-gray;
+    padding: $spacing-xs;
+    border-radius: $radius-lg;
+    width: fit-content;
+
+    .toggle-btn {
+      @include button-base;
+      padding: $spacing-sm $spacing-xl;
+      font-size: $font-base;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      color: $text-secondary;
+      border-radius: $radius-md;
+      transition: all $transition-base;
+      position: relative;
+      flex: 1;
+      min-width: 120px;
+
+      &:hover {
+        color: $primary-color;
+        background-color: rgba($primary-color, 0.05);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        box-shadow: 0 2px 8px rgba($primary-color, 0.3);
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          box-shadow: 0 4px 12px rgba($primary-color, 0.4);
+          transform: translateY(-1px);
+        }
+      }
+    }
   }
 
   .search-bar {

@@ -6,7 +6,7 @@
   @extend %page-container;
 
   .container {
-    max-width: 1000px;
+    max-width: $container-width;
     margin: 0 auto;
   }
 

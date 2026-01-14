@@ -1,15 +1,19 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
+@use 'sass:color';
 
 .footer {
-  background: linear-gradient(135deg, $text-primary, darken($text-primary, 5%));
+  max-width: $container-width;
+  width: 100%;
+  margin: 0 auto;
+  background: linear-gradient(135deg, $text-primary, color.adjust($text-primary, $lightness: -5%));
   color: white;
   padding: $spacing-xxl $spacing-md $spacing-lg;
   margin-top: auto;
+  box-sizing: border-box;
 
   .footer-container {
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: $spacing-xl;
@@ -99,10 +103,11 @@
   }
 
   .footer-bottom {
+    width: 100%;
     margin-top: $spacing-xl;
+    padding-top: $spacing-lg;
     text-align: center;
     font-size: $font-xs;
     color: rgba(255, 255, 255, 0.6);
-    padding-top: $spacing-lg;
   }
 }

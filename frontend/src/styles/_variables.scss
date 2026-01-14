@@ -6,22 +6,36 @@ $secondary-color: #06b6d4; // 청록색
 $accent-color: #f59e0b; // 골드/오렌지
 $accent-hover: #d97706;
 
-// 배경색
+// 배경색 (라이트 모드)
 $background-light: #ffffff;
 $background-gray: #f8fafc; // 매우 밝은 회색
 $background-dark: #1e293b; // 진한 슬레이트
 $background-card: #ffffff;
 
-// 텍스트 색상
+// 배경색 (다크 모드)
+$background-dark-light: #1e293b;
+$background-dark-gray: #0f172a;
+$background-dark-card: #1e293b;
+
+// 텍스트 색상 (라이트 모드)
 $text-primary: #0f172a; // 진한 슬레이트
 $text-secondary: #475569; // 중간 회색
 $text-light: #64748b; // 밝은 회색
 $text-dark: rgba(255, 255, 255, 0.95);
 
-// 테두리 색상
+// 텍스트 색상 (다크 모드)
+$text-dark-primary: rgba(255, 255, 255, 0.95);
+$text-dark-secondary: rgba(255, 255, 255, 0.8);
+$text-dark-light: rgba(255, 255, 255, 0.6);
+
+// 테두리 색상 (라이트 모드)
 $border-color: #e2e8f0; // 부드러운 회색
 $border-light: #f1f5f9; // 매우 밝은 회색
 $border-dark: #334155;
+
+// 테두리 색상 (다크 모드)
+$border-dark-color: #334155;
+$border-dark-light: #475569;
 
 // 그림자
 $shadow-sm: rgba(15, 23, 42, 0.05);
@@ -29,6 +43,13 @@ $shadow: rgba(15, 23, 42, 0.1);
 $shadow-md: rgba(15, 23, 42, 0.12);
 $shadow-hover: rgba(15, 23, 42, 0.15);
 $shadow-lg: rgba(15, 23, 42, 0.2);
+
+// 다크 모드 그림자
+$shadow-dark-sm: rgba(0, 0, 0, 0.2);
+$shadow-dark: rgba(0, 0, 0, 0.3);
+$shadow-dark-md: rgba(0, 0, 0, 0.4);
+$shadow-dark-hover: rgba(0, 0, 0, 0.5);
+$shadow-dark-lg: rgba(0, 0, 0, 0.6);
 
 // 상태 색상
 $success-color: #10b981; // 에메랄드 그린
@@ -62,6 +83,9 @@ $breakpoint-sm: 640px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1024px;
 $breakpoint-xl: 1280px;
+
+// 컨테이너 너비
+$container-width: 1000px;
 
 // 테두리 반경
 $radius-sm: 4px;

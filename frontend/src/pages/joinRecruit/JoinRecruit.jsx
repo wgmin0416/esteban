@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import './JoinRecruit.scss';
 
 const JoinRecruitPage = () => {
+  const [type, setType] = useState('team'); // 'team' 또는 'member'
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -10,31 +11,33 @@ const JoinRecruitPage = () => {
   const observerRef = useRef(null);
 
   // 더미 게시글 데이터 (실제로는 API에서 받아올 예정)
-  const generateDummyPosts = (pageNum) => {
+  const generateDummyPosts = (pageNum, postType) => {
     const dummyPosts = [];
+    const typeLabel = postType === 'team' ? '팀' : '팀원';
     for (let i = 0; i < 10; i++) {
       dummyPosts.push({
         id: (pageNum - 1) * 10 + i + 1,
-        title: `팀/팀원 찾기 게시글 ${(pageNum - 1) * 10 + i + 1}`,
-        content: `이것은 게시글 내용입니다. ${'긴 내용을 테스트하기 위한 텍스트입니다. '.repeat(5)}실제로는 API에서 받아온 데이터가 들어갈 예정입니다.`,
+        title: `${typeLabel} 찾기 게시글 ${(pageNum - 1) * 10 + i + 1}`,
+        content: `이것은 ${typeLabel} 찾기 게시글 내용입니다. ${'긴 내용을 테스트하기 위한 텍스트입니다. '.repeat(5)}실제로는 API에서 받아온 데이터가 들어갈 예정입니다.`,
         author: `작성자${i + 1}`,
         date: new Date(Date.now() - i * 86400000).toLocaleDateString('ko-KR'),
         views: Math.floor(Math.random() * 1000),
         comments: Math.floor(Math.random() * 50),
+        type: postType,
       });
     }
     return dummyPosts;
   };
 
   // 게시글 로드 함수 (실제로는 API 호출)
-  const loadPosts = useCallback(async (pageNum, query = '') => {
+  const loadPosts = useCallback(async (pageNum, query = '', postType = 'team') => {
     if (loading) return;
     setLoading(true);
 
     // 시뮬레이션: API 호출 지연
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const newPosts = generateDummyPosts(pageNum);
+    const newPosts = generateDummyPosts(pageNum, postType);
     
     if (query) {
       // 검색 필터링 (실제로는 서버에서 처리)
@@ -54,15 +57,15 @@ const JoinRecruitPage = () => {
 
   // 초기 로드
   useEffect(() => {
-    loadPosts(1, searchQuery);
+    loadPosts(1, searchQuery, type);
   }, []);
 
-  // 검색어 변경 시 재로드
+  // 타입 또는 검색어 변경 시 재로드
   useEffect(() => {
     setPage(1);
     setPosts([]);
-    loadPosts(1, searchQuery);
-  }, [searchQuery]);
+    loadPosts(1, searchQuery, type);
+  }, [searchQuery, type]);
 
   // 무한 스크롤 옵저버
   const lastPostElementRef = useCallback(
@@ -73,25 +76,48 @@ const JoinRecruitPage = () => {
         if (entries[0].isIntersecting && hasMore) {
           const nextPage = page + 1;
           setPage(nextPage);
-          loadPosts(nextPage, searchQuery);
+          loadPosts(nextPage, searchQuery, type);
         }
       });
       if (node) observerRef.current.observe(node);
     },
-    [loading, hasMore, page, searchQuery, loadPosts]
+    [loading, hasMore, page, searchQuery, type, loadPosts]
   );
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
     setPosts([]);
-    loadPosts(1, searchQuery);
+    loadPosts(1, searchQuery, type);
+  };
+
+  const handleTypeChange = (newType) => {
+    setType(newType);
+    setPage(1);
+    setPosts([]);
+    setSearchQuery('');
   };
 
   return (
     <div className="join-recruit-page">
       <div className="container">
         <h1 className="page-title">팀/팀원 찾기</h1>
+
+        {/* 타입 토글 버튼 */}
+        <div className="type-toggle">
+          <button
+            className={`toggle-btn ${type === 'team' ? 'active' : ''}`}
+            onClick={() => handleTypeChange('team')}
+          >
+            팀 찾기
+          </button>
+          <button
+            className={`toggle-btn ${type === 'member' ? 'active' : ''}`}
+            onClick={() => handleTypeChange('member')}
+          >
+            팀원 찾기
+          </button>
+        </div>
 
         {/* 검색바 */}
         <div className="search-bar">

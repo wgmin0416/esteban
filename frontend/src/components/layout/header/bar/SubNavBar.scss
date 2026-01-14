@@ -1,54 +1,48 @@
 @use '../../../../styles/variables' as *;
 @use '../../../../styles/mixins' as *;
 
-.nav-bar {
-  display: flex;
-  align-items: center;
-  gap: $spacing-lg;
-  padding: 0 $spacing-md;
-  background: white;
+.sub-nav-bar {
+  background: $background-gray;
   border-bottom: 1px solid $border-light;
-  overflow-x: auto;
+  padding: 0 $spacing-md;
   width: 100%;
   box-sizing: border-box;
 
-  @include respond-to(md) {
-    padding: 0 $spacing-md;
-    gap: $spacing-xl;
-  }
+  .sub-nav-container {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    overflow-x: auto;
+    padding: $spacing-sm 0;
 
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: $background-gray;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: $border-color;
-    border-radius: 2px;
-
-    &:hover {
-      background: $primary-color;
+    &::-webkit-scrollbar {
+      height: 4px;
     }
-  }
 
-  .nav-group {
-    position: relative;
-    padding: $spacing-md 0;
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-    > a {
+    &::-webkit-scrollbar-thumb {
+      background: $border-color;
+      border-radius: 2px;
+
+      &:hover {
+        background: $primary-color;
+      }
+    }
+
+    a {
       display: block;
+      padding: $spacing-sm $spacing-md;
       text-decoration: none;
       color: $text-secondary;
       font-weight: 600;
-      font-size: $font-base;
-      padding: $spacing-xs $spacing-sm;
+      font-size: $font-sm;
       border-radius: $radius-md;
       transition: all $transition-base;
-      position: relative;
       white-space: nowrap;
+      position: relative;
 
       &::after {
         content: '';
@@ -67,19 +61,19 @@
         background-color: rgba($primary-color, 0.05);
 
         &::after {
-          width: calc(100% - #{$spacing-sm * 2});
+          width: calc(100% - #{$spacing-md * 2});
         }
       }
 
       &.active {
         color: $primary-color;
         background-color: rgba($primary-color, 0.1);
+        font-weight: 700;
 
         &::after {
-          width: calc(100% - #{$spacing-sm * 2});
+          width: calc(100% - #{$spacing-md * 2});
         }
       }
     }
   }
-
 }
