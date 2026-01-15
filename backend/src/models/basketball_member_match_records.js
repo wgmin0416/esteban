@@ -18,6 +18,13 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'match_id',
         as: 'match',
       });
+
+      // BasketballMatchSquad
+      // BasketballMemberMatchRecord(N) : BasketballMatchSquad(1) - 한 스쿼드가 여러 개의 경기 기록을 가질 수 있음
+      BasketballMemberMatchRecord.belongsTo(models.BasketballMatchSquad, {
+        foreignKey: 'squad_id',
+        as: 'squad',
+      });
     }
   }
 
@@ -45,9 +52,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: '매치 ID',
       },
+      squad_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: '스쿼드 ID',
+      },
       minutes: {
         type: DataTypes.TINYINT.UNSIGNED,
-        allowNull: false,
+        allowNull: true,
         comment: '플레이 타임',
       },
       is_win: {
@@ -135,13 +147,13 @@ module.exports = (sequelize, DataTypes) => {
       },
       oreb: {
         type: DataTypes.TINYINT.UNSIGNED,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 0,
         comment: '공격 리바운드 개수',
       },
       dreb: {
         type: DataTypes.TINYINT.UNSIGNED,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 0,
         comment: '수비 리바운드 개수',
       },
@@ -169,7 +181,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '블록 개수',
       },
-      to_cnt: {
+      to: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
