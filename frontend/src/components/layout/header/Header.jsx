@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../../store/useAuthStore';
+import useLanguageStore from '../../../store/useLanguageStore';
 import TopBar from './bar/TopBar';
 import NavBar from './bar/NavBar';
 import SubNavBar from './bar/SubNavBar';
@@ -9,6 +10,8 @@ const Header = () => {
   const myInfo = useAuthStore((state) => state.myInfo);
   const isLogin = useAuthStore((state) => state.isLogin);
   const logout = useAuthStore((state) => state.logout);
+  const language = useLanguageStore((state) => state.language);
+  const toggleLanguage = useLanguageStore((state) => state.toggleLanguage);
 
   useEffect(() => {
     console.log('Header isLogin? ', isLogin);
@@ -16,10 +19,8 @@ const Header = () => {
   }, [isLogin]);
 
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [language, setLanguage] = useState('KR');
 
   const toggleUserMenu = () => setShowUserMenu(!showUserMenu);
-  const toggleLanguage = () => setLanguage(language === 'KR' ? 'EN' : 'KR');
 
   const handleLogout = () => {
     logout();
