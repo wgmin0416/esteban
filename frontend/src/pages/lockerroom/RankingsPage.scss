@@ -1,0 +1,391 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.rankings-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    @extend %page-title;
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+
+    .page-subtitle {
+      font-size: $font-sm;
+      font-weight: 400;
+      color: $text-secondary;
+      font-style: italic;
+    }
+  }
+
+  .rankings-filters {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-xxl;
+    padding: $spacing-lg;
+    background: $background-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+
+    @include respond-to(md) {
+      gap: $spacing-xl;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      flex: 1;
+
+      label {
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $text-secondary;
+      }
+
+      .filter-select {
+        @include input-base;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+        font-weight: 500;
+        cursor: pointer;
+        background-color: $background-light;
+        border: 2px solid $border-color;
+
+        &:focus {
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+        }
+
+        &:hover {
+          border-color: $primary-light;
+        }
+      }
+    }
+  }
+
+  .top-player-card {
+    @include card;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: $spacing-xxl;
+    margin-bottom: $spacing-xl;
+    background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
+    border: 2px solid rgba($primary-color, 0.2);
+
+    @include respond-to(md) {
+      flex-direction: row;
+      text-align: left;
+      padding: $spacing-xxl;
+    }
+
+    .top-player-image {
+      position: relative;
+      margin-bottom: $spacing-lg;
+
+      @include respond-to(md) {
+        margin-bottom: 0;
+        margin-right: $spacing-xxl;
+      }
+
+      img {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid $primary-color;
+        box-shadow: 0 4px 12px $shadow-md;
+
+        @include respond-to(md) {
+          width: 180px;
+          height: 180px;
+        }
+      }
+
+      .rank-badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: linear-gradient(135deg, $accent-color, $accent-hover);
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: $font-lg;
+        box-shadow: 0 4px 8px $shadow-md;
+        border: 3px solid white;
+      }
+    }
+
+    .top-player-info {
+      flex: 1;
+
+      .top-player-name {
+        font-size: $font-3xl;
+        font-weight: 800;
+        margin-bottom: $spacing-lg;
+        color: $text-primary;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .top-player-stats {
+        .stat-item {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-xs;
+          margin-bottom: $spacing-md;
+
+          .stat-label {
+            font-size: $font-sm;
+            color: $text-secondary;
+            font-weight: 600;
+          }
+
+          .stat-value {
+            font-size: $font-3xl;
+            font-weight: 800;
+            color: $primary-color;
+          }
+        }
+
+        .stat-details {
+          display: flex;
+          gap: $spacing-lg;
+          font-size: $font-sm;
+          color: $text-light;
+          margin-top: $spacing-md;
+        }
+      }
+    }
+  }
+
+  .rankings-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .duo-item {
+      .duo-players {
+        display: flex;
+        align-items: center;
+        gap: $spacing-lg;
+        flex: 1;
+
+        .duo-player {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: $spacing-sm;
+
+          .ranking-player-image {
+            width: 60px;
+            height: 60px;
+
+            img {
+              width: 100%;
+              height: 100%;
+            }
+          }
+
+          .ranking-player-name {
+            font-size: $font-sm;
+            font-weight: 500;
+          }
+        }
+
+        .duo-vs {
+          font-size: $font-lg;
+          font-weight: 600;
+          color: $text-secondary;
+          padding: 0 $spacing-md;
+        }
+      }
+    }
+  }
+
+  .ranking-item {
+    @include card;
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+    transition: transform $transition-base, box-shadow $transition-base;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px $shadow-md;
+    }
+
+    // 금메달 (1위)
+    &.rank-gold {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.1));
+      border: 2px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shine 3s infinite;
+      }
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+      }
+
+      .ranking-number {
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      }
+    }
+
+    // 은메달 (2위)
+    &.rank-silver {
+      background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(211, 211, 211, 0.1));
+      border: 2px solid rgba(192, 192, 192, 0.4);
+      box-shadow: 0 2px 8px rgba(192, 192, 192, 0.2);
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(192, 192, 192, 0.4);
+      }
+
+      .ranking-number {
+        color: #c0c0c0;
+        text-shadow: 0 0 8px rgba(192, 192, 192, 0.4);
+      }
+    }
+
+    // 동메달 (3위)
+    &.rank-bronze {
+      background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(184, 115, 51, 0.1));
+      border: 2px solid rgba(205, 127, 50, 0.4);
+      box-shadow: 0 2px 8px rgba(205, 127, 50, 0.2);
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(205, 127, 50, 0.4);
+      }
+
+      .ranking-number {
+        color: #cd7f32;
+        text-shadow: 0 0 8px rgba(205, 127, 50, 0.4);
+      }
+    }
+
+    .ranking-number {
+      font-size: $font-2xl;
+      font-weight: 800;
+      color: $text-light;
+      min-width: 50px;
+      text-align: center;
+      transition: color 0.3s ease;
+    }
+
+    .ranking-player-image {
+      img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid $border-color;
+        display: block;
+        background: $background-gray;
+      }
+    }
+
+    // 1위 항목의 이미지 크기 조정
+    &.rank-gold {
+      .ranking-player-image {
+        img {
+          width: 80px;
+          height: 80px;
+          border: 3px solid rgba(255, 215, 0, 0.6);
+          box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+      }
+    }
+
+    .ranking-player-info {
+      flex: 1;
+
+      .ranking-player-name {
+        font-size: $font-lg;
+        font-weight: 600;
+        color: $text-primary;
+        margin-bottom: $spacing-xs;
+      }
+
+      .ranking-player-stats {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+        font-size: $font-sm;
+        color: $text-secondary;
+
+        @include respond-to(md) {
+          flex-direction: row;
+          gap: $spacing-md;
+          align-items: center;
+        }
+
+        .ranking-value {
+          font-weight: 700;
+          color: $primary-color;
+          font-size: $font-base;
+        }
+
+        .ranking-games {
+          color: $text-light;
+          font-size: $font-sm;
+        }
+      }
+    }
+  }
+
+  .loading-spinner {
+    @extend %loading-spinner;
+  }
+
+  .empty-state {
+    @extend %empty-state;
+  }
+}
+
+// 반짝임 애니메이션
+@keyframes shine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  50% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+}

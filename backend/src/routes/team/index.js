@@ -14,5 +14,15 @@ router.post('/set-default', authMiddleware, teamController.setDefaultTeam);
 router.get('/members', authMiddleware, teamController.getMembers);
 // 회원 조회
 router.get('/member', authMiddleware, teamController.getMember);
+// 랭킹 사용 가능한 연도 목록 조회
+router.get('/rankings/years', authMiddleware, teamController.getRankingsYears);
+// 랭킹 조회
+router.get('/rankings', authMiddleware, teamController.getRankings);
+// 듀오 랭킹 조회
+router.get('/rankings/duos', authMiddleware, teamController.getDuoRankings);
+// 기록 사용 가능한 연도 목록 조회
+router.get('/records/years', authMiddleware, teamController.getRecordsYears);
+// 기록 조회
+router.get('/records', authMiddleware, teamController.getRecords);
 
 module.exports = router;

@@ -1,0 +1,350 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.schedule-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    @extend %page-title;
+  }
+
+  .section-title {
+    font-size: $font-2xl;
+    font-weight: 700;
+    color: $text-primary;
+    margin-bottom: $spacing-lg;
+  }
+
+  // 다가오는 일정 섹션
+  .upcoming-schedules-section {
+    margin-bottom: $spacing-xxl;
+  }
+
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $spacing-lg;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: $spacing-md;
+    }
+  }
+
+  .schedule-square-card {
+    @include card;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 1;
+    padding: $spacing-md;
+    transition: transform $transition-base, box-shadow $transition-base;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 16px $shadow-hover;
+    }
+
+    .schedule-date {
+      flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      text-align: center;
+      padding: $spacing-sm;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      border-radius: $radius-md;
+      color: white;
+      box-shadow: 0 2px 6px $shadow-md;
+      margin-bottom: $spacing-md;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      .date-day {
+        font-size: $font-xl;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .date-month {
+        font-size: $font-xs;
+        margin-top: $spacing-xs;
+        opacity: 0.9;
+      }
+    }
+
+    .schedule-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      .schedule-title {
+        font-size: $font-base;
+        font-weight: 700;
+        color: $text-primary;
+        margin: 0;
+        @include text-ellipsis(2);
+        line-height: 1.4;
+      }
+
+      .schedule-info {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-secondary;
+        margin-top: $spacing-xs;
+
+        span {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+        }
+      }
+
+      .btn-vote {
+        margin-top: auto;
+        padding: $spacing-xs $spacing-sm;
+        font-size: $font-xs;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        border: none;
+        border-radius: $radius-sm;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 6px $shadow-md;
+        }
+      }
+
+      .badge {
+        margin-top: auto;
+        padding: $spacing-xs $spacing-sm;
+        font-size: $font-xs;
+        border-radius: $radius-sm;
+        font-weight: 600;
+        text-align: center;
+
+        &.badge-confirmed {
+          background: rgba(34, 197, 94, 0.1);
+          color: #22c55e;
+          border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+      }
+    }
+  }
+
+  // 캘린더 섹션
+  .calendar-section {
+    @include card;
+    padding: $spacing-xl;
+  }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+
+    .btn-nav {
+      background: $background-gray;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      padding: $spacing-sm $spacing-md;
+      font-size: $font-lg;
+      font-weight: 600;
+      color: $text-primary;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &:hover {
+        background: $primary-color;
+        color: white;
+        border-color: $primary-color;
+      }
+    }
+
+    .calendar-month {
+      font-size: $font-2xl;
+      font-weight: 700;
+      color: $text-primary;
+      margin: 0;
+    }
+  }
+
+  .calendar {
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: $spacing-xs;
+      margin-bottom: $spacing-sm;
+
+      .weekday {
+        text-align: center;
+        font-weight: 600;
+        font-size: $font-sm;
+        color: $text-secondary;
+        padding: $spacing-sm;
+      }
+    }
+
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: $spacing-xs;
+
+      .calendar-day {
+        aspect-ratio: 1;
+        border: 1px solid $border-color;
+        border-radius: $radius-sm;
+        padding: $spacing-xs;
+        cursor: pointer;
+        transition: all $transition-base;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background: white;
+
+        &:hover {
+          background: rgba($primary-color, 0.05);
+          border-color: $primary-color;
+        }
+
+        &.empty {
+          border: none;
+          cursor: default;
+          background: transparent;
+
+          &:hover {
+            background: transparent;
+            border: none;
+          }
+        }
+
+        &.today {
+          background: rgba($primary-color, 0.1);
+          border-color: $primary-color;
+          font-weight: 700;
+
+          .day-number {
+            color: $primary-color;
+          }
+        }
+
+        &.has-schedule {
+          border-color: $secondary-color;
+
+          .schedule-dot {
+            position: absolute;
+            bottom: 4px;
+            width: 6px;
+            height: 6px;
+            background: $secondary-color;
+            border-radius: 50%;
+          }
+        }
+
+        &.selected {
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          border-color: $primary-color;
+          color: white;
+
+          .day-number {
+            color: white;
+          }
+
+          .schedule-dot {
+            background: white;
+          }
+        }
+
+        .day-number {
+          font-size: $font-base;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  // 선택된 날짜의 일정 상세
+  .selected-date-schedules {
+    margin-top: $spacing-xl;
+    padding-top: $spacing-xl;
+    border-top: 2px solid $border-color;
+
+    h3 {
+      font-size: $font-xl;
+      font-weight: 700;
+      color: $text-primary;
+      margin-bottom: $spacing-lg;
+    }
+
+    .schedule-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+    }
+
+    .schedule-item {
+      @include card;
+      display: flex;
+      align-items: center;
+      gap: $spacing-lg;
+      padding: $spacing-md;
+
+      .schedule-time {
+        font-size: $font-lg;
+        font-weight: 700;
+        color: $primary-color;
+        min-width: 60px;
+      }
+
+      .schedule-details {
+        flex: 1;
+
+        .schedule-title {
+          font-size: $font-base;
+          font-weight: 600;
+          color: $text-primary;
+          margin-bottom: $spacing-xs;
+        }
+
+        .schedule-location {
+          font-size: $font-sm;
+          color: $text-secondary;
+        }
+      }
+
+      .btn-vote {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        border: none;
+        border-radius: $radius-sm;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 6px $shadow-md;
+        }
+      }
+    }
+  }
+}
