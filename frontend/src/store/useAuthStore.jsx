@@ -5,6 +5,9 @@ const useAuthStore = create((set) => ({
   // 로그인 여부
   isLogin: false,
   setIsLogin: (status) => set({ isLogin: status }),
+  // 인증 체크 중
+  isAuthChecking: true,
+  setIsAuthChecking: (status) => set({ isAuthChecking: status }),
   // 내 정보
   myInfo: {},
   setMyInfo: (value) =>
@@ -68,14 +71,18 @@ const useAuthStore = create((set) => ({
   // 회원정보
   getMyInfo: async () => {
     try {
+      set({ isAuthChecking: true });
       const response = await apiRequest('get', '/user/my-info', null, {
         withCredentials: true,
       });
       if (response?.data) {
-        set({ isLogin: true, myInfo: response.data });
+        set({ isLogin: true, myInfo: response.data, isAuthChecking: false });
+      } else {
+        set({ isLogin: false, myInfo: {}, isAuthChecking: false });
       }
     } catch (error) {
       console.error(error);
+      set({ isLogin: false, myInfo: {}, isAuthChecking: false });
       throw error;
     }
   },

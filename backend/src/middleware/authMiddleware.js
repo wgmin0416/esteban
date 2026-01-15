@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 // 인증 미들웨어
 const authMiddleware = async (req, res, next) => {
   let accessToken = req.cookies.access_token;
+  
   // 개발 과정 관리자 계정 로그인
   if (
     (process.env.NODE_ENV === 'local' || process.env.NODE_ENV === 'development') &&
@@ -17,9 +18,10 @@ const authMiddleware = async (req, res, next) => {
     // Authorization 헤더에서 "Bearer " 접두사 제거
     accessToken = req.headers.authorization.replace(/^Bearer\s+/i, '');
   }
+  
   // 1. Access Token이 없을 경우 로그아웃
   if (!accessToken) {
-    console.log('!access token');
+    logger.info('Access Token is missing');
     await logout(req, res);
     return;
   }
@@ -70,9 +72,10 @@ const authMiddleware = async (req, res, next) => {
           EX: 60 * 60 * 24 * 7,
         });
 
-        // Access token 전달 (Cookie)
+        // 새로운 Access Token을 쿠키에 설정
         res.cookie('access_token', newAccessToken, config.accessToken.cookieOptions);
         req.user = decodedAccessToken;
+        logger.info(`[LOGIN ID]: ${decodedAccessToken.id} / Access Token refreshed successfully`);
         return next();
       } catch (e) {
         // Refresh Token 만료

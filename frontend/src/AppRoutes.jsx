@@ -40,6 +40,7 @@ function AppRoutes() {
   }, [navigate]);
 
   const isLogin = useAuthStore((state) => state.isLogin);
+  const isAuthChecking = useAuthStore((state) => state.isAuthChecking);
 
   return (
     <Routes>
@@ -49,7 +50,7 @@ function AppRoutes() {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <ProfilePage />
           </ProtectedRoute>
         }
@@ -57,7 +58,7 @@ function AppRoutes() {
       <Route
         path="/create-team"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <CreateTeamPage />
           </ProtectedRoute>
         }
@@ -74,7 +75,7 @@ function AppRoutes() {
       <Route
         path="/locker-room"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <LockerRoomHomePage />
           </ProtectedRoute>
         }
@@ -82,7 +83,7 @@ function AppRoutes() {
       <Route
         path="/locker-room/rankings"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <RankingsPage />
           </ProtectedRoute>
         }
@@ -90,7 +91,7 @@ function AppRoutes() {
       <Route
         path="/locker-room/records"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <RecordsPage />
           </ProtectedRoute>
         }
@@ -98,7 +99,7 @@ function AppRoutes() {
       <Route
         path="/locker-room/schedule"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <SchedulePage />
           </ProtectedRoute>
         }
@@ -106,7 +107,7 @@ function AppRoutes() {
       <Route
         path="/locker-room/team-board"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <BoardPage />
           </ProtectedRoute>
         }
@@ -114,7 +115,7 @@ function AppRoutes() {
       <Route
         path="/locker-room/management"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <ManagementPage />
           </ProtectedRoute>
         }
@@ -124,7 +125,7 @@ function AppRoutes() {
       <Route
         path="/join-recruit"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <JoinRecruitPage />
           </ProtectedRoute>
         }
@@ -134,7 +135,7 @@ function AppRoutes() {
       <Route
         path="/match-board"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <MatchBoardPage />
           </ProtectedRoute>
         }
@@ -144,7 +145,7 @@ function AppRoutes() {
       <Route
         path="/court-board"
         element={
-          <ProtectedRoute isAuthenticated={isLogin}>
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <CourtBoardPage />
           </ProtectedRoute>
         }

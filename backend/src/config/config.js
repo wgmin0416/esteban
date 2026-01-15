@@ -30,7 +30,7 @@ const config = {
     expiresIn: '5m',
     cookieOptions: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' ? true : false, // 개발 환경에서 http 허용
       sameSite: 'lax',
       maxAge: 1000 * 60 * 5, // 5분
       path: '/',
