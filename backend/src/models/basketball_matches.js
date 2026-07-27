@@ -15,12 +15,8 @@ module.exports = (sequelize, DataTypes) => {
         as: 'match_records',
       });
 
-      // BasketballMemberPeriodRecord
-      // BasketballMatch(1) : BasketballMemberPeriodRecord(N) - 한 경기가 여러 개의 기간 별 선수 기록을 가질 수 있음
-      BasketballMatch.hasMany(models.BasketballMemberPeriodRecord, {
-        foreignKey: 'match_id',
-        as: 'period_records',
-      });
+      // (제거) BasketballMemberPeriodRecord 는 기간(월) 집계 테이블로 match_id 컬럼이 없어
+      // 경기와 직접 연관되지 않는다. 기존 hasMany(match_id) 는 잘못된 관계라 삭제함.
 
       // BasketballMatchSquad
       // BasketballMatch(1) : BasketballMatchSquad(N) - 한 경기가 여러 스쿼드를 가질 수 있음

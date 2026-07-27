@@ -4,7 +4,13 @@ import apiRequest from '../../lib/apiRequest';
 const AuthPage = () => {
   useEffect(() => {
     // 1. 소셜 회원가입 후 로그인 하는 경우
-    const query = new URLSearchParams(window.location.search);
+    // HashRouter: 쿼리가 해시(#/auth?message=join)에 담기므로 해시 우선 파싱
+    const hash = window.location.hash;
+    const qIndex = hash.indexOf('?');
+    const query =
+      qIndex !== -1
+        ? new URLSearchParams(hash.substring(qIndex + 1))
+        : new URLSearchParams(window.location.search);
     const message = query.get('message');
     if (message && message === 'join') {
       window.opener.postMessage({ type: 'JOIN_SUCCESS' }, window.location.origin);

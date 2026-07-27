@@ -10,93 +10,363 @@
     margin: 0 auto;
   }
 
-  .page-title {
-    @extend %page-title;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+
+    .page-title {
+      font-size: $font-3xl;
+      font-weight: 700;
+      color: $text-primary;
+    }
+
+    .btn-primary {
+      @include button-base;
+      padding: $spacing-sm $spacing-xl;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      color: white;
+      font-weight: 600;
+      font-size: $font-base;
+
+      &:hover {
+        background: linear-gradient(135deg, $primary-hover, $primary-color);
+        transform: translateY(-1px);
+      }
+    }
   }
 
-  .search-bar {
-    @extend %search-bar;
+  // 필터 섹션
+  .filter-section {
+    background: $background-light;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
 
-    .date-filter-wrapper {
-      position: relative;
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      margin-bottom: $spacing-md;
 
-      .btn-date-filter {
-        @include button-base;
-        background-color: white;
-        border: 1px solid $border-color;
-        color: $text-primary;
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-label {
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $text-secondary;
+        min-width: 60px;
+      }
+
+      .btn-group {
         display: flex;
-        align-items: center;
         gap: $spacing-sm;
-        padding: $spacing-sm $spacing-md;
-        white-space: nowrap;
-        font-weight: 500;
-        box-shadow: 0 1px 2px $shadow-sm;
+        flex-wrap: wrap;
+      }
 
-        .calendar-icon {
-          font-size: $font-lg;
-        }
+      .filter-btn {
+        @include button-base;
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+        font-weight: 600;
+        background: white;
+        color: $text-secondary;
+        border: 1px solid $border-color;
 
         &:hover {
           border-color: $primary-color;
           color: $primary-color;
-          box-shadow: 0 2px 4px $shadow;
+        }
+
+        &.active {
+          background: $primary-color;
+          color: white;
+          border-color: $primary-color;
+        }
+
+        // 타입별 색상
+        &.filter-btn-team.active {
+          background: #3b82f6;
+          border-color: #3b82f6;
+        }
+
+        &.filter-btn-guest.active {
+          background: #06b6d4;
+          border-color: #06b6d4;
+        }
+
+        &.filter-btn-pickup.active {
+          background: #10b981;
+          border-color: #10b981;
         }
       }
 
-      .btn-clear-filter {
-        @include button-base;
-        background-color: $background-gray;
-        border: 1px solid $border-color;
-        color: $text-light;
-        padding: $spacing-xs $spacing-sm;
-        margin-left: $spacing-xs;
+      .filter-select,
+      .filter-date {
+        @include input-base;
+        padding: $spacing-xs $spacing-md;
         font-size: $font-sm;
-        min-width: auto;
-
-        &:hover {
-          background-color: $error-light;
-          color: $error-color;
-          border-color: $error-color;
-        }
+        min-width: 150px;
       }
+    }
 
-      .date-picker-dropdown {
-        position: absolute;
-        top: calc(100% + $spacing-sm);
-        right: 0;
-        background: white;
-        border: 1px solid $border-color;
-        border-radius: $radius-lg;
-        box-shadow: 0 4px 12px $shadow-md;
-        padding: $spacing-md;
-        z-index: 100;
+    @include respond-to(md) {
+      .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
 
-        .date-input {
-          @include input-base;
-          width: auto;
-          min-width: 200px;
+        .filter-label {
+          min-width: auto;
+        }
+
+        .btn-group {
+          width: 100%;
         }
       }
     }
   }
 
-  .board-container {
-    @extend %board-container;
+  // 검색
+  .search-form {
+    display: flex;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xl;
 
-    .end-message {
-      text-align: center;
-      padding: $spacing-xl;
-      color: $text-light;
-      font-size: $font-sm;
+    .search-input {
+      @include input-base;
+      flex: 1;
+      padding: $spacing-sm $spacing-md;
+      font-size: $font-base;
+    }
+
+    .btn-search {
+      @include button-base;
+      padding: $spacing-sm $spacing-md;
+      background-color: $primary-color;
+      color: white;
+      font-size: $font-lg;
+
+      &:hover {
+        background-color: $primary-hover;
+      }
     }
   }
 
+  // 로딩 및 빈 상태
+  .loading-spinner,
   .empty-state {
-    @extend %empty-state;
+    text-align: center;
+    padding: $spacing-xxl;
+    font-size: $font-lg;
+    color: $text-secondary;
   }
 
-  .loading-spinner {
-    @extend %loading-spinner;
+  // 게시글 리스트 (컴팩트)
+  .board-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  // 게시글 아이템
+  .board-item {
+    @include card;
+    padding: $spacing-md $spacing-lg;
+    cursor: pointer;
+    transition: all $transition-base;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid transparent;
+
+    &:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px $shadow-md;
+    }
+
+    // 타입별 좌측 보더 색상
+    &.board-item-team {
+      border-left-color: #3b82f6;
+
+      &:hover {
+        background: rgba(59, 130, 246, 0.02);
+      }
+    }
+
+    &.board-item-guest {
+      border-left-color: #06b6d4;
+
+      &:hover {
+        background: rgba(6, 182, 212, 0.02);
+      }
+    }
+
+    &.board-item-pickup {
+      border-left-color: #10b981;
+
+      &:hover {
+        background: rgba(16, 185, 129, 0.02);
+      }
+    }
+
+    .board-main {
+      flex: 1;
+      min-width: 0;
+
+      .board-top {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        margin-bottom: $spacing-xs;
+
+        .type-badge {
+          font-size: $font-xs;
+          padding: 2px 8px;
+          border-radius: $radius-sm;
+          font-weight: 600;
+
+          &.type-team {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+          }
+
+          &.type-guest {
+            background: rgba(6, 182, 212, 0.1);
+            color: #06b6d4;
+          }
+
+          &.type-pickup {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+          }
+        }
+
+        .match-date {
+          font-size: $font-lg;
+          font-weight: 700;
+          color: $text-primary;
+        }
+      }
+
+      .board-title {
+        font-size: $font-lg;
+        font-weight: 600;
+        color: $text-primary;
+        margin: 0 0 $spacing-sm 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .board-info {
+        display: flex;
+        gap: $spacing-md;
+        font-size: $font-sm;
+        color: $text-secondary;
+        flex-wrap: wrap;
+
+        span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+      }
+    }
+
+    .board-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: $spacing-sm;
+      margin-left: $spacing-lg;
+
+      .participants {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: $spacing-sm $spacing-md;
+        background: linear-gradient(
+          135deg,
+          rgba($primary-color, 0.05),
+          rgba($secondary-color, 0.05)
+        );
+        border-radius: $radius-md;
+        border: 1px solid rgba($primary-color, 0.2);
+
+        .count {
+          font-size: $font-xl;
+          font-weight: 700;
+          color: $primary-color;
+          line-height: 1;
+        }
+
+        .label {
+          font-size: $font-xs;
+          color: $text-secondary;
+        }
+      }
+
+      .board-actions {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+
+        .btn-icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: $font-lg;
+          transition: transform $transition-base;
+          padding: 0;
+
+          &:hover {
+            transform: scale(1.2);
+          }
+
+          &.liked {
+            animation: heartbeat 0.3s ease-in-out;
+          }
+        }
+
+        .views {
+          font-size: $font-sm;
+          color: $text-light;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+      }
+    }
+
+    @include respond-to(md) {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .board-right {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin-left: 0;
+        margin-top: $spacing-md;
+        padding-top: $spacing-md;
+        border-top: 1px solid $border-light;
+      }
+    }
+  }
+}
+
+// 하트 애니메이션
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
   }
 }

@@ -1,0 +1,197 @@
+@use 'sass:color';
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.match-board-form-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-md;
+
+  .form-header {
+    margin-bottom: $spacing-xxl;
+    text-align: center;
+
+    .form-header-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-md;
+
+      .icon {
+        font-size: 4rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .text {
+        .form-title {
+          font-size: $font-3xl;
+          font-weight: 700;
+          color: $text-primary;
+          margin-bottom: $spacing-xs;
+        }
+
+        .form-subtitle {
+          font-size: $font-base;
+          color: $text-secondary;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  .match-form {
+    @include card;
+    padding: $spacing-xxl;
+
+    .form-group {
+      margin-bottom: $spacing-xl;
+
+      label {
+        display: block;
+        font-size: $font-base;
+        font-weight: 600;
+        color: $text-secondary;
+        margin-bottom: $spacing-sm;
+      }
+
+      &.required label::after {
+        content: ' *';
+        color: $error-color;
+      }
+
+      .form-input,
+      .form-textarea {
+        @include input-base;
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+      }
+
+      .form-hint {
+        display: block;
+        margin-top: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 120px;
+        font-family: inherit;
+      }
+
+      // 라디오 버튼
+      .radio-group {
+        display: flex;
+        gap: $spacing-lg;
+        flex-wrap: wrap;
+
+        .radio-label {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+          cursor: pointer;
+          font-size: $font-base;
+          color: $text-primary;
+
+          input[type='radio'] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+          }
+
+          span {
+            user-select: none;
+          }
+
+          &:hover {
+            color: $primary-color;
+          }
+        }
+      }
+
+      // 체크박스
+      .checkbox-group {
+        display: flex;
+        gap: $spacing-lg;
+        flex-wrap: wrap;
+
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+          cursor: pointer;
+          font-size: $font-base;
+          color: $text-primary;
+
+          input[type='checkbox'] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+          }
+
+          span {
+            user-select: none;
+          }
+
+          &:hover {
+            color: $primary-color;
+          }
+        }
+      }
+    }
+
+    // 2열 레이아웃
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-lg;
+
+      @include respond-to(md) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    // 버튼
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-xxl;
+      padding-top: $spacing-xl;
+      border-top: 1px solid $border-light;
+
+      .btn {
+        @include button-base;
+        padding: $spacing-sm $spacing-xxl;
+        font-size: $font-base;
+        font-weight: 600;
+      }
+
+      .btn-secondary {
+        background-color: $background-gray;
+        color: $text-secondary;
+        border: 1px solid $border-color;
+
+        &:hover:not(:disabled) {
+          background-color: color.scale($background-gray, $lightness: -5%);
+        }
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          transform: translateY(-1px);
+        }
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

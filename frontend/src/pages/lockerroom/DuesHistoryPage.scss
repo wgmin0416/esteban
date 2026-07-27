@@ -1,0 +1,170 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.dues-history-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+
+    .btn-back {
+      @include button-base;
+      align-self: flex-start;
+      background: $background-gray;
+      color: $text-primary;
+      border: 1px solid $border-color;
+      padding: $spacing-xs $spacing-md;
+      border-radius: $radius-md;
+
+      &:hover {
+        background: $border-light;
+      }
+    }
+
+    .page-title {
+      @extend %page-title;
+      margin: 0;
+    }
+  }
+
+  .loading,
+  .empty {
+    @extend %empty-state;
+    margin-top: $spacing-xxl;
+  }
+
+  .dues-history-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .dues-section {
+    @include card;
+
+    &.unpaid {
+      border-left: 4px solid $danger-color;
+    }
+
+    &.paid {
+      border-left: 4px solid $success-color;
+    }
+
+    .section-title {
+      font-size: $font-lg;
+      font-weight: 800;
+      color: $text-primary;
+      margin-bottom: $spacing-md;
+    }
+  }
+
+  .dues-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .due-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    border-radius: $radius-md;
+    border: 1px solid $border-color;
+    background: white;
+
+    &.unpaid {
+      background: rgba($danger-color, 0.03);
+      border-color: rgba($danger-color, 0.25);
+    }
+
+    .due-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .due-date {
+      font-weight: 700;
+      color: $text-primary;
+    }
+
+    .due-reason {
+      color: $text-secondary;
+      font-size: $font-sm;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 360px;
+    }
+
+    .due-amount {
+      font-weight: 800;
+      color: $danger-color;
+      white-space: nowrap;
+    }
+  }
+
+  .dues-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .due-card {
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    background: white;
+
+    &.paid {
+      background: rgba($success-color, 0.03);
+      border-color: rgba($success-color, 0.25);
+    }
+
+    .due-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: $spacing-sm;
+      gap: $spacing-md;
+    }
+
+    .due-date {
+      font-weight: 800;
+      color: $text-primary;
+    }
+
+    .due-amount {
+      font-weight: 900;
+      color: $success-color;
+      white-space: nowrap;
+    }
+
+    .due-reason {
+      color: $text-secondary;
+      font-size: $font-sm;
+      margin-bottom: $spacing-sm;
+    }
+
+    .due-paid-at {
+      font-size: $font-xs;
+      color: $text-light;
+    }
+  }
+}
+

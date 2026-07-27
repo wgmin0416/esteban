@@ -1,11 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Montserrat:wght@600;700;800;900&display=swap');
+
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Black Han Sans', 'Montserrat', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light;
   color: #0f172a;
-  background-color: #ffffff;
+  background-color: #0b1020;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,44 +20,66 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(to bottom, #f8fafc, #ffffff);
+  overflow-x: hidden;
+  color: #0f172a;
+  /* Court Energy: 라이트 베이스 + 오렌지·블루 글로우 메시 */
+  background-color: #f5f7fc;
+  background-image:
+    radial-gradient(900px 380px at 100% -8%, rgba(30, 107, 255, 0.12), transparent 70%),
+    radial-gradient(760px 360px at -8% -6%, rgba(255, 90, 31, 0.14), transparent 70%);
+  background-attachment: fixed;
 }
 
 a {
-  font-weight: 500;
-  color: #2563eb;
+  font-weight: 600;
+  color: #ff5a1f;
   text-decoration: inherit;
   transition: color 0.2s ease;
 }
 a:hover {
-  color: #1d4ed8;
+  color: #e8480f;
+}
+
+/* 디스플레이 타이포 — 역동적, 강한 존재감 */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 h1 {
   font-size: 3.2em;
-  line-height: 1.1;
 }
 
 button {
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
-  font-weight: 500;
+  font-weight: 700;
   font-family: inherit;
-  background-color: #f1f5f9;
+  background-color: #eef1f8;
+  color: #0f172a;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 button:hover {
-  border-color: #2563eb;
-  background-color: #e2e8f0;
+  border-color: #ff5a1f;
+  background-color: #e6e9f2;
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 3px solid rgba(255, 90, 31, 0.5);
+  outline-offset: 2px;
 }

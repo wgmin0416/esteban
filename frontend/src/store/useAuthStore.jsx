@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 import apiRequest from '../lib/apiRequest';
+import { isNative } from '../lib/auth/platform';
+import { buildAuthorizeUrl, buildState } from '../lib/auth/oauth';
+import { loginNative } from '../lib/auth/loginNative';
+import { clearAccessToken } from '../lib/auth/tokenStore';
+
+// 웹: 팝업으로 authorize URL 오픈 (결과는 postMessage로 LoginPage가 수신)
+const openWebLogin = (provider) => {
+  const url = buildAuthorizeUrl(provider, buildState(false));
+  window.open(url, '_blank', 'width=500,height=600');
+};
 
 const useAuthStore = create((set) => ({
   // 로그인 여부
@@ -14,46 +24,11 @@ const useAuthStore = create((set) => ({
     set({
       myInfo: value,
     }),
-  // 구글 로그인
-  requestGoogleLogin: () => {
-    const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
-    const options = {
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
-      response_type: 'code',
-      scope: 'openid profile',
-      access_type: 'online', // referesh token 발급 안 받음
-      include_granted_scopes: 'false', // 이전에 승인한 권한 중복 묻지 않기
-      state: crypto.randomUUID(), // CSRF 공격 방지
-      prompt: 'select_account',
-    };
-    const qs = new URLSearchParams(options);
-    window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-  },
-  // 네이버 로그인
-  requestNaverLogin: () => {
-    const rootUrl = 'https://nid.naver.com/oauth2.0/authorize';
-    const options = {
-      response_type: 'code',
-      client_id: import.meta.env.VITE_NAVER_CLIENT_ID,
-      redirect_uri: import.meta.env.VITE_NAVER_REDIRECT_URL,
-      state: crypto.randomUUID(),
-    };
-    const qs = new URLSearchParams(options);
-    window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-  },
-  // 카카오 로그인
-  requestKakaoLogin: () => {
-    const rootUrl = 'https://kauth.kakao.com/oauth/authorize';
-    const options = {
-      response_type: 'code',
-      client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
-      redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URL,
-      state: crypto.randomUUID(),
-    };
-    const qs = new URLSearchParams(options);
-    window.open(`${rootUrl}?${qs.toString()}`, '_blank', 'width=500,height=600');
-  },
+  // 소셜 로그인 (웹: 팝업 / 앱: 시스템 브라우저 + 딥링크)
+  // 웹은 undefined 반환(결과는 postMessage), 앱은 Promise<{type}> 반환
+  requestGoogleLogin: () => (isNative() ? loginNative('google') : openWebLogin('google')),
+  requestNaverLogin: () => (isNative() ? loginNative('naver') : openWebLogin('naver')),
+  requestKakaoLogin: () => (isNative() ? loginNative('kakao') : openWebLogin('kakao')),
   // 로그아웃
   logout: async () => {
     try {
@@ -61,10 +36,13 @@ const useAuthStore = create((set) => ({
         withCredentials: true,
       });
       if (response.success) {
+        if (isNative()) await clearAccessToken();
         set({ isLogin: false, myInfo: {} });
       }
       return;
     } catch (error) {
+      // 서버 호출 실패해도 앱 로컬 토큰은 정리
+      if (isNative()) await clearAccessToken();
       console.error(error);
     }
   },
@@ -82,7 +60,15 @@ const useAuthStore = create((set) => ({
       }
     } catch (error) {
       console.error(error);
-      set({ isLogin: false, myInfo: {}, isAuthChecking: false });
+      // 401 에러(인증 실패)일 때만 로그아웃 상태로 변경
+      // 다른 에러(네트워크 등)는 기존 로그인 상태 유지
+      const status = error?.response?.status;
+      if (status === 401) {
+        set({ isLogin: false, myInfo: {}, isAuthChecking: false });
+      } else {
+        // 다른 에러는 isAuthChecking만 false로 설정하고 로그인 상태는 유지
+        set((state) => ({ ...state, isAuthChecking: false }));
+      }
       throw error;
     }
   },

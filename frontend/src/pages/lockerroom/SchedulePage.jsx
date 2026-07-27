@@ -1,9 +1,20 @@
 import { useState, useEffect } from 'react';
+import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
+import EmptyState from '../../components/common/EmptyState';
 import './SchedulePage.scss';
 
 const SchedulePage = () => {
+  const teamInfo = useTeamStore((state) => state.teamInfo);
+  const getTeamInfo = useTeamStore((state) => state.getTeamInfo);
   const language = useLanguageStore((state) => state.language);
+
+  useEffect(() => {
+    if (!teamInfo) {
+      getTeamInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 더미 일정 데이터
   const [upcomingSchedules] = useState([
@@ -114,6 +125,16 @@ const SchedulePage = () => {
       date.getFullYear() === today.getFullYear()
     );
   };
+
+  if (!teamInfo) {
+    return (
+      <div className="schedule-page">
+        <div className="container">
+          <EmptyState showActions={true} actionPath="/recruit" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="schedule-page">

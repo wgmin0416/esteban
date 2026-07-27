@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../../store/useAuthStore';
 import useLanguageStore from '../../../store/useLanguageStore';
+// import SportTab from './bar/SportTab'; // 나중에 종목 탭 추가 시 사용
 import TopBar from './bar/TopBar';
 import NavBar from './bar/NavBar';
 import SubNavBar from './bar/SubNavBar';
@@ -27,23 +28,33 @@ const Header = () => {
   };
 
   return (
-    <div className="header-wrapper">
-      <header className="header">
-        <div className="header-container">
-        <TopBar
-          language={language}
-          toggleLanguage={toggleLanguage}
-          isLogin={isLogin}
-          handleLogout={handleLogout}
-          showUserMenu={showUserMenu}
-          toggleUserMenu={toggleUserMenu}
-          myInfo={myInfo}
-        />
+    <>
+      {/* 나중에 종목 탭 추가 시 주석 해제 */}
+      {/* <div className="sport-tab-wrapper">
+        <SportTab />
+      </div> */}
+      <div className="header-wrapper">
+        <header className="header">
+          <div className="header-container">
+            <TopBar
+              language={language}
+              toggleLanguage={toggleLanguage}
+              isLogin={isLogin}
+              handleLogout={handleLogout}
+              showUserMenu={showUserMenu}
+              toggleUserMenu={toggleUserMenu}
+              myInfo={myInfo}
+            />
+          </div>
+        </header>
+      </div>
+      <div className="nav-sticky-wrapper">
+        <div className="nav-sticky-container">
           <NavBar language={language} />
           <SubNavBar language={language} />
         </div>
-      </header>
-    </div>
+      </div>
+    </>
   );
 };
 

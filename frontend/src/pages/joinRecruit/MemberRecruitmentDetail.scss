@@ -1,0 +1,243 @@
+@use 'sass:color';
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.member-recruitment-detail-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .loading-spinner,
+  .empty-state {
+    text-align: center;
+    padding: $spacing-xxl;
+    font-size: $font-lg;
+    color: $text-secondary;
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+
+    .btn {
+      @include button-base;
+      padding: $spacing-xs $spacing-lg;
+      font-size: $font-sm;
+      font-weight: 600;
+    }
+
+    .btn-back {
+      background-color: $background-gray;
+      color: $text-secondary;
+      border: 1px solid $border-color;
+
+      &:hover {
+        background-color: color.scale($background-gray, $lightness: -5%);
+      }
+    }
+
+    .btn-group {
+      display: flex;
+      gap: $spacing-sm;
+    }
+
+    .btn-secondary {
+      background-color: $background-gray;
+      color: $text-secondary;
+      border: 1px solid $border-color;
+
+      &:hover {
+        background-color: $primary-color;
+        color: white;
+        border-color: $primary-color;
+      }
+    }
+
+    .btn-danger {
+      background-color: $error-color;
+      color: white;
+
+      &:hover {
+        background-color: color.scale($error-color, $lightness: -10%);
+      }
+    }
+  }
+
+  .detail-content {
+    @include card;
+    padding: $spacing-xxl;
+
+    .team-header {
+      display: flex;
+      align-items: center;
+      gap: $spacing-lg;
+      margin-bottom: $spacing-xl;
+      padding-bottom: $spacing-xl;
+      border-bottom: 2px solid $border-light;
+
+      .team-logo-large {
+        width: 80px;
+        height: 80px;
+        border-radius: $radius-md;
+        object-fit: cover;
+        border: 2px solid $border-light;
+      }
+
+      .team-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+
+        .team-name {
+          font-size: $font-3xl;
+          font-weight: 700;
+          color: $text-primary;
+          margin: 0;
+        }
+
+        .competition-badge {
+          padding: $spacing-xs $spacing-md;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+          font-size: $font-sm;
+          font-weight: 600;
+          border-radius: $radius-md;
+        }
+      }
+    }
+
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-sm;
+      color: $text-light;
+      margin-bottom: $spacing-xxl;
+      padding-bottom: $spacing-lg;
+      border-bottom: 2px solid $border-light;
+
+      .author {
+        font-weight: 600;
+        color: $text-secondary;
+      }
+
+      .divider {
+        color: $border-color;
+      }
+    }
+
+    .detail-info {
+      margin-bottom: $spacing-xxl;
+
+      .info-row {
+        display: flex;
+        padding: $spacing-md 0;
+        border-bottom: 1px solid $border-light;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .label {
+          flex: 0 0 150px;
+          font-size: $font-base;
+          font-weight: 600;
+          color: $text-secondary;
+
+          @include respond-to(md) {
+            flex: 0 0 120px;
+            font-size: $font-sm;
+          }
+        }
+
+        .value {
+          flex: 1;
+          font-size: $font-base;
+          color: $text-primary;
+        }
+      }
+    }
+
+    .detail-section {
+      margin-bottom: $spacing-xxl;
+
+      .section-title {
+        font-size: $font-lg;
+        font-weight: 700;
+        color: $text-primary;
+        margin-bottom: $spacing-md;
+        padding-bottom: $spacing-sm;
+        border-bottom: 2px solid $border-light;
+      }
+
+      .section-content {
+        font-size: $font-base;
+        color: $text-secondary;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    }
+
+    // 가입 신청 버튼 섹션
+    .action-section {
+      margin-top: $spacing-xxl;
+      padding-top: $spacing-xl;
+      border-top: 2px solid $border-light;
+      display: flex;
+      justify-content: center;
+
+      .btn-apply {
+        @include button-base;
+        padding: $spacing-md $spacing-xxl;
+        font-size: $font-lg;
+        font-weight: 700;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        min-width: 240px;
+
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px $shadow-lg;
+        }
+
+        &:disabled {
+          background: $text-light;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+      }
+
+      .btn-cancel {
+        @include button-base;
+        padding: $spacing-md $spacing-xxl;
+        font-size: $font-lg;
+        font-weight: 700;
+        background: white;
+        color: #ef4444;
+        border: 2px solid #ef4444;
+        min-width: 240px;
+
+        &:hover:not(:disabled) {
+          background: #ef4444;
+          color: white;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}

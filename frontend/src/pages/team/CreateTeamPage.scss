@@ -1,0 +1,130 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.create-team-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .form-header {
+    margin-bottom: $spacing-xxl;
+    text-align: center;
+
+    .form-header-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-md;
+
+      .icon {
+        font-size: 4rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .text {
+        .form-title {
+          font-size: $font-3xl;
+          font-weight: 700;
+          color: $text-primary;
+          margin-bottom: $spacing-xs;
+        }
+
+        .form-subtitle {
+          font-size: $font-base;
+          color: $text-secondary;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  .team-form {
+    @include card;
+    padding: $spacing-xxl;
+
+    .form-group {
+      margin-bottom: $spacing-xl;
+
+      &.required {
+        label::after {
+          content: ' *';
+          color: $error-color;
+        }
+      }
+
+      label {
+        display: block;
+        font-size: $font-base;
+        font-weight: 600;
+        color: $text-primary;
+        margin-bottom: $spacing-sm;
+      }
+
+      .form-input,
+      .form-textarea {
+        @include input-base;
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 150px;
+        font-family: inherit;
+        line-height: 1.6;
+      }
+
+      .form-hint {
+        display: block;
+        margin-top: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+        line-height: 1.5;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-xxl;
+      padding-top: $spacing-xl;
+      border-top: 1px solid $border-light;
+
+      .btn {
+        @include button-base;
+        padding: $spacing-sm $spacing-xl;
+        font-size: $font-base;
+        font-weight: 600;
+        min-width: 120px;
+
+        &.btn-primary {
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          color: white;
+
+          &:hover {
+            background: linear-gradient(135deg, $primary-hover, $primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px $shadow-md;
+          }
+        }
+
+        &.btn-secondary {
+          background: $background-light;
+          color: $text-primary;
+          border: 1px solid $border-color;
+
+          &:hover {
+            background: $background-gray;
+            border-color: $text-secondary;
+          }
+        }
+      }
+    }
+  }
+}

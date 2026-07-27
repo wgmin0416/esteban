@@ -25,6 +25,69 @@
     }
   }
 
+  // 빈 팀 상태
+  .empty-team-state {
+    @include flex-center;
+    flex-direction: column;
+    padding: $spacing-xxl;
+    text-align: center;
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: $spacing-md;
+    }
+
+    h2 {
+      font-size: $font-2xl;
+      margin-bottom: $spacing-sm;
+      color: $text-primary;
+    }
+
+    p {
+      color: $text-secondary;
+      margin-bottom: $spacing-lg;
+    }
+
+    .empty-state-actions {
+      display: flex;
+      gap: $spacing-md;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      @include button-base;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 600;
+      min-width: 120px;
+
+      &.btn-primary {
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        box-shadow: 0 4px 6px $shadow-md;
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          box-shadow: 0 6px 12px $shadow-hover;
+          transform: translateY(-2px);
+        }
+      }
+
+      &.btn-secondary {
+        background: $background-light;
+        color: $text-primary;
+        border: 1px solid $border-color;
+
+        &:hover {
+          background: $background-gray;
+          border-color: $primary-color;
+          color: $primary-color;
+        }
+      }
+    }
+  }
+
   .rankings-filters {
     display: flex;
     gap: $spacing-lg;
@@ -71,106 +134,146 @@
     }
   }
 
-  .top-player-card {
+  // 메달 단상 (1~3위)
+  .top-podium {
     @include card;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: $spacing-xxl;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $spacing-lg;
+    padding: $spacing-xl;
     margin-bottom: $spacing-xl;
-    background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($secondary-color, 0.05));
-    border: 2px solid rgba($primary-color, 0.2);
+    background: linear-gradient(
+      135deg,
+      rgba($primary-color, 0.04),
+      rgba($secondary-color, 0.04)
+    );
+    border: 1px solid rgba($primary-color, 0.15);
 
-    @include respond-to(md) {
-      flex-direction: row;
-      text-align: left;
-      padding: $spacing-xxl;
+    @include respond-to(sm) {
+      align-items: flex-end;
     }
 
-    .top-player-image {
-      position: relative;
-      margin-bottom: $spacing-lg;
+    .podium-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: $spacing-sm;
 
-      @include respond-to(md) {
-        margin-bottom: 0;
-        margin-right: $spacing-xxl;
-      }
-
-      img {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid $primary-color;
-        box-shadow: 0 4px 12px $shadow-md;
-
-        @include respond-to(md) {
-          width: 180px;
-          height: 180px;
-        }
-      }
-
-      .rank-badge {
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: linear-gradient(135deg, $accent-color, $accent-hover);
-        color: white;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
+      .podium-medal {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        font-size: $font-lg;
-        box-shadow: 0 4px 8px $shadow-md;
-        border: 3px solid white;
+        font-size: $font-sm;
+        color: #fff;
+        box-shadow: 0 2px 6px $shadow-sm;
+      }
+
+      .podium-figure {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: $spacing-sm;
+      }
+
+      .podium-player-head {
+        position: relative;
+        z-index: 2;
+
+        img {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3px solid $border-color;
+          background: $background-gray;
+          box-shadow: 0 3px 8px $shadow-md;
+        }
+      }
+
+      .podium-player-body {
+        position: relative;
+        z-index: 1;
+        margin-top: -$spacing-xs;
+        width: 60px;
+        height: 70px;
+        border-radius: $radius-sm $radius-sm 0 0;
+        background: linear-gradient(180deg, $primary-color, darken($primary-color, 8%));
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+
+        &::before,
+        &::after {
+          content: '';
+          position: absolute;
+          top: 18px;
+          width: 16px;
+          height: 30px;
+          border-radius: 16px;
+          background: linear-gradient(180deg, lighten($primary-color, 5%), $primary-color);
+        }
+
+        &::before {
+          left: -10px;
+        }
+
+        &::after {
+          right: -10px;
+        }
+      }
+
+      .podium-player-name {
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $text-primary;
+      }
+
+      .podium-main-stat {
+        margin-top: $spacing-xs;
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+
+        .stat-label {
+          font-size: $font-xs;
+          color: $text-secondary;
+          font-weight: 500;
+        }
+
+        .stat-value {
+          font-size: $font-xl;
+          font-weight: 800;
+          color: $primary-color;
+        }
       }
     }
 
-    .top-player-info {
-      flex: 1;
+    .podium-silver {
+      .podium-medal {
+        background: linear-gradient(135deg, #c0c0c0, #e0e0e0);
+      }
+    }
 
-      .top-player-name {
-        font-size: $font-3xl;
-        font-weight: 800;
-        margin-bottom: $spacing-lg;
-        color: $text-primary;
-        background: linear-gradient(135deg, $primary-color, $secondary-color);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+    .podium-gold {
+      .podium-medal {
+        background: linear-gradient(135deg, #ffd700, #ffed4a);
       }
 
-      .top-player-stats {
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          gap: $spacing-xs;
-          margin-bottom: $spacing-md;
+      .podium-player-head img {
+        width: 84px;
+        height: 84px;
+        border-color: rgba(255, 215, 0, 0.7);
+        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+      }
+    }
 
-          .stat-label {
-            font-size: $font-sm;
-            color: $text-secondary;
-            font-weight: 600;
-          }
-
-          .stat-value {
-            font-size: $font-3xl;
-            font-weight: 800;
-            color: $primary-color;
-          }
-        }
-
-        .stat-details {
-          display: flex;
-          gap: $spacing-lg;
-          font-size: $font-sm;
-          color: $text-light;
-          margin-top: $spacing-md;
-        }
+    .podium-bronze {
+      .podium-medal {
+        background: linear-gradient(135deg, #cd7f32, #e0a766);
       }
     }
   }

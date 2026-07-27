@@ -1,0 +1,62 @@
+@use '../../../../styles/variables' as *;
+@use '../../../../styles/mixins' as *;
+
+.sport-tab {
+  width: 100%;
+  background: $background-light;
+  border-bottom: 1px solid $border-color;
+  box-shadow: 0 1px 3px $shadow-sm;
+
+  .sport-tab-container {
+    max-width: $container-width;
+    margin: 0 auto;
+    display: flex;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+
+    .sport-button {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+      padding: $spacing-sm $spacing-lg;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: $font-base;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: all $transition-base;
+      position: relative;
+
+      &:hover:not(:disabled) {
+        color: $text-primary;
+        background: $background-gray;
+      }
+
+      &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+        background: rgba($primary-color, 0.05);
+      }
+
+      &.single {
+        cursor: default;
+        opacity: 1;
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: 1;
+      }
+
+      .sport-icon {
+        font-size: $font-lg;
+      }
+
+      .sport-label {
+        white-space: nowrap;
+      }
+    }
+  }
+}

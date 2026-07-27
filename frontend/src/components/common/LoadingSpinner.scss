@@ -1,0 +1,10 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.loading-spinner {
+  @include flex-center;
+  padding: $spacing-xxl;
+  font-size: $font-lg;
+  color: $text-secondary;
+  min-height: 400px;
+}

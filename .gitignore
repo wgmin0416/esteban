@@ -8,3 +8,5 @@ build/
 .idea/
 .prettierrc
 logs/
+.DS_Store
+*.rdb

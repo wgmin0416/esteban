@@ -11,18 +11,26 @@ import HomePage from './pages/HomePage';
 import LockerRoomHomePage from './pages/lockerroom/LockerRoomHomePage';
 import RankingsPage from './pages/lockerroom/RankingsPage';
 import RecordsPage from './pages/lockerroom/RecordsPage';
+import RecordForm from './pages/lockerroom/RecordForm';
 import SchedulePage from './pages/lockerroom/SchedulePage';
 import BoardPage from './pages/lockerroom/BoardPage';
 import ManagementPage from './pages/lockerroom/ManagementPage';
+import DuesHistoryPage from './pages/lockerroom/DuesHistoryPage';
 
 // join recruit page
-import JoinRecruitPage from './pages/joinRecruit/JoinRecruit';
+import MemberRecruitment from './pages/joinRecruit/MemberRecruitment';
+import MemberRecruitmentForm from './pages/joinRecruit/MemberRecruitmentForm';
+import MemberRecruitmentDetail from './pages/joinRecruit/MemberRecruitmentDetail';
 
 // match board page
 import MatchBoardPage from './pages/matchBoard/MatchBoard';
+import MatchBoardForm from './pages/matchBoard/MatchBoardForm';
+import MatchBoardDetail from './pages/matchBoard/MatchBoardDetail';
 
 // court board page
 import CourtBoardPage from './pages/courtBoard/CourtBoardPage';
+import CourtBoardForm from './pages/courtBoard/CourtBoardForm';
+import CourtBoardDetail from './pages/courtBoard/CourtBoardDetail';
 
 // error page
 import NotfoundPage from './pages/error/NotfoundPage';
@@ -97,6 +105,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/locker-room/records/create"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <RecordForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/locker-room/schedule"
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
@@ -120,13 +136,45 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
-      {/* join or recruit */}
       <Route
-        path="/join-recruit"
+        path="/locker-room/management/dues"
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
-            <JoinRecruitPage />
+            <DuesHistoryPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* recruit */}
+      <Route
+        path="/recruit"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MemberRecruitment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruit/create"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MemberRecruitmentForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruit/edit/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MemberRecruitmentForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recruit/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MemberRecruitmentDetail />
           </ProtectedRoute>
         }
       />
@@ -140,6 +188,30 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/match-board/create"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MatchBoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/match-board/edit/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MatchBoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/match-board/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <MatchBoardDetail />
+          </ProtectedRoute>
+        }
+      />
 
       {/* court board */}
       <Route
@@ -147,6 +219,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <CourtBoardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/court-board/create"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <CourtBoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/court-board/edit/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <CourtBoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/court-board/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <CourtBoardDetail />
           </ProtectedRoute>
         }
       />

@@ -181,7 +181,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '블록 개수',
       },
-      to: {
+      turnover: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
@@ -224,6 +224,13 @@ module.exports = (sequelize, DataTypes) => {
       underscored: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
+      indexes: [
+        {
+          unique: true,
+          fields: ['match_id', 'user_id'],
+          name: 'uq_match_record_match_user',
+        },
+      ],
     }
   );
 

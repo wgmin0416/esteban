@@ -1,0 +1,85 @@
+@use '../../../styles/variables' as *;
+
+$tab-height: 56px;
+
+.bottom-tab-bar {
+  display: none; // 데스크톱 기본 숨김 (모바일/네이티브에서만 노출)
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  align-items: stretch;
+  height: calc(#{$tab-height} + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: $ink;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -6px 24px rgba(11, 16, 32, 0.45);
+
+  .tab-item {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color $transition-fast, transform $transition-fast;
+
+    .tab-icon {
+      display: inline-flex;
+
+      svg {
+        width: 23px;
+        height: 23px;
+      }
+    }
+
+    .tab-label {
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+
+    &.active {
+      color: $primary-color;
+
+      // 상단 글로우 인디케이터
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 34px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: $gradient-primary;
+        box-shadow: 0 0 12px rgba(255, 90, 31, 0.8);
+      }
+
+      .tab-icon svg {
+        filter: drop-shadow(0 0 8px rgba(255, 90, 31, 0.7));
+      }
+    }
+  }
+}
+
+// 모바일 뷰포트 또는 네이티브 앱에서 노출
+@media (max-width: $breakpoint-md) {
+  .bottom-tab-bar {
+    display: flex;
+  }
+}
+
+body.is-native .bottom-tab-bar {
+  display: flex;
+}

@@ -1,255 +1,287 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
+import useLanguageStore from '../../store/useLanguageStore';
+import apiRequest from '../../lib/apiRequest';
+import { formatMatchDateTime } from '../../utils/dateUtils';
+import { toastWarning } from '../../utils/alert';
 import './MatchBoard.scss';
 
 const MatchBoardPage = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const observerRef = useRef(null);
-  const datePickerRef = useRef(null);
+  const navigate = useNavigate();
+  const isLogin = useAuthStore((state) => state.isLogin);
+  const language = useLanguageStore((state) => state.language);
 
-  // 더미 게시글 데이터 (실제로는 API에서 받아올 예정)
-  const generateDummyPosts = (pageNum) => {
-    const dummyPosts = [];
-    for (let i = 0; i < 10; i++) {
-      const matchDate = new Date(Date.now() + i * 86400000);
-      dummyPosts.push({
-        id: (pageNum - 1) * 10 + i + 1,
-        title: `경기 모집 게시글 ${(pageNum - 1) * 10 + i + 1}`,
-        content: `이것은 경기 모집 게시글 내용입니다. ${'긴 내용을 테스트하기 위한 텍스트입니다. '.repeat(5)}실제로는 API에서 받아온 데이터가 들어갈 예정입니다.`,
-        author: `작성자${i + 1}`,
-        date: new Date(Date.now() - i * 86400000).toLocaleDateString('ko-KR'),
-        matchDate: matchDate.toLocaleDateString('ko-KR'),
-        location: `체육관 ${i + 1}`,
-        views: Math.floor(Math.random() * 1000),
-        comments: Math.floor(Math.random() * 50),
-      });
-    }
-    return dummyPosts;
+  const [boards, setBoards] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [statusFilter, setStatusFilter] = useState('open');
+
+  // 지역 옵션
+  const locations = ['서울', '강남', '신촌', '홍대', '잠실', '수원', '인천', '부천'];
+
+  // 더미 데이터 생성
+  const generateDummyBoards = () => {
+    const types = ['team', 'guest', 'pickup'];
+    const teamNames = ['레드팀', '블루팀', '그린팀', '옐로우팀'];
+
+    return Array.from({ length: 15 }, (_, i) => {
+      const type = types[i % 3];
+      const matchStart = new Date(Date.now() + (i + 1) * 86400000);
+      const matchEnd = new Date(matchStart.getTime() + 2 * 60 * 60 * 1000);
+      const maxParticipants = ((i % 3) + 2) * 5;
+      const currentParticipants = Math.floor(Math.random() * (maxParticipants + 1));
+
+      return {
+        id: i + 1,
+        type,
+        team_name: type !== 'pickup' ? teamNames[i % 4] : null,
+        match_start_time: matchStart.toISOString(),
+        match_end_time: matchEnd.toISOString(),
+        location: `${locations[i % 8]} 체육관`,
+        location_region: locations[i % 8],
+        cost: (i + 1) * 10000,
+        skill_level: type !== 'pickup' ? ['중상', '중', '중하'][i % 3] : null,
+        game_format: '10분 4쿼터 3게임',
+        uniform: '빨강/검정',
+        max_participants: maxParticipants,
+        current_participants: currentParticipants,
+        has_parking: i % 2 === 0,
+        has_air_conditioning: i % 3 === 0,
+        has_shower: i % 2 === 1,
+        description: `경기 모집합니다. 연락 주세요! ${i + 1}`,
+        view_count: Math.floor(Math.random() * 100),
+        is_liked: false,
+        status: currentParticipants >= maxParticipants ? 'closed' : 'open',
+        created_at: new Date(Date.now() - i * 86400000).toISOString(),
+        author: {
+          id: 1,
+          name: `작성자${i + 1}`,
+          profile_image: null,
+        },
+      };
+    });
   };
 
-  // 게시글 로드 함수 (실제로는 API 호출)
-  const loadPosts = useCallback(async (pageNum, query = '', date = null) => {
-    if (loading) return;
+  // 게시글 로드
+  const loadBoards = async () => {
     setLoading(true);
-
-    // 시뮬레이션: API 호출 지연
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const newPosts = generateDummyPosts(pageNum);
-    
-    let filtered = newPosts;
-    
-    if (query) {
-      // 검색 필터링 (실제로는 서버에서 처리)
-      filtered = filtered.filter(
-        (post) =>
-          post.title.includes(query) || post.content.includes(query)
-      );
+    try {
+      const dummyData = generateDummyBoards();
+      setBoards(dummyData);
+    } catch (error) {
+      console.error('게시글 로드 실패:', error);
+      setBoards(generateDummyBoards());
+    } finally {
+      setLoading(false);
     }
-    
-    if (date) {
-      // 날짜 필터링 (실제로는 서버에서 처리)
-      const filterDate = new Date(date).toLocaleDateString('ko-KR');
-      filtered = filtered.filter((post) => post.matchDate === filterDate);
-    }
-    
-    setPosts((prev) => (pageNum === 1 ? filtered : [...prev, ...filtered]));
-    setHasMore(filtered.length === 10);
+  };
 
-    setLoading(false);
-  }, [loading]);
-
-  // 초기 로드
   useEffect(() => {
-    loadPosts(1, searchQuery, selectedDate);
-  }, []);
+    loadBoards();
+  }, [statusFilter, selectedTypes, selectedDate, selectedLocation]);
 
-  // 검색어 또는 날짜 변경 시 재로드
-  useEffect(() => {
-    setPage(1);
-    setPosts([]);
-    loadPosts(1, searchQuery, selectedDate);
-  }, [searchQuery, selectedDate]);
-
-  // 외부 클릭 시 날짜 선택기 닫기
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        datePickerRef.current &&
-        !datePickerRef.current.contains(event.target)
-      ) {
-        setShowDatePicker(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // 무한 스크롤 옵저버
-  const lastPostElementRef = useCallback(
-    (node) => {
-      if (loading) return;
-      if (observerRef.current) observerRef.current.disconnect();
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          loadPosts(nextPage, searchQuery, selectedDate);
-        }
-      });
-      if (node) observerRef.current.observe(node);
-    },
-    [loading, hasMore, page, searchQuery, selectedDate, loadPosts]
-  );
+  const handleTypeToggle = (type) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setPage(1);
-    setPosts([]);
-    loadPosts(1, searchQuery, selectedDate);
+    loadBoards();
   };
 
-  const handleDateSelect = (e) => {
-    const date = e.target.value;
-    setSelectedDate(date || null);
-    setShowDatePicker(false);
-    setPage(1);
-    setPosts([]);
-    loadPosts(1, searchQuery, date || null);
+  const handleCreatePost = () => {
+    if (!isLogin) {
+      toastWarning(language === 'KR' ? '로그인 후 이용해주세요.' : 'Please login first');
+      return;
+    }
+    navigate('/match-board/create');
   };
 
-  const clearDateFilter = () => {
-    setSelectedDate(null);
-    setPage(1);
-    setPosts([]);
-    loadPosts(1, searchQuery, null);
+  const handleBoardClick = (id) => {
+    navigate(`/match-board/${id}`);
+  };
+
+  const handleLike = async (boardId, e) => {
+    e.stopPropagation();
+    if (!isLogin) {
+      toastWarning(language === 'KR' ? '로그인 후 이용해주세요.' : 'Please login first');
+      return;
+    }
+    // TODO: API 연결
+    setBoards((prev) =>
+      prev.map((board) => (board.id === boardId ? { ...board, is_liked: !board.is_liked } : board))
+    );
+  };
+
+  const getTypeLabel = (type) => {
+    const labels = {
+      team: language === 'KR' ? '팀 초청' : 'Team',
+      guest: language === 'KR' ? '게스트' : 'Guest',
+      pickup: language === 'KR' ? '픽업' : 'Pickup',
+    };
+    return labels[type] || type;
   };
 
   return (
     <div className="match-board-page">
       <div className="container">
-        <h1 className="page-title">경기 모집</h1>
+        <div className="page-header">
+          <h1 className="page-title">{language === 'KR' ? '경기 모집' : 'Match Recruitment'}</h1>
+          <button onClick={handleCreatePost} className="btn btn-primary">
+            {language === 'KR' ? '+ 모집 등록' : '+ Create'}
+          </button>
+        </div>
 
-        {/* 검색바 및 필터 */}
-        <div className="search-bar">
-          <form onSubmit={handleSearch} className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="제목 또는 내용으로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
-          <div className="filter-buttons">
-            <div className="date-filter-wrapper" ref={datePickerRef}>
-              <button
-                type="button"
-                className="btn btn-date-filter"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-              >
-                <span className="calendar-icon">📅</span>
-                {selectedDate
-                  ? new Date(selectedDate).toLocaleDateString('ko-KR')
-                  : '날짜 선택'}
-              </button>
-              {selectedDate && (
+        {/* 필터 버튼 */}
+        <div className="filter-section">
+          {/* 타입 필터 (OR 조건) */}
+          <div className="filter-group">
+            <span className="filter-label">{language === 'KR' ? '유형' : 'Type'}</span>
+            <div className="btn-group">
+              {['team', 'guest', 'pickup'].map((type) => (
                 <button
-                  type="button"
-                  className="btn btn-clear-filter"
-                  onClick={clearDateFilter}
-                  title="날짜 필터 제거"
+                  key={type}
+                  onClick={() => handleTypeToggle(type)}
+                  className={`filter-btn filter-btn-${type} ${selectedTypes.includes(type) ? 'active' : ''}`}
                 >
-                  ✕
+                  {getTypeLabel(type)}
                 </button>
-              )}
-              {showDatePicker && (
-                <div className="date-picker-dropdown">
-                  <input
-                    type="date"
-                    value={selectedDate || ''}
-                    onChange={handleDateSelect}
-                    className="date-input"
-                  />
-                </div>
-              )}
+              ))}
             </div>
+          </div>
+
+          {/* 모집 상태 */}
+          <div className="filter-group">
+            <span className="filter-label">{language === 'KR' ? '상태' : 'Status'}</span>
+            <div className="btn-group">
+              <button
+                onClick={() => setStatusFilter('open')}
+                className={`filter-btn ${statusFilter === 'open' ? 'active' : ''}`}
+              >
+                {language === 'KR' ? '모집중' : 'Open'}
+              </button>
+              <button
+                onClick={() => setStatusFilter('closed')}
+                className={`filter-btn ${statusFilter === 'closed' ? 'active' : ''}`}
+              >
+                {language === 'KR' ? '마감' : 'Closed'}
+              </button>
+            </div>
+          </div>
+
+          {/* 지역 필터 */}
+          <div className="filter-group">
+            <span className="filter-label">{language === 'KR' ? '지역' : 'Location'}</span>
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">{language === 'KR' ? '전체' : 'All'}</option>
+              {locations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 날짜 필터 */}
+          <div className="filter-group">
+            <span className="filter-label">{language === 'KR' ? '날짜' : 'Date'}</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="filter-date"
+            />
           </div>
         </div>
 
-        {/* 게시판 */}
-        <div className="board-container">
-          {posts.length === 0 && !loading ? (
-            <div className="empty-state">
-              <div className="empty-icon">📝</div>
-              <div className="empty-message">게시글이 없습니다.</div>
-            </div>
-          ) : (
-            <div className="board-list">
-              {posts.map((post, index) => {
-                if (posts.length === index + 1) {
-                  return (
-                    <div
-                      key={post.id}
-                      ref={lastPostElementRef}
-                      className="board-item"
+        {/* 검색 */}
+        <form onSubmit={handleSearch} className="search-form">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={language === 'KR' ? '제목, 내용, 작성자 검색...' : 'Search...'}
+            className="search-input"
+          />
+          <button type="submit" className="btn btn-search">
+            🔍
+          </button>
+        </form>
+
+        {/* 게시글 목록 */}
+        {loading ? (
+          <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
+        ) : boards.length === 0 ? (
+          <div className="empty-state">
+            {language === 'KR' ? '게시글이 없습니다.' : 'No posts available.'}
+          </div>
+        ) : (
+          <div className="board-list">
+            {boards.map((board) => (
+              <div
+                key={board.id}
+                className={`board-item board-item-${board.type}`}
+                onClick={() => handleBoardClick(board.id)}
+              >
+                {/* 좌측: 경기 정보 */}
+                <div className="board-main">
+                  <div className="board-top">
+                    <span className={`type-badge type-${board.type}`}>
+                      {getTypeLabel(board.type)}
+                    </span>
+                    <span className="match-date">
+                      {formatMatchDateTime(board.match_start_time)}
+                    </span>
+                  </div>
+
+                  <h3 className="board-title">
+                    {board.team_name || (language === 'KR' ? '픽업 게임' : 'Pickup Game')}
+                  </h3>
+
+                  <div className="board-info">
+                    <span className="location">📍 {board.location_region}</span>
+                    <span className="cost">
+                      💰 {board.cost.toLocaleString()}
+                      {language === 'KR' ? '원' : 'KRW'}
+                    </span>
+                    {board.skill_level && <span className="skill">🏀 {board.skill_level}</span>}
+                  </div>
+                </div>
+
+                {/* 우측: 인원/액션 */}
+                <div className="board-right">
+                  <div className="participants">
+                    <span className="count">
+                      {board.current_participants}/{board.max_participants}
+                    </span>
+                    <span className="label">{language === 'KR' ? '명' : ''}</span>
+                  </div>
+
+                  <div className="board-actions">
+                    <button
+                      onClick={(e) => handleLike(board.id, e)}
+                      className={`btn-icon ${board.is_liked ? 'liked' : ''}`}
+                      title={language === 'KR' ? '찜하기' : 'Like'}
                     >
-                      <div className="board-item-header">
-                        <h3 className="board-item-title">{post.title}</h3>
-                        <span className="board-item-date">{post.date}</span>
-                      </div>
-                      <div className="board-item-content">{post.content}</div>
-                      <div className="board-item-footer">
-                        <div className="board-item-meta">
-                          <span>👤 {post.author}</span>
-                          <span>📅 {post.matchDate}</span>
-                          <span>📍 {post.location}</span>
-                          <span>👁️ {post.views}</span>
-                          <span>💬 {post.comments}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={post.id} className="board-item">
-                      <div className="board-item-header">
-                        <h3 className="board-item-title">{post.title}</h3>
-                        <span className="board-item-date">{post.date}</span>
-                      </div>
-                      <div className="board-item-content">{post.content}</div>
-                      <div className="board-item-footer">
-                        <div className="board-item-meta">
-                          <span>👤 {post.author}</span>
-                          <span>📅 {post.matchDate}</span>
-                          <span>📍 {post.location}</span>
-                          <span>👁️ {post.views}</span>
-                          <span>💬 {post.comments}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-              })}
-            </div>
-          )}
-
-          {loading && (
-            <div className="loading-spinner">로딩 중...</div>
-          )}
-
-          {!hasMore && posts.length > 0 && (
-            <div className="end-message">모든 게시글을 불러왔습니다.</div>
-          )}
-        </div>
+                      {board.is_liked ? '❤️' : '🤍'}
+                    </button>
+                    <span className="views">👁️ {board.view_count}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

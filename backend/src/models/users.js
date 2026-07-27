@@ -77,6 +77,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: '이메일',
       },
+      profile_image: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: '프로필 이미지 URL',
+      },
       phone: {
         type: DataTypes.STRING(11),
         allowNull: true,

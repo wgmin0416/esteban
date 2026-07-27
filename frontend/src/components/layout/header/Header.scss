@@ -1,26 +1,45 @@
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
+.sport-tab-wrapper {
+  width: 100%;
+  background: $background-light;
+  border-bottom: 1px solid $border-color;
+}
+
 .header-wrapper {
   width: 100%;
-  background: white;
-  border-bottom: 1px solid $border-light;
+  background: $ink;
+  border-bottom: none;
 }
 
 .header {
   max-width: $container-width;
   width: 100%;
   margin: 0 auto;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
   background: transparent;
-  box-shadow: 0 2px 8px $shadow-sm;
   box-sizing: border-box;
   
   .header-container {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+}
+
+.nav-sticky-wrapper {
+  width: 100%;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px $shadow-sm;
+  border-bottom: 1px solid $border-light;
+
+  .nav-sticky-container {
+    max-width: $container-width;
+    width: 100%;
+    margin: 0 auto;
+    background: white;
   }
 }

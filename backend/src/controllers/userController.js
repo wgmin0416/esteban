@@ -1,12 +1,108 @@
 const { User, Team, BasketballTeamMember } = require('../models/index.js');
+const { BadGatewayError, UnauthorizedError, BadRequestError } = require('../errors/index.js');
+const { Op } = require('sequelize');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const redisClient = require('../config/redisClient.js');
 const config = require('../config/config.js');
 const { maxAge, ...clearCookieOptions } = config.accessToken.cookieOptions;
-const { BadGatewayError, UnauthorizedError, BadRequestError } = require('../errors');
-const { Op } = require('sequelize');
 const logger = require('../utils/logger.js');
+
+// 소셜 로그인 클라이언트 판별 (state 접두사 "app." → 앱, 그 외 → 웹)
+const resolveClientType = (state) =>
+  typeof state === 'string' && state.startsWith('app.') ? 'app' : 'web';
+
+const appRedirectScheme = () => process.env.APP_REDIRECT_SCHEME || 'com.esteban.app://auth';
+
+// 소셜 신규가입 후 처리 (웹: /auth?message=join / 앱: 딥링크)
+const finishSocialJoin = (res, state) => {
+  if (resolveClientType(state) === 'app') {
+    return res.redirect(`${appRedirectScheme()}?message=join`);
+  }
+  // 웹은 HashRouter → 해시 경로로 리다이렉트
+  return res.redirect(`${process.env.FRONT_URL}/#/auth?message=join`);
+};
+
+// 소셜 로그인 완료 처리 (웹: 쿠키+/auth / 앱: 일회용 코드 딥링크)
+const finishSocialLogin = async (res, user, state) => {
+  const accessToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_ACCESS_SECRET_KEY,
+    { expiresIn: '5m' }
+  );
+  const refreshToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_REFRESH_SECRET_KEY,
+    { expiresIn: '7d' }
+  );
+  // refresh token은 서버(Redis)에만 보관 (앱/웹 공통)
+  await redisClient.set(`${user.id}`, refreshToken, { EX: 60 * 60 * 24 * 7 });
+
+  if (resolveClientType(state) === 'app') {
+    // 앱: 토큰을 URL에 직접 싣지 않고 일회용 코드(otc, 60초)로 교환
+    const otc = crypto.randomUUID();
+    await redisClient.set(`otc:${otc}`, accessToken, { EX: 60 });
+    logger.info(`LOGIN(app) ${user.id}`);
+    return res.redirect(`${appRedirectScheme()}?otc=${otc}`);
+  }
+
+  // 웹: httpOnly 쿠키 + 해시 경로(/#/auth) 리다이렉트 (HashRouter)
+  res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
+  logger.info(`LOGIN ${user.id}`);
+  return res.redirect(`${process.env.FRONT_URL}/#/auth`);
+};
+
+// 앱: 일회용 코드(otc)를 access token으로 교환
+const exchangeAppToken = async (req, res) => {
+  const { otc } = req.body;
+  if (!otc) {
+    throw new BadRequestError('otc가 필요합니다.');
+  }
+  const accessToken = await redisClient.get(`otc:${otc}`);
+  if (!accessToken) {
+    throw new UnauthorizedError();
+  }
+  await redisClient.del(`otc:${otc}`); // 1회용 → 즉시 삭제
+  return res.status(200).json({ success: true, access_token: accessToken });
+};
+
+// 개발용 테스트 계정 로그인 (OAuth 없이 실제 세션 발급)
+// .env 의 DEV_LOGIN_ENABLED=true 일 때만 동작. 배포 시 반드시 끌 것.
+const devLogin = async (req, res) => {
+  if (process.env.DEV_LOGIN_ENABLED !== 'true') {
+    throw new UnauthorizedError();
+  }
+
+  // 테스트 계정이 없으면 생성 (developer 권한)
+  const [user] = await User.findOrCreate({
+    where: { provider: 'dev', provider_id: 'test-account' },
+    defaults: {
+      name: '테스트유저',
+      email: 'test@esteban.dev',
+      role: 'developer',
+      provider: 'dev',
+      provider_id: 'test-account',
+    },
+  });
+
+  const accessToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_ACCESS_SECRET_KEY,
+    { expiresIn: '5m' }
+  );
+  const refreshToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_REFRESH_SECRET_KEY,
+    { expiresIn: '7d' }
+  );
+  await redisClient.set(`${user.id}`, refreshToken, { EX: 60 * 60 * 24 * 7 });
+
+  // 웹: httpOnly 쿠키 / 앱: 응답 바디의 access_token 사용
+  res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
+  logger.info(`DEV LOGIN ${user.id}`);
+  return res.status(200).json({ success: true, access_token: accessToken });
+};
 
 // 구글 로그인 콜백 처리
 const googleLoginCallback = async (req, res) => {
@@ -16,7 +112,7 @@ const googleLoginCallback = async (req, res) => {
   // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
   // 4-2. 등록 된 사용자일 경우 token 발급
 
-  const code = req.query.code; // Authorization Code
+  const { code, state } = req.query; // Authorization Code
   try {
     // 1. Authorization Code로 Access Token 요청
     const tokenRes = await axios.post('https://oauth2.googleapis.com/token', null, {
@@ -59,34 +155,10 @@ const googleLoginCallback = async (req, res) => {
         provider_id: id,
       });
       logger.info(`JOIN ${createdUser.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
+      finishSocialJoin(res, state);
     } else {
-      // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        {
-          expiresIn: '5m',
-        }
-      );
-      const refreshToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_REFRESH_SECRET_KEY,
-        {
-          expiresIn: '7d',
-        }
-      );
-
-      // 5. redis에 refresh token 저장
-      await redisClient.set(`${user.id}`, refreshToken, {
-        EX: 60 * 60 * 24 * 7,
-      });
-
-      // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
-
-      logger.info(`LOGIN ${user.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth`);
+      // 4-2. 등록 된 사용자일 경우 token 발급 (웹=쿠키/앱=딥링크 분기)
+      await finishSocialLogin(res, user, state);
     }
   } catch (err) {
     throw new BadGatewayError('Google 로그인 중 오류가 발생했습니다.');
@@ -140,34 +212,10 @@ const naverLoginCallback = async (req, res) => {
         provider_id: id,
       });
       logger.info(`JOIN ${createdUser.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
+      finishSocialJoin(res, state);
     } else {
-      // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        {
-          expiresIn: '5m',
-        }
-      );
-      const refreshToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_REFRESH_SECRET_KEY,
-        {
-          expiresIn: '7d',
-        }
-      );
-
-      // 5. redis에 refresh token 저장
-      await redisClient.set(`${user.id}`, refreshToken, {
-        EX: 60 * 60 * 24 * 7,
-      });
-
-      // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
-
-      logger.info(`LOGIN ${user.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth`);
+      // 4-2. 등록 된 사용자일 경우 token 발급 (웹=쿠키/앱=딥링크 분기)
+      await finishSocialLogin(res, user, state);
     }
   } catch (err) {
     throw new BadGatewayError('Naver 로그인 중 오류가 발생했습니다.');
@@ -181,7 +229,7 @@ const kakaoLoginCallback = async (req, res) => {
   // 4-1. 등록되지 않은 사용자일 경우 사용자 등록
   // 4-2. 등록 된 사용자일 경우 token 발급
 
-  const { code } = req.query;
+  const { code, state } = req.query;
   try {
     // 1. Authorization Code로 Access Token 요청
     const tokenRes = await axios.post('https://kauth.kakao.com/oauth/token', null, {
@@ -223,34 +271,10 @@ const kakaoLoginCallback = async (req, res) => {
         provider_id: id,
       });
       logger.info(`JOIN ${createdUser.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth?message=join`);
+      finishSocialJoin(res, state);
     } else {
-      // 4-2. 등록 된 사용자일 경우 token 발급
-      const accessToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_ACCESS_SECRET_KEY,
-        {
-          expiresIn: '5m',
-        }
-      );
-      const refreshToken = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_REFRESH_SECRET_KEY,
-        {
-          expiresIn: '7d',
-        }
-      );
-
-      // 5. redis에 refresh token 저장
-      await redisClient.set(`${user.id}`, refreshToken, {
-        EX: 60 * 60 * 24 * 7,
-      });
-
-      // 6. Access token 전달 (Cookie)
-      res.cookie('access_token', accessToken, config.accessToken.cookieOptions);
-
-      logger.info(`LOGIN ${user.id}`);
-      res.redirect(`${process.env.FRONT_URL}/auth`);
+      // 4-2. 등록 된 사용자일 경우 token 발급 (웹=쿠키/앱=딥링크 분기)
+      await finishSocialLogin(res, user, state);
     }
   } catch (err) {
     throw new BadGatewayError('Kakao 로그인 중 오류가 발생했습니다.');
@@ -352,8 +376,12 @@ const adminLogin = async (req, res) => {
 // 로그아웃
 const logout = async (req, res) => {
   // Redis key값 제거
-  // Cookie access_token 제거
-  const token = req.cookies.access_token; // F/E Cookie access_token
+  // 앱: Authorization Bearer / 웹: Cookie access_token
+  const authHeader = req.headers.authorization;
+  const token =
+    authHeader && /^Bearer\s+/i.test(authHeader)
+      ? authHeader.replace(/^Bearer\s+/i, '')
+      : req.cookies.access_token;
   if (token) {
     const decoded = jwt.decode(token); // access_token parsing
     if (decoded && decoded.id) {
@@ -367,6 +395,75 @@ const logout = async (req, res) => {
   // Cookie access_token 제거
   res.clearCookie('access_token', clearCookieOptions);
   res.status(200).json({ success: true, message: '로그아웃 되었습니다.' });
+};
+
+// Access Token 재발급
+const refreshAccessToken = async (req, res) => {
+  try {
+    // 앱: Authorization Bearer / 웹: httpOnly 쿠키
+    const authHeader = req.headers.authorization;
+    const usedBearer = !!(authHeader && /^Bearer\s+/i.test(authHeader));
+    const token = usedBearer
+      ? authHeader.replace(/^Bearer\s+/i, '')
+      : req.cookies.access_token;
+
+    if (!token) {
+      logger.error('Access token was not found (refresh)');
+      throw new UnauthorizedError();
+    }
+
+    // 만료된 토큰이라도 payload를 읽기 위해 verify 대신 decode 사용
+    const decoded = jwt.decode(token);
+
+    if (!decoded || !decoded.id) {
+      logger.error("Failed to decode JWT on refresh or missing 'id' field");
+      throw new UnauthorizedError();
+    }
+
+    const userId = decoded.id;
+
+    // Redis에 저장된 refresh token 조회
+    const storedRefreshToken = await redisClient.get(`${userId}`);
+
+    if (!storedRefreshToken) {
+      logger.error(`No refresh token found in Redis for user ${userId}`);
+      throw new UnauthorizedError();
+    }
+
+    // refresh token 유효성 검증
+    try {
+      jwt.verify(storedRefreshToken, config.refreshToken.secret);
+    } catch (err) {
+      logger.error(`Invalid refresh token for user ${userId}: ${err.message}`);
+      // 만료/오류 시 Redis 정리
+      await redisClient.del(`${userId}`);
+      throw new UnauthorizedError();
+    }
+
+    // 새 access token 발급
+    const newAccessToken = jwt.sign(
+      { id: userId, role: decoded.role },
+      config.accessToken.secret,
+      {
+        expiresIn: config.accessToken.expiresIn,
+      }
+    );
+
+    // 새 access token 전달: 앱=응답 바디 / 웹=쿠키
+    if (usedBearer) {
+      logger.info(`REFRESH(app) ${userId}`);
+      return res.status(200).json({ success: true, access_token: newAccessToken });
+    }
+    res.cookie('access_token', newAccessToken, config.accessToken.cookieOptions);
+    logger.info(`REFRESH ${userId}`);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) {
+      throw err;
+    }
+    logger.error(`Access token refresh error: ${err.message}`);
+    throw new BadGatewayError(`토큰 재발급 중 오류가 발생했습니다: ${err.message}`);
+  }
 };
 
 // 내 정보 조회
@@ -433,7 +530,7 @@ const myInfo = async (req, res) => {
 const updateMyInfo = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { email, phone, default_team_id } = req.body;
+    const { email, phone, gender, is_marketing_agreed, default_team_id } = req.body;
 
     if (!userId) {
       throw new BadRequestError('사용자 정보가 없습니다.');
@@ -449,6 +546,23 @@ const updateMyInfo = async (req, res) => {
     // 전화번호 수정
     if (phone !== undefined) {
       updateData.phone = phone && phone.trim() !== '' ? phone.trim() : null;
+    }
+
+    // 성별 수정
+    if (gender !== undefined) {
+      if (gender === '' || gender === null) {
+        updateData.gender = null;
+      } else if (gender === 'male' || gender === 'female') {
+        updateData.gender = gender;
+      } else {
+        throw new BadRequestError('성별은 male 또는 female만 가능합니다.');
+      }
+    }
+
+    // 마케팅 수신 동의 수정
+    if (is_marketing_agreed !== undefined) {
+      updateData.is_marketing_agreed =
+        is_marketing_agreed === 1 || is_marketing_agreed === true ? 1 : 0;
     }
 
     // 사용자 정보 업데이트
@@ -592,9 +706,12 @@ module.exports = {
   googleLoginCallback,
   naverLoginCallback,
   kakaoLoginCallback,
+  exchangeAppToken,
+  devLogin,
   adminLogin,
   logout,
   myInfo,
   updateMyInfo,
   getMyTeams,
+  refreshAccessToken,
 };

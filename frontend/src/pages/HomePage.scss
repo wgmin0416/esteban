@@ -44,10 +44,32 @@
     height: 100%;
     overflow: hidden;
 
-    img {
+    .slide-bg {
+      position: relative;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      overflow: hidden;
+
+      // 코트 라인 느낌의 대각선 광택
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(115deg, transparent 55%, rgba(255, 90, 31, 0.18) 75%, transparent 76%),
+          linear-gradient(115deg, transparent 62%, rgba(30, 107, 255, 0.16) 80%, transparent 81%);
+      }
+
+      .slide-emoji {
+        font-size: 15rem;
+        line-height: 1;
+        margin-right: -1.5rem;
+        opacity: 0.22;
+        filter: drop-shadow(0 0 30px rgba(255, 90, 31, 0.5));
+        transform: rotate(-8deg);
+      }
     }
 
     .slide-overlay {
@@ -55,17 +77,29 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
       padding: $spacing-xl;
       color: white;
 
+      .slide-sub {
+        margin: 0 0 $spacing-xs;
+        font-size: $font-sm;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: $accent-color;
+      }
+
       .slide-title {
+        font-family: $font-display;
         font-size: $font-2xl;
-        font-weight: 600;
+        font-weight: 800;
+        letter-spacing: -0.01em;
         margin: 0;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 
         @include respond-to(md) {
-          font-size: $font-3xl;
+          font-size: 2.6rem;
         }
       }
     }
@@ -75,10 +109,12 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.8);
-    border: none;
-    width: 50px;
-    height: 50px;
+    background: rgba(11, 16, 32, 0.5);
+    backdrop-filter: blur(6px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     font-size: 2rem;
     cursor: pointer;
@@ -87,7 +123,9 @@
     z-index: 10;
 
     &:hover {
-      background: rgba(255, 255, 255, 1);
+      background: $primary-color;
+      border-color: $primary-color;
+      box-shadow: $glow-primary;
       transform: translateY(-50%) scale(1.1);
     }
 
@@ -119,8 +157,11 @@
       transition: all $transition-base;
 
       &.active {
-        background: white;
-        transform: scale(1.2);
+        width: 28px;
+        border-radius: 6px;
+        border-color: transparent;
+        background: $gradient-primary;
+        box-shadow: 0 0 12px rgba(255, 90, 31, 0.8);
       }
 
       &:hover {
@@ -139,30 +180,58 @@
     margin: 0 auto;
   }
 
-  .login-prompt {
+  .hero-cta {
     @include flex-center;
     flex-direction: column;
-    padding: $spacing-xxl;
+    padding: $spacing-xxl $spacing-md;
     text-align: center;
 
-    h2 {
-      font-size: $font-2xl;
-      margin-bottom: $spacing-lg;
-      color: $text-light;
+    .hero-kicker {
+      margin: 0 0 $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: $gradient-brand;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-title {
+      font-family: $font-display;
+      font-size: 2.6rem;
+      font-weight: 800;
+      margin: 0 0 $spacing-md;
+      color: $text-primary;
+      line-height: 1.05;
+
+      @include respond-to(md) {
+        font-size: 3.6rem;
+      }
+    }
+
+    .hero-desc {
+      margin: 0 0 $spacing-xl;
+      font-size: $font-lg;
+      color: $text-secondary;
     }
 
     .btn {
       @include button-base;
-      background: linear-gradient(135deg, $primary-color, $primary-light);
+      background: $gradient-primary;
       color: white;
       text-decoration: none;
       display: inline-block;
-      box-shadow: 0 4px 6px $shadow-md;
-      font-weight: 600;
+      padding: $spacing-md $spacing-xxl;
+      font-size: $font-lg;
+      font-weight: 800;
+      border-radius: 999px;
+      box-shadow: $glow-primary;
 
       &:hover {
-        background: linear-gradient(135deg, $primary-hover, $primary-color);
-        box-shadow: 0 6px 12px $shadow-hover;
+        filter: brightness(1.05);
+        box-shadow: 0 14px 40px rgba(255, 90, 31, 0.45);
         transform: translateY(-2px);
       }
     }
@@ -212,6 +281,281 @@
           font-weight: 600;
         }
       }
+    }
+  }
+}
+
+// ───────────────────────────────────────────────
+// 홈 대시보드 (로그인)
+// ───────────────────────────────────────────────
+.home-dashboard {
+  padding: $spacing-lg $spacing-md $spacing-xxl;
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .dash-greeting {
+    margin: 0;
+    font-size: $font-lg;
+    font-weight: 700;
+    color: $text-primary;
+  }
+
+  .section-title {
+    margin: 0 0 $spacing-sm;
+    font-family: $font-display;
+    font-size: $font-xl;
+    color: $text-primary;
+  }
+}
+
+// 팀 전환 칩
+.team-switcher {
+  display: flex;
+  gap: $spacing-sm;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+
+  .ts-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1.5px solid $border-color;
+    background: #fff;
+    color: $text-secondary;
+    font-weight: 700;
+    font-size: $font-sm;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+    .ts-emoji { font-size: 15px; }
+
+    &.active {
+      border-color: transparent;
+      background: $gradient-brand;
+      color: #fff;
+      box-shadow: $glow-primary;
+    }
+  }
+}
+
+// 센터피스: 다음 경기 참석 투표
+.next-game {
+  position: relative;
+  padding: $spacing-lg;
+  border-radius: $radius-xl;
+  background: $gradient-hero;
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(11, 16, 32, 0.35);
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -30px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255, 90, 31, 0.35), transparent 70%);
+  }
+
+  .ng-top {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
+
+    .ng-tag {
+      font-size: $font-xs;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: $accent-color;
+    }
+    .ng-team { font-size: $font-sm; color: rgba(255, 255, 255, 0.7); }
+  }
+
+  .ng-when {
+    display: flex;
+    align-items: baseline;
+    gap: $spacing-sm;
+
+    .ng-date { font-family: $font-display; font-size: 1.7rem; }
+    .ng-time { font-family: $font-display; font-size: 1.7rem; color: $primary-light; }
+  }
+
+  .ng-loc { margin-top: 4px; font-size: $font-sm; color: rgba(255, 255, 255, 0.8); }
+
+  .ng-vote {
+    margin-top: $spacing-lg;
+    position: relative;
+    z-index: 1;
+
+    .vote-bar {
+      display: flex;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.15);
+
+      .seg.attend { background: $accent-color; }
+      .seg.absent { background: $danger-color; }
+    }
+
+    .vote-counts {
+      display: flex;
+      gap: $spacing-md;
+      margin-top: $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 700;
+
+      .c.attend { color: $accent-color; }
+      .c.absent { color: $danger-color; }
+      .c.pending { color: rgba(255, 255, 255, 0.6); }
+    }
+
+    .vote-actions {
+      display: flex;
+      gap: $spacing-sm;
+      margin-top: $spacing-md;
+
+      .vote-btn {
+        flex: 1;
+        padding: $spacing-md;
+        border-radius: $radius-lg;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-weight: 800;
+        font-size: $font-base;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        &.attend.on { background: $accent-color; border-color: $accent-color; color: #0b1020; }
+        &.absent.on { background: $danger-color; border-color: $danger-color; }
+        &:active { transform: scale(0.98); }
+      }
+    }
+  }
+}
+
+// 상태 요약 카드
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    background: #fff;
+    border: 1px solid $border-light;
+    box-shadow: 0 2px 8px $shadow-sm;
+    text-decoration: none;
+    color: $text-primary;
+    transition: all $transition-base;
+
+    &:hover { transform: translateY(-2px); box-shadow: 0 6px 16px $shadow-md; }
+
+    .sc-label { font-size: $font-xs; color: $text-light; font-weight: 700; }
+    .sc-main { font-family: $font-display; font-size: $font-xl; }
+    .sc-sub { font-size: $font-xs; color: $text-light; }
+
+    .sc-badge {
+      align-self: flex-start;
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: $font-xs;
+      font-weight: 800;
+      color: #fff;
+      &.win { background: $success-color; }
+      &.lose { background: $danger-color; }
+    }
+
+    .notice-title {
+      font-family: inherit;
+      font-size: $font-sm;
+      font-weight: 700;
+      line-height: 1.35;
+      @include text-ellipsis(2);
+    }
+
+    &.notice { grid-column: 1 / -1; }
+    &.dues.warn {
+      border-color: rgba(255, 90, 31, 0.4);
+      .sc-main { color: $primary-color; }
+    }
+  }
+}
+
+// 둘러보기
+.discovery {
+  .discovery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-sm;
+  }
+
+  .discovery-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: $spacing-md $spacing-sm;
+    border-radius: $radius-lg;
+    background: #fff;
+    border: 1px solid $border-light;
+    text-decoration: none;
+    color: $text-primary;
+    transition: all $transition-base;
+
+    &:hover { transform: translateY(-2px); border-color: $primary-color; box-shadow: 0 6px 16px $shadow-md; }
+
+    .dc-icon { font-size: 1.6rem; }
+    .dc-label { font-weight: 700; font-size: $font-sm; }
+    .dc-count { font-size: $font-xs; color: $primary-color; font-weight: 700; }
+  }
+}
+
+// 팀 없음
+.no-team {
+  text-align: center;
+  padding: $spacing-xl $spacing-lg;
+  border-radius: $radius-xl;
+  background: $gradient-hero;
+  color: #fff;
+
+  .no-team-emoji { font-size: 3rem; }
+  h2 { font-family: $font-display; margin: $spacing-sm 0 4px; }
+  p { margin: 0 0 $spacing-lg; color: rgba(255, 255, 255, 0.75); }
+
+  .no-team-actions {
+    display: flex;
+    gap: $spacing-sm;
+    justify-content: center;
+
+    .nt-btn {
+      padding: $spacing-md $spacing-xl;
+      border-radius: 999px;
+      font-weight: 800;
+      text-decoration: none;
+
+      &.primary { background: $gradient-primary; color: #fff; box-shadow: $glow-primary; }
+      &.ghost { border: 1.5px solid rgba(255, 255, 255, 0.4); color: #fff; }
     }
   }
 }

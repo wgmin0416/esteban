@@ -1,0 +1,126 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  pointer-events: none;
+
+  @include respond-to(md) {
+    top: 24px;
+    right: 24px;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: white;
+  border-radius: $radius-md;
+  box-shadow: 0 4px 12px $shadow-md;
+  min-width: 300px;
+  max-width: 400px;
+  pointer-events: auto;
+  animation: slideIn 0.3s ease-out;
+  cursor: pointer;
+  transition: all $transition-base;
+
+  &:hover {
+    transform: translateX(-4px);
+    box-shadow: 0 6px 16px $shadow-hover;
+  }
+
+  .toast-icon {
+    font-size: $font-lg;
+    font-weight: 700;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .toast-message {
+    flex: 1;
+    font-size: $font-base;
+    color: $text-primary;
+    line-height: 1.5;
+  }
+
+  .toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    font-size: $font-xl;
+    color: $text-light;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color $transition-base;
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+
+  // 타입별 스타일
+  &.toast-success {
+    border-left: 4px solid $success-color;
+
+    .toast-icon {
+      background: rgba(16, 185, 129, 0.1);
+      color: $success-color;
+    }
+  }
+
+  &.toast-error {
+    border-left: 4px solid $danger-color;
+
+    .toast-icon {
+      background: rgba(239, 68, 68, 0.1);
+      color: $danger-color;
+    }
+  }
+
+  &.toast-warning {
+    border-left: 4px solid $accent-color;
+
+    .toast-icon {
+      background: rgba(245, 158, 11, 0.1);
+      color: $accent-color;
+    }
+  }
+
+  &.toast-info {
+    border-left: 4px solid $primary-color;
+
+    .toast-icon {
+      background: rgba(37, 99, 235, 0.1);
+      color: $primary-color;
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

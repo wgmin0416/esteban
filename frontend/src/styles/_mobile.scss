@@ -1,0 +1,62 @@
+@use './variables' as *;
+
+$tab-height: 56px;
+
+// 모바일/네이티브 공통 레이아웃 조정
+@mixin mobile-layout {
+  // 상단 노치(세이프에어리어) 확보
+  .header-wrapper {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  // 데스크톱 상단 주 내비게이션(.nav-bar)은 하단 탭바로 대체 → 숨김
+  // (SubNavBar 등 하위 내비는 유지)
+  .nav-bar {
+    display: none;
+  }
+
+  // .nav-bar를 숨기면 래퍼가 빈 1px 선으로 남으므로 테두리/그림자 제거
+  // (하위 내비가 있으면 SubNavBar 자체 스타일이 구분선 역할)
+  .nav-sticky-wrapper {
+    box-shadow: none;
+    border-bottom: none;
+  }
+
+  // 앱에서는 푸터 숨김
+  .footer {
+    display: none;
+  }
+
+  // 하위 내비는 가로 스크롤 허용
+  .sub-nav-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  // 하단 탭바 높이 + 세이프에어리어만큼 컨텐츠 여백 확보
+  #root {
+    padding-bottom: calc(#{$tab-height} + env(safe-area-inset-bottom, 0px));
+  }
+
+  // 앱다운 터치 하이라이트 제거
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+// body로 감싸 우선순위를 높인다 (NavBar.scss의 .nav-bar{display:flex} 등을 확실히 덮어쓰기 위함)
+@media (max-width: $breakpoint-md) {
+  body {
+    @include mobile-layout;
+  }
+}
+
+body.is-native {
+  @include mobile-layout;
+}

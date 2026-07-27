@@ -1,0 +1,686 @@
+@use 'sass:color';
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.management-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+
+    .page-title {
+      margin: 0;
+      font-size: $font-3xl;
+      font-weight: 800;
+      color: $text-primary;
+    }
+
+    .btn-primary {
+      padding: $spacing-sm $spacing-lg;
+      background: linear-gradient(135deg, $secondary-color, $secondary-light);
+      color: white;
+      border: none;
+      border-radius: $radius-md;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all $transition-base;
+      white-space: nowrap;
+
+      &:hover {
+        background: linear-gradient(135deg, $secondary-hover, $secondary-color);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px $shadow-md;
+      }
+    }
+  }
+
+  // 탭 메뉴
+  .management-tabs {
+    display: flex;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xl;
+    border-bottom: 2px solid $border-color;
+
+    .tab-button {
+      padding: $spacing-md $spacing-lg;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: $font-lg;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: all $transition-base;
+      margin-bottom: -2px;
+
+      &:hover {
+        color: $text-primary;
+      }
+
+      &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+      }
+    }
+  }
+
+  // 가입 신청 컨테이너
+  .join-requests-container {
+    overflow-x: auto;
+    border-radius: $radius-lg;
+    background: white;
+    box-shadow: 0 2px 8px $shadow-sm;
+
+    .action-buttons {
+      display: flex;
+      gap: $spacing-sm;
+      justify-content: center;
+
+      .btn-sm {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+      }
+
+      .btn-danger {
+        background-color: $danger-color;
+        color: white;
+        border: none;
+        border-radius: $radius-sm;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        &:hover {
+          background-color: color.scale($danger-color, $lightness: -10%);
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+
+  // 테이블 컨테이너
+  .management-table-container {
+    overflow-x: auto;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    background-color: $background-light;
+  }
+
+  .management-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+
+    thead {
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+
+      th {
+        color: white;
+        padding: $spacing-md $spacing-sm;
+        text-align: center;
+        font-size: $font-sm;
+        font-weight: 600;
+        white-space: nowrap;
+
+        &:first-child {
+          border-top-left-radius: $radius-lg;
+        }
+
+        &:last-child {
+          border-top-right-radius: $radius-lg;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid $border-color;
+        transition: background-color $transition-base;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:nth-child(even) {
+          background-color: $background-alt;
+        }
+
+        &:hover {
+          background-color: rgba($primary-color, 0.05);
+        }
+      }
+
+      td {
+        padding: $spacing-md $spacing-sm;
+        text-align: center;
+        font-size: $font-sm;
+        color: $text-primary;
+        white-space: nowrap;
+
+        &.member-name {
+          font-weight: 600;
+          color: $text-primary;
+        }
+
+        &.activity-score {
+          font-weight: 700;
+          color: $secondary-color;
+        }
+      }
+    }
+  }
+
+  // 역할 배지
+  .role-badge {
+    display: inline-block;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 600;
+
+    &.role-leader {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
+    }
+
+    &.role-manager {
+      background: linear-gradient(135deg, $secondary-color, $secondary-light);
+      color: white;
+    }
+
+    &.role-member {
+      background: $background-gray;
+      color: $text-secondary;
+    }
+  }
+
+  // 활동 상태 배지
+  .status-badge {
+    display: inline-block;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 600;
+
+    &.active {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    &.inactive {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+  }
+
+  // 회비 버튼
+  .btn-dues {
+    padding: $spacing-xs $spacing-sm;
+    background: linear-gradient(135deg, $danger-color, color.scale($danger-color, $lightness: 10%));
+    color: white;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    &:hover {
+      background: linear-gradient(135deg, color.scale($danger-color, $lightness: -10%), $danger-color);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba($danger-color, 0.4);
+    }
+  }
+
+  .btn-view-dues {
+    padding: $spacing-xs $spacing-sm;
+    background: $background-gray;
+    color: $text-secondary;
+    border: 1px solid $border-color;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    &:hover {
+      background: $primary-color;
+      color: white;
+      border-color: $primary-color;
+      transform: translateY(-1px);
+    }
+  }
+
+  // 로딩 및 빈 상태
+  .loading-spinner,
+  .empty-state {
+    @extend %loading-spinner;
+    @extend %empty-state;
+    margin-top: $spacing-xxl;
+    padding: $spacing-xxl;
+    text-align: center;
+  }
+
+  // 모달
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: $spacing-lg;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: $radius-lg;
+    padding: $spacing-xxl;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    position: relative;
+
+    .modal-close-btn {
+      position: absolute;
+      top: $spacing-lg;
+      right: $spacing-lg;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: $text-light;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      transition: all $transition-base;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $radius-sm;
+
+      &:hover {
+        background: $background-gray;
+        color: $text-primary;
+        transform: scale(1.1);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    h2 {
+      font-size: $font-2xl;
+      font-weight: 700;
+      color: $text-primary;
+      margin-bottom: $spacing-xl;
+      padding-right: $spacing-xxl; // X 버튼 공간 확보
+    }
+
+    .modal-description {
+      font-size: $font-sm;
+      color: $text-secondary;
+      margin-bottom: $spacing-lg;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: $spacing-lg;
+
+      label {
+        display: block;
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $text-secondary;
+        margin-bottom: $spacing-sm;
+      }
+
+      .form-input {
+        @include input-base;
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+      }
+
+      .input-hint {
+        display: block;
+        margin-top: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+        text-align: right;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: $spacing-lg;
+
+        .radio-label {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          cursor: pointer;
+          font-size: $font-base;
+          color: $text-primary;
+
+          input[type='radio'] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+          }
+
+          span {
+            user-select: none;
+          }
+
+          &:hover {
+            color: $primary-color;
+          }
+        }
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-xl;
+    }
+
+    // 회비 모달 전용 스타일
+    &.dues-modal {
+      max-width: 700px;
+    }
+
+    .dues-section {
+      margin-bottom: $spacing-xl;
+
+      .dues-section-title {
+        font-size: $font-lg;
+        font-weight: 700;
+        margin-bottom: $spacing-md;
+        padding-bottom: $spacing-sm;
+        border-bottom: 2px solid $border-color;
+
+        &.unpaid {
+          color: $danger-color;
+          border-bottom-color: $danger-color;
+        }
+
+        &.paid {
+          color: $success-color;
+          border-bottom-color: $success-color;
+        }
+      }
+    }
+
+    .dues-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+    }
+
+    .dues-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: $spacing-md;
+    }
+
+    .due-item {
+      @include card;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: $spacing-md;
+      border-left: 4px solid transparent;
+      transition: all $transition-base;
+
+      &.unpaid {
+        border-left-color: $danger-color;
+        background: rgba($danger-color, 0.03);
+
+        &:hover {
+          background: rgba($danger-color, 0.05);
+        }
+      }
+
+      &.paid {
+        border-left-color: $success-color;
+        background: rgba($success-color, 0.03);
+
+        &:hover {
+          background: rgba($success-color, 0.05);
+        }
+      }
+
+      .due-info {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+
+        .due-header {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+        }
+
+        .due-date {
+          font-size: $font-base;
+          font-weight: 600;
+          color: $text-primary;
+        }
+
+        .due-reason {
+          font-size: $font-xs;
+          padding: 2px 8px;
+          background: $background-gray;
+          color: $text-secondary;
+          border-radius: $radius-sm;
+          border: 1px solid $border-color;
+        }
+
+        .due-custom-reason {
+          font-size: $font-xs;
+          color: $text-light;
+          margin-left: $spacing-xs;
+        }
+
+        .due-amount {
+          font-size: $font-lg;
+          font-weight: 700;
+        }
+
+        .due-paid-date {
+          font-size: $font-xs;
+          color: $text-light;
+        }
+      }
+
+      &.unpaid .due-amount {
+        color: $danger-color;
+      }
+
+      &.paid .due-amount {
+        color: $success-color;
+      }
+
+      .btn-sm {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+      }
+    }
+
+    // 납부 완료 카드 (컴팩트 카드)
+    .due-card {
+      @include card;
+      display: flex;
+      flex-direction: column;
+      padding: $spacing-sm $spacing-md;
+      border-left: 4px solid transparent;
+      transition: all $transition-base;
+      min-height: 110px;
+      gap: $spacing-xs;
+
+      &.paid {
+        border-left-color: $success-color;
+        background: rgba($success-color, 0.03);
+
+        &:hover {
+          background: rgba($success-color, 0.05);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba($success-color, 0.2);
+        }
+      }
+
+      .due-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: $spacing-xs;
+
+        .due-date {
+          font-size: $font-sm;
+          font-weight: 600;
+          color: $text-primary;
+        }
+
+        .btn-unpaid {
+          padding: 3px 8px;
+          background: $danger-color;
+          color: white;
+          border: none;
+          border-radius: $radius-sm;
+          font-size: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all $transition-base;
+          white-space: nowrap;
+
+          &:hover {
+            background: color.scale($danger-color, $lightness: -5%);
+            transform: scale(1.05);
+          }
+
+          &:active {
+            transform: scale(0.95);
+          }
+        }
+      }
+
+      .due-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+        flex: 1;
+
+        .due-reason-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+
+          .due-reason {
+            font-size: $font-xs;
+            padding: 2px 6px;
+            background: $background-gray;
+            color: $text-secondary;
+            border-radius: $radius-sm;
+            border: 1px solid $border-color;
+            display: inline-block;
+            width: fit-content;
+          }
+
+          .due-custom-reason {
+            font-size: 10px;
+            color: $text-light;
+            line-height: 1.2;
+          }
+        }
+
+        .due-amount {
+          font-size: $font-base;
+          font-weight: 700;
+          color: $success-color;
+        }
+
+        .due-paid-date {
+          font-size: 10px;
+          color: $text-light;
+          margin-top: auto;
+        }
+      }
+    }
+
+    .no-dues-message {
+      text-align: center;
+      padding: $spacing-xl;
+      color: $text-secondary;
+      font-size: $font-base;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: $spacing-md;
+
+      .btn {
+        padding: $spacing-sm $spacing-xl;
+        border-radius: $radius-md;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all $transition-base;
+        border: none;
+
+        &.btn-secondary {
+          background: $background-gray;
+          color: $text-primary;
+
+          &:hover {
+            background: $border-light;
+          }
+        }
+
+        &.btn-link {
+          background: transparent;
+          color: $primary-color;
+          padding-left: 0;
+          padding-right: 0;
+
+          &:hover {
+            color: $primary-hover;
+            text-decoration: underline;
+          }
+        }
+
+        &.btn-primary {
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          color: white;
+
+          &:hover {
+            background: linear-gradient(135deg, $primary-hover, $primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px $shadow-md;
+          }
+        }
+      }
+    }
+  }
+}

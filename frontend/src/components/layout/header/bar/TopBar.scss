@@ -6,8 +6,9 @@
   justify-content: space-between;
   align-items: center;
   padding: $spacing-md $spacing-md;
-  background: linear-gradient(135deg, #ffffff, $background-gray);
-  border-bottom: 1px solid $border-light;
+  background: $gradient-hero;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 24px rgba(11, 16, 32, 0.28);
   width: 100%;
   box-sizing: border-box;
 
@@ -16,8 +17,10 @@
   }
 
   .logo {
-    font-size: $font-2xl;
+    font-family: $font-display;
+    font-size: $font-3xl;
     font-weight: 800;
+    letter-spacing: 0.01em;
     display: flex;
     align-items: center;
     gap: $spacing-sm;
@@ -27,11 +30,11 @@
 
     span:first-child {
       font-size: $font-3xl;
-      filter: drop-shadow(0 2px 4px $shadow-sm);
+      filter: drop-shadow(0 0 10px rgba(255, 90, 31, 0.6));
     }
 
     span:last-child {
-      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      background: $gradient-brand;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -51,10 +54,10 @@
       @include button-base;
       padding: $spacing-xs $spacing-md;
       font-size: $font-sm;
-      background-color: $background-gray;
-      border: 1px solid $border-color;
-      color: $text-primary;
-      font-weight: 500;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      font-weight: 600;
 
       &:hover {
         background-color: $primary-color;
@@ -93,16 +96,17 @@
     gap: $spacing-xs;
 
     > a {
-      color: $text-primary;
+      color: white;
       text-decoration: none;
       font-weight: 600;
       padding: $spacing-xs $spacing-sm;
       border-radius: $radius-md;
       transition: all $transition-base;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 
       &:hover {
-        background-color: $background-gray;
-        color: $primary-color;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
       }
     }
 
@@ -131,7 +135,7 @@
       box-shadow: 0 4px 12px $shadow-md;
       min-width: 160px;
       overflow: hidden;
-      z-index: 100;
+      z-index: 1100;
 
       a,
       button {

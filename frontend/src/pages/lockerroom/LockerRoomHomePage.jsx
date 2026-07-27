@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Tooltip } from 'react-tooltip';
 import useTeamStore from '../../store/useTeamStore';
+import { toastSuccess } from '../../utils/alert';
 import './LockerRoomHomePage.scss';
 
 const LockerRoomHomePage = () => {
@@ -10,18 +12,31 @@ const LockerRoomHomePage = () => {
   const getMyTeams = useTeamStore((state) => state.getMyTeams);
   const setDefaultTeam = useTeamStore((state) => state.setDefaultTeam);
 
-  const [showTeamSelector, setShowTeamSelector] = useState(false);
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     getTeamInfo();
     getMyTeams();
   }, [getTeamInfo, getMyTeams]);
 
+  useEffect(() => {
+    if (!showTeamDropdown) return;
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowTeamDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showTeamDropdown]);
+
   const handleSetDefaultTeam = async (teamId) => {
+    const teamName = myTeams?.find((t) => t.id === teamId)?.name ?? '';
     try {
       await setDefaultTeam(teamId);
-      alert('기본 팀이 설정되었습니다.');
-      setShowTeamSelector(false);
+      toastSuccess(`'${teamName}'이 기본 팀으로 설정되었습니다.`);
+      setShowTeamDropdown(false);
       await getTeamInfo();
     } catch (error) {
       console.error('기본 팀 설정 실패:', error);
@@ -56,9 +71,14 @@ const LockerRoomHomePage = () => {
             <div className="empty-icon">🏀</div>
             <h2>팀 정보가 없습니다</h2>
             <p>팀을 만들거나 팀에 가입해주세요.</p>
-            <Link to="/create-team" className="btn btn-primary">
-              팀 만들기
-            </Link>
+            <div className="empty-state-actions">
+              <Link to="/create-team" className="btn btn-primary">
+                팀 만들기
+              </Link>
+              <Link to="/recruit" className="btn btn-secondary">
+                팀 찾기
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -75,40 +95,63 @@ const LockerRoomHomePage = () => {
           <section className="team-info-section">
             <div className="section-header">
               <h2>팀 정보</h2>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowTeamSelector(!showTeamSelector)}
-              >
-                기본 팀 설정
-              </button>
-            </div>
-
-            {showTeamSelector && myTeams && myTeams.length > 0 && (
-              <div className="team-selector">
-                <h3>기본 팀 선택</h3>
-                <div className="team-list">
-                  {myTeams.map((team) => (
-                    <div
-                      key={team.id}
-                      className={`team-item ${team.is_default === 1 ? 'active' : ''}`}
-                    >
-                      <span className="team-name">{team.name}</span>
-                      {team.is_default === 1 && (
-                        <span className="badge badge-primary">현재 기본 팀</span>
-                      )}
-                      {team.is_default !== 1 && (
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => handleSetDefaultTeam(team.id)}
+              <div className="default-team-trigger" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="btn btn-secondary default-team-btn"
+                  onClick={() => setShowTeamDropdown(!showTeamDropdown)}
+                  aria-expanded={showTeamDropdown}
+                  aria-haspopup="listbox"
+                >
+                  <span
+                    className="default-team-name"
+                    data-tooltip-id="default-team-tooltip"
+                    data-tooltip-content={teamInfo?.name ?? ''}
+                  >
+                    {teamInfo?.name ?? '선택'}
+                  </span>
+                  <span className="default-team-arrow" aria-hidden>
+                    {showTeamDropdown ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showTeamDropdown && myTeams && myTeams.length > 0 && (
+                  <div className="default-team-dropdown" role="listbox">
+                    <div className="dropdown-title">기본 팀 선택</div>
+                    <ul className="dropdown-team-list">
+                      {myTeams.map((team) => (
+                        <li
+                          key={team.id}
+                          className={`dropdown-team-item ${team.is_default === 1 ? 'active' : ''} ${team.is_default !== 1 ? 'clickable' : ''}`}
+                          role="option"
+                          aria-selected={team.is_default === 1}
+                          onClick={team.is_default !== 1 ? () => handleSetDefaultTeam(team.id) : undefined}
+                          onKeyDown={team.is_default !== 1 ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSetDefaultTeam(team.id); } } : undefined}
+                          tabIndex={team.is_default !== 1 ? 0 : undefined}
                         >
-                          기본 팀으로 설정
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                          <span
+                            className="dropdown-team-name"
+                            title={team.name}
+                          >
+                            {team.name}
+                          </span>
+                          {team.is_default === 1 ? (
+                            <span className="dropdown-team-check" aria-hidden>✓</span>
+                          ) : (
+                            <span className="dropdown-team-check" aria-hidden />
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
+              <Tooltip
+                id="default-team-tooltip"
+                place="top"
+                delayShow={0}
+                className="default-team-tooltip"
+              />
+            </div>
 
             <div className="team-info-card">
               {teamInfo.logo_url && (

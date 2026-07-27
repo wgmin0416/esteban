@@ -44,6 +44,13 @@ module.exports = (sequelize, DataTypes) => {
       tableName: 'join_requests',
       timestamps: false,
       underscored: true,
+      indexes: [
+        {
+          unique: true,
+          fields: ['team_id', 'user_id'],
+          name: 'uq_join_team_user',
+        },
+      ],
     }
   );
 

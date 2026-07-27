@@ -8,11 +8,20 @@ router.get('/google/callback', userController.googleLoginCallback);
 router.get('/naver/callback', userController.naverLoginCallback);
 router.get('/kakao/callback', userController.kakaoLoginCallback);
 
+// 앱: 일회용 코드(otc) → access token 교환
+router.post('/app/token', userController.exchangeAppToken);
+
+// 개발용 테스트 계정 로그인 (DEV_LOGIN_ENABLED=true 일 때만)
+router.post('/dev-login', userController.devLogin);
+
 // 관리자 로그인
 router.post('/admin-login', userController.adminLogin);
 
 // 로그아웃
 router.get('/logout', userController.logout);
+
+// Access Token 재발급
+router.post('/refresh-token', userController.refreshAccessToken);
 
 // 내 정보 조회
 router.get('/my-info', authMiddleware, userController.myInfo);

@@ -14,13 +14,13 @@ const NavBar = ({ language }) => {
     records: language === 'KR' ? '기록' : 'Records',
     teamManagement: language === 'KR' ? '팀 관리' : 'Team Management',
 
-    joinRecruit: language === 'KR' ? '팀/팀원 찾기' : 'Join or Recruit',
+    joinRecruit: language === 'KR' ? '팀원모집' : 'Member Recruitment',
     join: language === 'KR' ? '팀 구해요' : 'Join a Team',
     recruit: language === 'KR' ? '팀원 구해요' : 'Recruit Members',
 
-    matchBoard: language === 'KR' ? '경기 모집' : 'Match Board',
+    matchBoard: language === 'KR' ? '경기모집' : 'Match Recruitment',
 
-    courtBoard: language === 'KR' ? '코트 대관/양도' : 'Court Board',
+    courtBoard: language === 'KR' ? '코트대관' : 'Court Rental',
   };
 
   return (
@@ -46,7 +46,7 @@ const NavBar = ({ language }) => {
 
       <div className="nav-group dropdown">
         <NavLink 
-          to="/join-recruit"
+          to="/recruit"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
           {t.joinRecruit}

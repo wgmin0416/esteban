@@ -1,0 +1,158 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.profile-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .form-header {
+    margin-bottom: $spacing-xxl;
+    text-align: center;
+
+    .form-header-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-md;
+
+      .icon {
+        font-size: 4rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .text {
+        .form-title {
+          font-size: $font-3xl;
+          font-weight: 700;
+          color: $text-primary;
+          margin-bottom: $spacing-xs;
+        }
+
+        .form-subtitle {
+          font-size: $font-base;
+          color: $text-secondary;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  .loading-spinner {
+    @include flex-center;
+    padding: $spacing-xxl;
+    font-size: $font-lg;
+    color: $text-secondary;
+    min-height: 400px;
+  }
+
+  .profile-form {
+    @include card;
+    padding: $spacing-xxl;
+
+    .form-group {
+      margin-bottom: $spacing-xl;
+
+      label {
+        display: block;
+        font-size: $font-base;
+        font-weight: 600;
+        color: $text-primary;
+        margin-bottom: $spacing-sm;
+      }
+
+      .form-input,
+      .form-select {
+        @include input-base;
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+        transition: all 0.2s ease;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+        }
+
+        &:disabled {
+          background-color: $background-disabled;
+          color: $text-light;
+          cursor: not-allowed;
+        }
+      }
+
+      .form-select {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right $spacing-md center;
+        background-size: 12px;
+        padding-right: $spacing-xxl;
+        appearance: none;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        cursor: pointer;
+        font-weight: 600;
+        color: $text-primary;
+
+        .form-checkbox {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: $primary-color;
+        }
+      }
+
+      .form-hint {
+        display: block;
+        margin-top: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+        line-height: 1.5;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-xxl;
+      padding-top: $spacing-xl;
+      border-top: 1px solid $border-light;
+
+      .btn {
+        @include button-base;
+        min-width: 120px;
+
+        &.btn-primary {
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          color: white;
+          box-shadow: 0 4px 6px $shadow-md;
+          font-weight: 600;
+          border: none;
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, $primary-hover, $primary-color);
+            box-shadow: 0 6px 12px $shadow-hover;
+            transform: translateY(-2px);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+          }
+        }
+      }
+    }
+  }
+}

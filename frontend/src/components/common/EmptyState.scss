@@ -1,0 +1,64 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: $spacing-md;
+  }
+
+  h2 {
+    font-size: $font-2xl;
+    margin-bottom: $spacing-sm;
+    color: $text-primary;
+  }
+
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+
+  .empty-state-actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    @include button-base;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 600;
+    min-width: 120px;
+
+    &.btn-primary {
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      color: white;
+      box-shadow: 0 4px 6px $shadow-md;
+
+      &:hover {
+        background: linear-gradient(135deg, $primary-hover, $primary-color);
+        box-shadow: 0 6px 12px $shadow-hover;
+        transform: translateY(-2px);
+      }
+    }
+
+    &.btn-secondary {
+      background: $background-light;
+      color: $text-primary;
+      border: 1px solid $border-color;
+
+      &:hover {
+        background: $background-gray;
+        border-color: $primary-color;
+        color: $primary-color;
+      }
+    }
+  }
+}

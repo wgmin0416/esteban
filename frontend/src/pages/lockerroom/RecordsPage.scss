@@ -10,8 +10,129 @@
     margin: 0 auto;
   }
 
-  .page-title {
-    @extend %page-title;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+
+    .page-title {
+      @extend %page-title;
+      margin: 0;
+    }
+
+    .btn-create-record {
+      @include button-base;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      color: white;
+      padding: $spacing-sm $spacing-lg;
+      font-weight: 600;
+      box-shadow: 0 4px 6px $shadow-md;
+      transition: all $transition-base;
+
+      &:hover {
+        background: linear-gradient(135deg, $primary-hover, $primary-color);
+        box-shadow: 0 6px 12px $shadow-hover;
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .records-tabs {
+    display: flex;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xl;
+    border-bottom: 2px solid $border-color;
+
+    .tab-button {
+      @include button-base;
+      padding: $spacing-md $spacing-xl;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: $text-secondary;
+      font-weight: 600;
+      font-size: $font-base;
+      cursor: pointer;
+      transition: all $transition-base;
+      margin-bottom: -2px;
+
+      &:hover {
+        color: $primary-color;
+        background: rgba($primary-color, 0.05);
+      }
+
+      &.active {
+        color: $primary-color;
+        border-bottom-color: $primary-color;
+        background: rgba($primary-color, 0.05);
+      }
+    }
+  }
+
+  // 빈 팀 상태
+  .empty-team-state {
+    @include flex-center;
+    flex-direction: column;
+    padding: $spacing-xxl;
+    text-align: center;
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: $spacing-md;
+    }
+
+    h2 {
+      font-size: $font-2xl;
+      margin-bottom: $spacing-sm;
+      color: $text-primary;
+    }
+
+    p {
+      color: $text-secondary;
+      margin-bottom: $spacing-lg;
+    }
+
+    .empty-state-actions {
+      display: flex;
+      gap: $spacing-md;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      @include button-base;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 600;
+      min-width: 120px;
+
+      &.btn-primary {
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        box-shadow: 0 4px 6px $shadow-md;
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          box-shadow: 0 6px 12px $shadow-hover;
+          transform: translateY(-2px);
+        }
+      }
+
+      &.btn-secondary {
+        background: $background-light;
+        color: $text-primary;
+        border: 1px solid $border-color;
+
+        &:hover {
+          background: $background-gray;
+          border-color: $primary-color;
+          color: $primary-color;
+        }
+      }
+    }
   }
 
   .records-filters {

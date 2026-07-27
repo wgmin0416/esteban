@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import './TopBar.scss';
 import useAuthStore from '../../../../store/useAuthStore';
+import NotificationBell from '../../../home/NotificationBell';
 
 const TopBar = ({
   language,
@@ -28,6 +29,8 @@ const TopBar = ({
         <button onClick={toggleLanguage} className="lang-button">
           {language === 'KR' ? 'English' : '한글'}
         </button>
+
+        {isLogin && <NotificationBell />}
 
         {isLogin ? (
           <div className="user-menu-container">

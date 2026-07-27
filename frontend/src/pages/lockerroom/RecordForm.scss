@@ -1,0 +1,316 @@
+@use 'sass:color';
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+// React Tooltip 커스텀 스타일
+:global {
+  .react-tooltip {
+    background: rgba(0, 0, 0, 0.95) !important;
+    color: white !important;
+    font-size: $font-xs !important;
+    padding: $spacing-xs $spacing-sm !important;
+    border-radius: $radius-sm !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    max-width: 300px !important;
+    line-height: 1.4 !important;
+    z-index: 10000 !important;
+    pointer-events: none !important;
+    white-space: normal !important;
+    text-align: left !important;
+  }
+}
+
+.record-form-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+
+    .page-title {
+      @extend %page-title;
+      margin: 0;
+    }
+  }
+
+  .record-form {
+    .form-section {
+      background: $background-light;
+      border-radius: $radius-lg;
+      padding: $spacing-xl;
+      margin-bottom: $spacing-xl;
+      box-shadow: 0 2px 8px $shadow-sm;
+
+      .section-title {
+        font-size: $font-xl;
+        font-weight: 700;
+        color: $text-primary;
+        margin-bottom: $spacing-lg;
+        padding-bottom: $spacing-md;
+        border-bottom: 2px solid $border-color;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: $spacing-lg;
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-sm;
+
+          label {
+            font-size: $font-sm;
+            font-weight: 600;
+            color: $text-secondary;
+
+            &.checkbox-label {
+              flex-direction: row;
+              align-items: center;
+              gap: $spacing-sm;
+              cursor: pointer;
+
+              input[type='checkbox'] {
+                width: auto;
+                cursor: pointer;
+              }
+            }
+          }
+
+          .required {
+            color: $danger-color;
+          }
+
+          .form-input,
+          .form-select {
+            @include input-base;
+            padding: $spacing-sm $spacing-md;
+            font-size: $font-base;
+          }
+
+          .form-hint {
+            font-size: $font-xs;
+            color: $text-light;
+            margin-top: -$spacing-xs;
+          }
+        }
+      }
+    }
+
+    .team-section {
+      .team-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-lg;
+
+        .section-title {
+          margin: 0;
+          border: none;
+          padding: 0;
+        }
+
+        .btn-remove-team {
+          @include button-base;
+          background: $danger-color;
+          color: white;
+          padding: $spacing-xs $spacing-md;
+          font-size: $font-sm;
+
+          &:hover {
+            background: color.scale($danger-color, $lightness: -10%);
+          }
+        }
+      }
+
+      .table-container {
+        overflow-x: auto;
+        margin-bottom: $spacing-md;
+      }
+
+      .record-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: $font-sm;
+        background: white;
+        border-radius: $radius-md;
+        overflow: hidden;
+
+        thead {
+          background: linear-gradient(135deg, $primary-color, $secondary-color);
+          color: white;
+
+          th {
+            padding: $spacing-sm $spacing-xs;
+            text-align: center;
+            font-weight: 600;
+            white-space: nowrap;
+            font-size: $font-xs;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: default;
+
+            &:last-child {
+              border-right: none;
+            }
+          }
+        }
+
+        tbody {
+          tr {
+            border-bottom: 1px solid $border-color;
+            transition: background-color $transition-base;
+
+            &:hover {
+              background-color: rgba($primary-color, 0.05);
+            }
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            td {
+              padding: $spacing-sm $spacing-xs;
+              text-align: center;
+              border-right: 1px solid $border-color;
+
+              &:last-child {
+                border-right: none;
+              }
+
+              .player-select {
+                min-width: 120px;
+                padding: $spacing-xs;
+                font-size: $font-xs;
+              }
+
+              .number-input {
+                width: 60px;
+                padding: $spacing-xs;
+                text-align: center;
+                font-size: $font-xs;
+                cursor: default;
+
+                &.readonly {
+                  background-color: $background-gray;
+                  cursor: default;
+                  color: $text-secondary;
+                }
+              }
+
+              .btn-remove-row {
+                @include button-base;
+                background: $danger-color;
+                color: white;
+                width: 24px;
+                height: 24px;
+                padding: 0;
+                border-radius: 50%;
+                font-size: $font-lg;
+                line-height: 1;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                &:hover {
+                  background: color.scale($danger-color, $lightness: -10%);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .btn-add-row {
+        @include button-base;
+        background: $background-gray;
+        color: $text-primary;
+        border: 1px dashed $border-color;
+        padding: $spacing-sm $spacing-md;
+        margin-top: $spacing-md;
+        width: 100%;
+
+        &:hover {
+          background: rgba($primary-color, 0.1);
+          border-color: $primary-color;
+          color: $primary-color;
+        }
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: center;
+      gap: $spacing-md;
+      margin-top: $spacing-xl;
+
+      .btn-add-team {
+        @include button-base;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        padding: $spacing-md $spacing-xl;
+        font-weight: 600;
+        box-shadow: 0 4px 6px $shadow-md;
+
+        &:hover {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          box-shadow: 0 6px 12px $shadow-hover;
+          transform: translateY(-2px);
+        }
+      }
+
+      .btn-submit {
+        @include button-base;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        color: white;
+        padding: $spacing-md $spacing-xxl;
+        font-weight: 600;
+        font-size: $font-lg;
+        box-shadow: 0 4px 6px $shadow-md;
+
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, $primary-hover, $primary-color);
+          box-shadow: 0 6px 12px $shadow-hover;
+          transform: translateY(-2px);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  @include respond-to(md) {
+    .record-form {
+      .form-section {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .team-section {
+        .record-table {
+          font-size: $font-xs;
+
+          thead th,
+          tbody td {
+            padding: $spacing-xs 2px;
+          }
+        }
+      }
+    }
+  }
+}

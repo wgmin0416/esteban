@@ -1,0 +1,153 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.member-recruitment-page {
+  @extend %page-container;
+
+  .container {
+    max-width: $container-width;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+
+    .page-title {
+      @extend %page-title;
+      margin-bottom: 0;
+    }
+
+    .btn-primary {
+      @include button-base;
+      padding: $spacing-sm $spacing-xl;
+      background: linear-gradient(135deg, $primary-color, $primary-light);
+      color: white;
+      font-weight: 600;
+      font-size: $font-base;
+
+      &:hover {
+        background: linear-gradient(135deg, $primary-hover, $primary-color);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .search-bar {
+    @extend %search-bar;
+  }
+
+  .board-container {
+    @extend %board-container;
+
+    .board-item {
+      @include card;
+      padding: $spacing-lg;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px $shadow-md;
+      }
+
+      .board-item-header {
+        @include flex-between;
+        margin-bottom: $spacing-md;
+
+        .team-info {
+          display: flex;
+          align-items: center;
+          gap: $spacing-md;
+          flex: 1;
+
+          .team-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: $radius-sm;
+            object-fit: cover;
+            border: 1px solid $border-light;
+          }
+
+          .board-item-title {
+            font-size: $font-lg;
+            font-weight: 600;
+            color: $text-primary;
+            margin: 0;
+          }
+
+          .competition-badge {
+            padding: 2px 8px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-size: $font-xs;
+            font-weight: 600;
+            border-radius: $radius-sm;
+          }
+        }
+
+        .board-item-date {
+          font-size: $font-sm;
+          color: $text-light;
+          white-space: nowrap;
+        }
+      }
+
+      .board-item-content {
+        margin-bottom: $spacing-md;
+
+        .info-row {
+          display: flex;
+          gap: $spacing-md;
+          font-size: $font-sm;
+          color: $text-secondary;
+          margin-bottom: $spacing-xs;
+
+          .info-label {
+            font-weight: 600;
+            color: $text-primary;
+          }
+        }
+
+        .content-preview {
+          font-size: $font-base;
+          color: $text-secondary;
+          line-height: 1.6;
+          margin-top: $spacing-sm;
+          @include text-ellipsis(2);
+        }
+      }
+
+      .board-item-footer {
+        @include flex-between;
+        padding-top: $spacing-md;
+        border-top: 1px solid $border-light;
+
+        .board-item-meta {
+          display: flex;
+          gap: $spacing-md;
+          font-size: $font-sm;
+          color: $text-light;
+        }
+      }
+    }
+
+    .end-message {
+      text-align: center;
+      padding: $spacing-xl;
+      color: $text-light;
+      font-size: $font-sm;
+    }
+  }
+
+  .empty-state {
+    @extend %empty-state;
+  }
+
+  .loading-spinner {
+    @extend %loading-spinner;
+  }
+}

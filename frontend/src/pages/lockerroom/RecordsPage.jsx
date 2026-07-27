@@ -1,12 +1,25 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
 import apiRequest from '../../lib/apiRequest';
+import EmptyState from '../../components/common/EmptyState';
 import './RecordsPage.scss';
 
 const RecordsPage = () => {
+  const navigate = useNavigate();
   const teamInfo = useTeamStore((state) => state.teamInfo);
+  const getTeamInfo = useTeamStore((state) => state.getTeamInfo);
   const language = useLanguageStore((state) => state.language);
+  
+  const [activeTab, setActiveTab] = useState('aggregate'); // 'aggregate' or 'match'
+
+  useEffect(() => {
+    if (!teamInfo) {
+      getTeamInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [availableYears, setAvailableYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -147,10 +160,45 @@ const RecordsPage = () => {
     return `https://i.pravatar.cc/150?img=${userId || userName}`;
   };
 
+  if (!teamInfo) {
+    return (
+      <div className="records-page">
+        <div className="container">
+          <EmptyState showActions={true} actionPath="/recruit" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleCreateRecord = () => {
+    navigate('/locker-room/records/create');
+  };
+
   return (
     <div className="records-page">
       <div className="container">
-        <h1 className="page-title">{language === 'KR' ? '기록' : 'Records'}</h1>
+        <div className="page-header">
+          <h1 className="page-title">{language === 'KR' ? '기록' : 'Records'}</h1>
+          <button className="btn btn-primary btn-create-record" onClick={handleCreateRecord}>
+            {language === 'KR' ? '기록 작성' : 'Create Record'}
+          </button>
+        </div>
+
+        {/* 탭 메뉴 */}
+        <div className="records-tabs">
+          <button
+            className={`tab-button ${activeTab === 'aggregate' ? 'active' : ''}`}
+            onClick={() => setActiveTab('aggregate')}
+          >
+            {language === 'KR' ? '통합기록' : 'Aggregate Records'}
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'match' ? 'active' : ''}`}
+            onClick={() => setActiveTab('match')}
+          >
+            {language === 'KR' ? '경기기록' : 'Match Records'}
+          </button>
+        </div>
 
         {/* 필터 섹션 */}
         <div className="records-filters">
@@ -212,75 +260,95 @@ const RecordsPage = () => {
         </div>
 
         {/* 기록 테이블 */}
-        {loading ? (
-          <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
-        ) : records.length > 0 ? (
-          <div className="records-table-container">
-            <table className="records-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Profile</th>
-                  <th>Name</th>
-                  <th>GP</th>
-                  <th>W</th>
-                  <th>L</th>
-                  <th>PTS</th>
-                  <th>FG%</th>
-                  <th>2P%</th>
-                  <th>3P%</th>
-                  <th>FT%</th>
-                  <th>REB</th>
-                  <th>AST</th>
-                  <th>STL</th>
-                  <th>BLK</th>
-                  <th>TO</th>
-                  <th>DD2</th>
-                  <th>TD3</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.userId}>
-                    <td>{record.no}</td>
-                    <td>
-                      <div className="player-image-cell">
-                        <img
-                          src={getPlayerImage(record.userImage, record.userName, record.userId)}
-                          alt={record.userName}
-                          onError={(e) => {
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(record.userName)}&background=2563eb&color=fff&size=128`;
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td>{record.userName}</td>
-                    <td>{record.gp}</td>
-                    <td>{record.w}</td>
-                    <td>{record.l}</td>
-                    <td>{record.pts}</td>
-                    <td>{record.fgPct}%</td>
-                    <td>{record.twopPct}%</td>
-                    <td>{record.threepPct}%</td>
-                    <td>{record.ftPct}%</td>
-                    <td>{record.reb}</td>
-                    <td>{record.ast}</td>
-                    <td>{record.stl}</td>
-                    <td>{record.blk}</td>
-                    <td>{record.to}</td>
-                    <td>{record.dd2}</td>
-                    <td>{record.td3}</td>
+        {activeTab === 'aggregate' ? (
+          // 통합기록 탭
+          loading ? (
+            <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
+          ) : records.length > 0 ? (
+            <div className="records-table-container">
+              <table className="records-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Profile</th>
+                    <th>Name</th>
+                    <th>GP</th>
+                    <th>W</th>
+                    <th>L</th>
+                    <th>PTS</th>
+                    <th>FG%</th>
+                    <th>2P%</th>
+                    <th>3P%</th>
+                    <th>FT%</th>
+                    <th>REB</th>
+                    <th>AST</th>
+                    <th>STL</th>
+                    <th>BLK</th>
+                    <th>TO</th>
+                    <th>DD2</th>
+                    <th>TD3</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon">📊</div>
-            <div className="empty-message">
-              {language === 'KR' ? '기록 데이터가 없습니다.' : 'No records available.'}
+                </thead>
+                <tbody>
+                  {records.map((record) => (
+                    <tr key={record.userId}>
+                      <td>{record.no}</td>
+                      <td>
+                        <div className="player-image-cell">
+                          <img
+                            src={getPlayerImage(record.userImage, record.userName, record.userId)}
+                            alt={record.userName}
+                            onError={(e) => {
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(record.userName)}&background=2563eb&color=fff&size=128`;
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td>{record.userName}</td>
+                      <td>{record.gp}</td>
+                      <td>{record.w}</td>
+                      <td>{record.l}</td>
+                      <td>{record.pts}</td>
+                      <td>{record.fgPct}%</td>
+                      <td>{record.twopPct}%</td>
+                      <td>{record.threepPct}%</td>
+                      <td>{record.ftPct}%</td>
+                      <td>{record.reb}</td>
+                      <td>{record.ast}</td>
+                      <td>{record.stl}</td>
+                      <td>{record.blk}</td>
+                      <td>{record.turnover}</td>
+                      <td>{record.dd2}</td>
+                      <td>{record.td3}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📊</div>
+              <div className="empty-message">
+                {language === 'KR' ? '기록 데이터가 없습니다.' : 'No records available.'}
+              </div>
+            </div>
+          )
+        ) : (
+          // 경기기록 탭
+          <div className="match-records-section">
+            {loading ? (
+              <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">🏀</div>
+                <div className="empty-message">
+                  {language === 'KR' ? '경기 기록이 없습니다.' : 'No match records available.'}
+                </div>
+                <button className="btn btn-primary" onClick={handleCreateRecord}>
+                  {language === 'KR' ? '첫 경기 기록 작성하기' : 'Create First Match Record'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,0 +1,179 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.social-login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: $spacing-xxl $spacing-md;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+
+  .login-header {
+    text-align: center;
+    margin-bottom: $spacing-xxl;
+
+    .login-title {
+      font-size: $font-3xl;
+      font-weight: 800;
+      color: $text-primary;
+      margin-bottom: $spacing-sm;
+      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .login-subtitle {
+      font-size: $font-base;
+      color: $text-secondary;
+      margin: 0;
+    }
+  }
+
+  .social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    padding: $spacing-md $spacing-xl;
+    font-size: $font-base;
+    font-weight: 600;
+    border: none;
+    border-radius: $radius-lg;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+      &::before {
+        width: 300px;
+        height: 300px;
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .social-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .social-text {
+      flex: 1;
+      text-align: center;
+    }
+
+    &.google {
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
+      color: $text-primary;
+      border: 2px solid $border-color;
+
+      &:hover {
+        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+        border-color: $primary-color;
+        color: $primary-color;
+      }
+
+      .social-icon {
+        // 구글 로고는 SVG 내부에 색상이 포함되어 있음
+      }
+    }
+
+    &.naver {
+      background: linear-gradient(135deg, #03c75a, #02b350);
+      color: white;
+
+      &:hover {
+        background: linear-gradient(135deg, #02b350, #03c75a);
+        box-shadow: 0 4px 16px rgba(3, 199, 90, 0.3);
+      }
+
+      .social-icon {
+        // 네이버 로고는 SVG 내부에 색상이 포함되어 있음
+      }
+    }
+
+    &.kakao {
+      background: linear-gradient(135deg, #fee500, #fdd835);
+      color: #000000;
+
+      &:hover {
+        background: linear-gradient(135deg, #fdd835, #fee500);
+        box-shadow: 0 4px 16px rgba(254, 229, 0, 0.3);
+      }
+
+      .social-icon {
+        // 카카오 로고는 SVG 내부에 색상이 포함되어 있음
+      }
+    }
+  }
+}
+
+// 개발용 테스트 계정 로그인 버튼
+.dev-login {
+  display: flex;
+  justify-content: center;
+  padding: 0 $spacing-md $spacing-xxl;
+  margin-top: -$spacing-lg;
+
+  .dev-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-lg;
+    font-size: $font-sm;
+    font-weight: 700;
+    color: $text-secondary;
+    background: transparent;
+    border: 1.5px dashed $border-dark;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    &:hover {
+      color: $primary-color;
+      border-color: $primary-color;
+      background: rgba($primary-color, 0.06);
+    }
+  }
+}

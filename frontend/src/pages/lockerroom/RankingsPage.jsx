@@ -2,11 +2,20 @@ import { useState, useEffect } from 'react';
 import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
 import apiRequest from '../../lib/apiRequest';
+import EmptyState from '../../components/common/EmptyState';
 import './RankingsPage.scss';
 
 const RankingsPage = () => {
   const teamInfo = useTeamStore((state) => state.teamInfo);
+  const getTeamInfo = useTeamStore((state) => state.getTeamInfo);
   const language = useLanguageStore((state) => state.language);
+
+  useEffect(() => {
+    if (!teamInfo) {
+      getTeamInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 랭킹 카테고리 옵션
   const categoryOptions = [
@@ -35,64 +44,106 @@ const RankingsPage = () => {
   const [duos, setDuos] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 더미 데이터 생성 함수
-  const generateDummyRankings = (category, year) => {
+  // RecordsPage와 동일한 더미 데이터 (기록 더미 기반으로 랭킹을 만들기 위함)
+  const generateDummyRecords = () => {
     const dummyData = [];
-    const categoryLabels = {
-      TOTAL: '종합 점수',
-      POINTS: '득점',
-      REBOUNDS: '리바운드',
-      ASSISTS: '어시스트',
-      BLOCKS: '블락',
-      STEALS: '스틸',
-      TURNOVERS: '턴오버',
-      FOULS: '파울',
-      FIELD_GOAL_PCT: '필드골 성공률',
-      THREE_POINTER_PCT: '3점슛 성공률',
-      FREE_THROW_PCT: '자유투 성공률',
-    };
+    for (let i = 1; i <= 15; i++) {
+      const gp = 20 + Math.floor(Math.random() * 15);
+      const w = Math.floor(gp * (0.4 + Math.random() * 0.3));
+      const l = gp - w;
 
-    const getValue = (rank, category) => {
-      const baseValues = {
-        TOTAL: 1000 - rank * 50,
-        GAMES_PLAYED: 30 - rank * 1,
-        POINTS: 25 - rank * 1.5,
-        REBOUNDS: 12 - rank * 0.8,
-        ASSISTS: 10 - rank * 0.6,
-        BLOCKS: 5 - rank * 0.3,
-        STEALS: 4 - rank * 0.2,
-        TURNOVERS: 3 + rank * 0.1,
-        FOULS: 2 + rank * 0.1,
-        FIELD_GOAL_PCT: 55 - rank * 2,
-        THREE_POINTER_PCT: 40 - rank * 1.5,
-        FREE_THROW_PCT: 85 - rank * 2,
-      };
-      return baseValues[category] || 0;
-    };
-
-    const getUnit = (category) => {
-      if (category.includes('PCT')) return '%';
-      if (category === 'POINTS') return '점';
-      return '개';
-    };
-
-    for (let i = 1; i <= 10; i++) {
       dummyData.push({
-        rank: i,
+        no: i,
         userId: i,
-        userName: `선수${i}`,
-        userImage: `https://via.placeholder.com/100/2563eb/ffffff?text=${i}`,
-        value: getValue(i, category),
-        unit: getUnit(category),
-        category: categoryLabels[category],
-        year: year,
-        // 추가 통계 정보
-        gamesPlayed: 20 - Math.floor(i / 2),
-        wins: 15 - Math.floor(i / 2),
-        losses: 5 + Math.floor(i / 2),
+        userName: language === 'KR' ? `선수${i}` : `Player ${i}`,
+        userImage: `https://i.pravatar.cc/150?img=${i}`,
+        gp,
+        w,
+        l,
+        pts: (15 + Math.random() * 15).toFixed(1),
+        fgPct: (40 + Math.random() * 20).toFixed(1),
+        twopPct: (45 + Math.random() * 15).toFixed(1),
+        threepPct: (30 + Math.random() * 20).toFixed(1),
+        ftPct: (70 + Math.random() * 20).toFixed(1),
+        reb: (5 + Math.random() * 8).toFixed(1),
+        ast: (3 + Math.random() * 5).toFixed(1),
+        stl: (1 + Math.random() * 2).toFixed(1),
+        blk: (0.5 + Math.random() * 1.5).toFixed(1),
+        to: (2 + Math.random() * 3).toFixed(1),
+        dd2: Math.floor(Math.random() * 3),
+        td3: Math.floor(Math.random() * 2),
       });
     }
     return dummyData;
+  };
+
+  const toNumber = (v) => {
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const buildRankingsFromRecords = (records, category) => {
+    const getValue = (r) => {
+      switch (category) {
+        case 'GP':
+          return toNumber(r.gp);
+        case 'W':
+          return toNumber(r.w);
+        case 'L':
+          return toNumber(r.l);
+        case 'POINTS':
+          return toNumber(r.pts);
+        case 'REBOUNDS':
+          return toNumber(r.reb);
+        case 'ASSISTS':
+          return toNumber(r.ast);
+        case 'BLOCKS':
+          return toNumber(r.blk);
+        case 'STEALS':
+          return toNumber(r.stl);
+        case 'TURNOVERS':
+          return toNumber(r.turnover);
+        case 'FOULS':
+          return toNumber(r.pf);
+        case 'FIELD_GOAL_PCT':
+          return toNumber(r.fgPct);
+        case 'THREE_POINTER_PCT':
+          return toNumber(r.threepPct);
+        case 'FREE_THROW_PCT':
+          return toNumber(r.ftPct);
+        case 'TOTAL': {
+          // 간단한 종합 점수(임시): 득점/리바/어시/스틸/블락 가중치 + 턴오버 패널티
+          const pts = toNumber(r.pts);
+          const reb = toNumber(r.reb);
+          const ast = toNumber(r.ast);
+          const stl = toNumber(r.stl);
+          const blk = toNumber(r.blk);
+          const to = toNumber(r.turnover);
+          return pts * 10 + reb * 7 + ast * 7 + stl * 10 + blk * 10 - to * 5;
+        }
+        default:
+          return 0;
+      }
+    };
+
+    const isLowerBetter = category === 'TURNOVERS' || category === 'FOULS';
+
+    const mapped = records.map((r) => ({
+      userId: r.userId,
+      userName: r.userName,
+      userImage: r.userImage,
+      gamesPlayed: toNumber(r.gp),
+      wins: toNumber(r.w),
+      losses: toNumber(r.l),
+      value: getValue(r),
+    }));
+
+    mapped.sort((a, b) => (isLowerBetter ? a.value - b.value : b.value - a.value));
+
+    return mapped.map((p, idx) => ({
+      ...p,
+      rank: idx + 1,
+    }));
   };
 
   // 랭킹 데이터 로드
@@ -111,29 +162,18 @@ const RankingsPage = () => {
           setRankings([]);
         }
       } else {
-        // 일반 랭킹
-        const response = await apiRequest('get', '/team/rankings', { category, year });
-        if (response?.data && response.data.length > 0) {
-          setRankings(response.data);
-          setDuos([]);
-        } else {
-          // API 응답이 없을 경우 더미 데이터 사용
-          const dummyData = generateDummyRankings(category, year);
-          setRankings(dummyData);
-          setDuos([]);
-        }
+        // 일반 랭킹: records(통합기록) 기반으로 랭킹 계산
+        const recordsRes = await apiRequest('get', '/team/records', { year });
+        const recordsData =
+          recordsRes?.data && recordsRes.data.length > 0 ? recordsRes.data : generateDummyRecords();
+        const computed = buildRankingsFromRecords(recordsData, category);
+        setRankings(computed);
+        setDuos([]);
       }
     } catch (error) {
       console.error('랭킹 로드 실패:', error);
-      // 에러 발생 시
-      if (category === 'BEST_DUO' || category === 'WORST_DUO') {
-        setDuos([]);
-        setRankings([]);
-      } else {
-        const dummyData = generateDummyRankings(category, year);
-        setRankings(dummyData);
-        setDuos([]);
-      }
+      setDuos([]);
+      setRankings([]);
     } finally {
       setLoading(false);
     }
@@ -263,6 +303,16 @@ const RankingsPage = () => {
   // 듀오 랭킹인 경우 1위 프로필 표시 안 함
   const isDuoRanking = selectedCategory === 'BEST_DUO' || selectedCategory === 'WORST_DUO';
 
+  if (!teamInfo) {
+    return (
+      <div className="rankings-page">
+        <div className="container">
+          <EmptyState showActions={true} actionPath="/recruit" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rankings-page">
       <div className="container">
@@ -367,41 +417,58 @@ const RankingsPage = () => {
           )
         ) : rankings.length > 0 ? (
           <>
-            {rankings[0] && (
-              <div className="top-player-card">
-                <div className="top-player-image">
-                  <img src={rankings[0].userImage} alt={rankings[0].userName} />
-                  <div className="rank-badge">{language === 'KR' ? '1위' : '1st'}</div>
-                </div>
-                <div className="top-player-info">
-                  <h2 className="top-player-name">{rankings[0].userName}</h2>
-                  <div className="top-player-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">{categoryInfo.label}</span>
-                      <span className="stat-value">
-                        {categoryInfo.unit === '%'
-                          ? rankings[0].value.toFixed(1)
-                          : rankings[0].value.toFixed(0)}
-                        {categoryInfo.unit}
-                      </span>
+            {/* 메달 단상 (1~3위) */}
+            <div className="top-podium">
+              {[2, 1, 3].map((rank) => {
+                const player = rankings.find((p) => p.rank === rank);
+                if (!player) return null;
+
+                const getMedalClass = () => {
+                  if (rank === 1) return 'podium-gold';
+                  if (rank === 2) return 'podium-silver';
+                  if (rank === 3) return 'podium-bronze';
+                  return '';
+                };
+
+                const displayValue =
+                  categoryInfo.unit === '%'
+                    ? player.value.toFixed(1)
+                    : player.value.toFixed(0);
+
+                return (
+                  <div key={rank} className={`podium-column ${getMedalClass()}`}>
+                    <div className="podium-medal">{rank}</div>
+                    <div className="podium-figure">
+                      <div className="podium-player-head">
+                        <img
+                          src={
+                            player.userImage ||
+                            `https://i.pravatar.cc/150?img=${player.userId || player.rank}`
+                          }
+                          alt={player.userName}
+                          onError={(e) => {
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              player.userName
+                            )}&background=2563eb&color=fff&size=128`;
+                          }}
+                        />
+                      </div>
+                      <div className="podium-player-body" />
                     </div>
-                    <div className="stat-details">
-                      <span>
-                        {language === 'KR' ? '경기 수' : 'Games'}: {rankings[0].gamesPlayed}
-                        {language === 'KR' ? '경기' : ''}
-                      </span>
-                      <span>
-                        {language === 'KR' ? '승률' : 'Win Rate'}:{' '}
-                        {rankings[0].gamesPlayed > 0
-                          ? ((rankings[0].wins / rankings[0].gamesPlayed) * 100).toFixed(1)
-                          : 0}
-                        %
-                      </span>
-                    </div>
+                    <div className="podium-player-name">{player.userName}</div>
+                    {rank === 1 && (
+                      <div className="podium-main-stat">
+                        <span className="stat-label">{categoryInfo.label}</span>
+                        <span className="stat-value">
+                          {displayValue}
+                          {categoryInfo.unit}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
 
             {/* 1-10위 리스트 */}
             <div className="rankings-list">

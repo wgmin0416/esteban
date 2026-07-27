@@ -46,6 +46,13 @@ module.exports = (sequelize, DataTypes) => {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       underscored: true,
+      indexes: [
+        {
+          unique: true,
+          fields: ['match_id', 'user_id'],
+          name: 'uq_attendance_match_user',
+        },
+      ],
     }
   );
 

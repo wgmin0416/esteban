@@ -58,26 +58,49 @@ const specs = swaggerJsdoc(options);
 
 app.use(httpLogger);
 
-// CORS 허용
+// CORS 허용 (웹: FRONT_URL / 앱: Capacitor 웹뷰 origin)
+const allowedOrigins = [
+  process.env.FRONT_URL,
+  'capacitor://localhost', // iOS 네이티브 웹뷰
+  'http://localhost', // Android 네이티브 웹뷰
+].filter(Boolean);
 app.use(
   cors({
-    origin: process.env.FRONT_URL,
+    origin: (origin, callback) => {
+      // origin 없음(네이티브 앱/서버간 호출) 또는 허용 목록이면 통과
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
+    exposedHeaders: ['x-access-token'], // 앱이 갱신된 토큰을 읽을 수 있도록 노출
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // cookie-parser
 app.use(cookieParser());
 
 // 데이터베이스 연결
-sequelize
-  .sync()
-  .then(() => {
-    console.log('Database synced');
-  })
-  .catch((error) => {
-    console.error('Error syncing database:', error);
-  });
+// 주의: sync()는 개발 편의용. 컬럼 변경은 반영되지 않아(스키마 드리프트) 위험하므로
+// 프로덕션에서는 실행하지 않고 마이그레이션(npx sequelize-cli db:migrate)으로 관리한다.
+if (process.env.NODE_ENV !== 'production') {
+  sequelize
+    .sync()
+    .then(() => {
+      console.log('Database synced (dev)');
+    })
+    .catch((error) => {
+      console.error('Error syncing database:', error);
+    });
+} else {
+  // 프로덕션: 연결만 확인
+  sequelize
+    .authenticate()
+    .then(() => console.log('Database connected'))
+    .catch((error) => console.error('Error connecting database:', error));
+}
 
 // api 라우트 설정
 app.use('/api/v1', routes);

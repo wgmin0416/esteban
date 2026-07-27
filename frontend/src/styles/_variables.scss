@@ -1,16 +1,21 @@
-// 색상 변수 - 모던한 스포츠 테마
-$primary-color: #2563eb; // 활기찬 파란색
-$primary-hover: #1d4ed8; // 진한 파란색
-$primary-light: #3b82f6; // 밝은 파란색
-$secondary-color: #06b6d4; // 청록색
-$accent-color: #f59e0b; // 골드/오렌지
-$accent-hover: #d97706;
+// 색상 변수 - Court Energy 테마 (다이내믹 스포츠)
+$primary-color: #ff5a1f; // 코트 오렌지 (농구)
+$primary-hover: #e8480f; // 진한 오렌지
+$primary-light: #ff824f; // 밝은 오렌지
+$secondary-color: #1e6bff; // 일렉트릭 블루
+$secondary-light: #4d8bff; // 밝은 블루
+$secondary-hover: #0f53e0; // 진한 블루
+$accent-color: #c6ff3a; // 볼트 라임 (하이라이트)
+$accent-hover: #a9e82a;
+$danger-color: #ff3b5c; // 비비드 레드
 
 // 배경색 (라이트 모드)
 $background-light: #ffffff;
 $background-gray: #f8fafc; // 매우 밝은 회색
-$background-dark: #1e293b; // 진한 슬레이트
+$background-alt: #f1f5f9; // 대체 배경색 (테이블 줄무늬 등)
+$background-dark: #0b1020; // 딥 잉크 (다크 서피스)
 $background-card: #ffffff;
+$background-disabled: #e2e8f0; // 비활성화 배경
 
 // 배경색 (다크 모드)
 $background-dark-light: #1e293b;
@@ -21,6 +26,7 @@ $background-dark-card: #1e293b;
 $text-primary: #0f172a; // 진한 슬레이트
 $text-secondary: #475569; // 중간 회색
 $text-light: #64748b; // 밝은 회색
+$text-lighter: #94a3b8; // 더 밝은 회색
 $text-dark: rgba(255, 255, 255, 0.95);
 
 // 텍스트 색상 (다크 모드)
@@ -97,3 +103,27 @@ $radius-xl: 16px;
 $transition-fast: 0.15s;
 $transition-base: 0.25s;
 $transition-slow: 0.3s;
+
+// ── Court Energy 확장 토큰 ──────────────────────────
+// 다크 잉크 서피스 (헤더/탭바/히어로)
+$ink: #0b1020;
+$ink-2: #141a2e;
+$ink-3: #1e2745;
+
+// 강조 컬러
+$volt: #c6ff3a; // 볼트 라임
+$magenta: #ff2e7e; // 마젠타 팝
+
+// 그라디언트
+$gradient-primary: linear-gradient(135deg, #ff5a1f, #ff2e7e); // 오렌지→마젠타
+$gradient-cool: linear-gradient(135deg, #1e6bff, #00c2ff); // 블루→시안
+$gradient-brand: linear-gradient(135deg, #ff5a1f, #1e6bff); // 오렌지→블루 (로고)
+$gradient-hero: linear-gradient(135deg, #0b1020 0%, #1e2745 55%, #3a1c10 100%);
+
+// 글로우 섀도우
+$glow-primary: 0 10px 30px rgba(255, 90, 31, 0.35);
+$glow-cool: 0 10px 30px rgba(30, 107, 255, 0.3);
+$glow-volt: 0 8px 24px rgba(198, 255, 58, 0.35);
+
+// 디스플레이 폰트 (index.css에서 Google Fonts 임포트)
+$font-display: 'Black Han Sans', 'Montserrat', system-ui, sans-serif;

@@ -34,9 +34,8 @@ module.exports = (sequelize, DataTypes) => {
       // Team(1) : BasketballMatch(N) - 한 팀이 여러 경기를 할 수 있음
       Team.hasMany(models.BasketballMatch, { foreignKey: 'team_id', as: 'matches' });
 
-      // BasketballMatchSquad
-      // Team(1) : BasketballMatchSquad(N) - 한 팀이 여러 개의 스쿼드를 가질 수 있음
-      Team.hasMany(models.BasketballMatchSquad, { foreignKey: 'team_id', as: 'squads' });
+      // (제거) 스쿼드는 team_id 컬럼이 없고 경기(match)에만 속한다.
+      // Team → Squad 는 Match 를 경유한 간접 관계이므로 잘못된 hasMany(team_id) 를 삭제함.
     }
   }
 

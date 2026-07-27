@@ -50,6 +50,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: '기록 기간',
       },
+      year: {
+        type: DataTypes.SMALLINT.UNSIGNED,
+        allowNull: false,
+        comment: '기록 연도 (예: 2026)',
+      },
+      month: {
+        type: DataTypes.TINYINT.UNSIGNED,
+        allowNull: false,
+        comment: '기록 월 (1-12)',
+      },
       minutes: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: true,
@@ -175,7 +185,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '블록 개수',
       },
-      to: {
+      turnover: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
@@ -218,6 +228,13 @@ module.exports = (sequelize, DataTypes) => {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       underscored: true,
+      indexes: [
+        {
+          unique: true,
+          fields: ['team_id', 'user_id', 'year', 'month'],
+          name: 'uq_period_team_user_year_month',
+        },
+      ],
     }
   );
 
