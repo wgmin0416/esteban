@@ -89,7 +89,7 @@ const ManagementPage = () => {
         // 권한이 없으면 에러 페이지로 리다이렉트
         setHasPermission(false);
         setCheckingPermission(false);
-        toastError(language === 'KR' ? '팀 관리 권한이 없습니다.' : 'You do not have permission to manage the team.');
+        toastError(language === 'KR' ? '회원 관리 권한이 없습니다.' : 'You do not have permission to manage members.');
         navigate('/locker-room');
       } catch (error) {
         console.error('권한 체크 실패:', error);
@@ -272,7 +272,7 @@ const ManagementPage = () => {
     <div className="management-page">
       <div className="container">
         <div className="page-header">
-          <h1 className="page-title">{language === 'KR' ? '팀 관리' : 'Team Management'}</h1>
+          <h1 className="page-title">{language === 'KR' ? '회원 관리' : 'Members'}</h1>
           {activeTab === 'members' && (
             <button onClick={() => setShowCreateDuesModal(true)} className="btn btn-primary">
               {language === 'KR' ? '회비 생성' : 'Create Dues'}

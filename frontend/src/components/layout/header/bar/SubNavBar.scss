@@ -2,6 +2,9 @@
 @use '../../../../styles/mixins' as *;
 
 .sub-nav-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
   background: $background-gray;
   border-bottom: 1px solid $border-light;
   padding: 0 $spacing-md;
@@ -9,6 +12,8 @@
   box-sizing: border-box;
 
   .sub-nav-container {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: $spacing-md;
@@ -75,5 +80,28 @@
         }
       }
     }
+  }
+
+  // 관리자 전용 회원 관리 (탭이 아닌 별도 버튼, 우측)
+  .sub-nav-admin {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba($primary-color, 0.4);
+    background: rgba($primary-color, 0.08);
+    color: $primary-color;
+    font-weight: 700;
+    font-size: $font-sm;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all $transition-base;
+
+    .sna-icon { font-size: $font-sm; line-height: 1; }
+
+    &:hover { background: rgba($primary-color, 0.15); }
+    &.active { background: $primary-color; color: #fff; border-color: $primary-color; }
   }
 }

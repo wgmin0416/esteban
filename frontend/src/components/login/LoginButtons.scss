@@ -6,9 +6,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 200px);
-  padding: $spacing-xxl $spacing-md;
-  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  min-height: calc(100vh - 160px);
+  padding: $spacing-xxl $spacing-md $spacing-lg;
+  background: transparent; // 앱 프레임(#root) 배경과 통일 (회색 경계 제거)
 
   .login-header {
     text-align: center;

@@ -3,6 +3,7 @@ import { App } from '@capacitor/app';
 import axiosInstance from '../axiosInstance';
 import { buildAuthorizeUrl, buildState } from './oauth';
 import { setAccessToken } from './tokenStore';
+import { APP_SCHEME } from '../../config/brand';
 
 // 네이티브 앱 소셜 로그인
 // 1) 시스템 브라우저로 provider authorize 오픈
@@ -28,7 +29,7 @@ export const loginNative = (provider) => {
 
     handlePromise = App.addListener('appUrlOpen', async ({ url: openedUrl }) => {
       // 우리 스킴의 콜백만 처리
-      if (!openedUrl || !openedUrl.startsWith('com.esteban.app://')) return;
+      if (!openedUrl || !openedUrl.startsWith(`${APP_SCHEME}://`)) return;
       if (settled) return;
       settled = true;
 

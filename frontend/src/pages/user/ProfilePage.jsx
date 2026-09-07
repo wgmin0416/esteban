@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
@@ -228,6 +229,9 @@ const ProfilePage = () => {
             <span className="form-hint">
               {language === 'KR' ? '기본으로 사용할 팀을 선택하세요.' : 'Select your default team.'}
             </span>
+            <Link to="/create-team" className="create-team-link">
+              ＋ {language === 'KR' ? '팀 만들기' : 'Create Team'}
+            </Link>
           </div>
 
           <div className="form-group">

@@ -2,11 +2,28 @@
 @use './styles/mixins' as *;
 @use './styles/mobile';
 
+// 앱은 모바일 전용 → PC/태블릿에서도 모바일 폭 프레임으로 고정 (가운데 정렬)
+$app-frame: 480px;
+
 #root {
   width: 100%;
+  max-width: $app-frame;
+  margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  background-color: #f6f8fc;
+  background-image:
+    radial-gradient(700px 300px at 100% -8%, rgba(30, 107, 255, 0.12), transparent 70%),
+    radial-gradient(600px 300px at -8% -6%, rgba(255, 90, 31, 0.14), transparent 70%);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+// 기록 등 넓은 화면이 필요한 페이지: body.full-width 로 프레임 해제 (추후 기록 작성 화면용)
+body.full-width #root {
+  max-width: none;
+  box-shadow: none;
 }
 
 // 메인 컨텐츠 영역이 푸터를 밀어내도록

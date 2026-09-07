@@ -19,7 +19,7 @@ const RankingsPage = () => {
 
   // 랭킹 카테고리 옵션
   const categoryOptions = [
-    { value: 'TOTAL', label: '전체', labelEn: 'Total' },
+    { value: 'TOTAL', label: '종합', labelEn: 'Overall' },
     { value: 'GP', label: '경기수', labelEn: 'GP' },
     { value: 'W', label: '승리', labelEn: 'W' },
     { value: 'L', label: '패배', labelEn: 'L' },
@@ -226,7 +226,7 @@ const RankingsPage = () => {
   const getCategoryInfo = (category) => {
     const categoryMap = {
       TOTAL: {
-        label: language === 'KR' ? '종합 점수' : 'Total Score',
+        label: language === 'KR' ? '종합 점수' : 'Overall Score',
         unit: language === 'KR' ? '점' : 'pts',
       },
       GP: {
@@ -292,7 +292,7 @@ const RankingsPage = () => {
     };
     return (
       categoryMap[category] || {
-        label: language === 'KR' ? '종합 점수' : 'Total Score',
+        label: language === 'KR' ? '종합 점수' : 'Overall Score',
         unit: language === 'KR' ? '점' : 'pts',
       }
     );
@@ -417,18 +417,11 @@ const RankingsPage = () => {
           )
         ) : rankings.length > 0 ? (
           <>
-            {/* 메달 단상 (1~3위) */}
-            <div className="top-podium">
-              {[2, 1, 3].map((rank) => {
+            {/* TOP 3: 1위 크게, 2·3위 오른쪽 절반 분할 */}
+            <div className="podium">
+              {[1, 2, 3].map((rank) => {
                 const player = rankings.find((p) => p.rank === rank);
                 if (!player) return null;
-
-                const getMedalClass = () => {
-                  if (rank === 1) return 'podium-gold';
-                  if (rank === 2) return 'podium-silver';
-                  if (rank === 3) return 'podium-bronze';
-                  return '';
-                };
 
                 const displayValue =
                   categoryInfo.unit === '%'
@@ -436,33 +429,30 @@ const RankingsPage = () => {
                     : player.value.toFixed(0);
 
                 return (
-                  <div key={rank} className={`podium-column ${getMedalClass()}`}>
-                    <div className="podium-medal">{rank}</div>
-                    <div className="podium-figure">
-                      <div className="podium-player-head">
-                        <img
-                          src={
-                            player.userImage ||
-                            `https://i.pravatar.cc/150?img=${player.userId || player.rank}`
-                          }
-                          alt={player.userName}
-                          onError={(e) => {
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                              player.userName
-                            )}&background=2563eb&color=fff&size=128`;
-                          }}
-                        />
-                      </div>
-                      <div className="podium-player-body" />
+                  <div key={rank} className={`podium-card rank-${rank}`}>
+                    <span className="podium-rank">{rank}</span>
+                    <div className="podium-avatar">
+                      <img
+                        src={
+                          player.userImage ||
+                          `https://i.pravatar.cc/150?img=${player.userId || player.rank}`
+                        }
+                        alt={player.userName}
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                            player.userName
+                          )}&background=ff5a1f&color=fff&size=128`;
+                        }}
+                      />
                     </div>
-                    <div className="podium-player-name">{player.userName}</div>
+                    <div className="podium-name">{player.userName}</div>
+                    <div className="podium-value">
+                      <span className="pv-num">{displayValue}</span>
+                      {categoryInfo.unit && <span className="pv-unit">{categoryInfo.unit}</span>}
+                    </div>
                     {rank === 1 && (
-                      <div className="podium-main-stat">
-                        <span className="stat-label">{categoryInfo.label}</span>
-                        <span className="stat-value">
-                          {displayValue}
-                          {categoryInfo.unit}
-                        </span>
+                      <div className="podium-record">
+                        GP {player.gamesPlayed} · {player.wins || 0}W {player.losses || 0}L
                       </div>
                     )}
                   </div>
@@ -470,18 +460,11 @@ const RankingsPage = () => {
               })}
             </div>
 
-            {/* 1-10위 리스트 */}
-            <div className="rankings-list">
-              {rankings.map((player) => {
-                const getRankClass = (rank) => {
-                  if (rank === 1) return 'rank-gold';
-                  if (rank === 2) return 'rank-silver';
-                  if (rank === 3) return 'rank-bronze';
-                  return '';
-                };
-
-                return (
-                  <div key={player.rank} className={`ranking-item ${getRankClass(player.rank)}`}>
+            {/* 4위 이하 목록 */}
+            {rankings.length > 3 && (
+              <div className="rankings-list">
+                {rankings.slice(3).map((player) => (
+                  <div key={player.rank} className="ranking-item">
                     <div className="ranking-number">{player.rank}</div>
                     <div className="ranking-player-image">
                       <img
@@ -491,30 +474,30 @@ const RankingsPage = () => {
                         }
                         alt={player.userName}
                         onError={(e) => {
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.userName)}&background=2563eb&color=fff&size=128`;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.userName)}&background=ff5a1f&color=fff&size=128`;
                         }}
                       />
                     </div>
                     <div className="ranking-player-info">
                       <div className="ranking-player-name">{player.userName}</div>
                       <div className="ranking-player-stats">
-                        {selectedCategory !== 'TOTAL' && (
-                          <span className="ranking-value">
-                            {categoryInfo.unit === '%'
-                              ? player.value.toFixed(1)
-                              : player.value.toFixed(0)}
-                            {categoryInfo.unit}
-                          </span>
-                        )}
                         <span className="ranking-games">
-                          GP: {player.gamesPlayed} | W: {player.wins || 0} | L: {player.losses || 0}
+                          GP {player.gamesPlayed} · {player.wins || 0}W {player.losses || 0}L
                         </span>
                       </div>
                     </div>
+                    <div className="ranking-value">
+                      <span className="rv-num">
+                        {categoryInfo.unit === '%'
+                          ? player.value.toFixed(1)
+                          : player.value.toFixed(0)}
+                      </span>
+                      {categoryInfo.unit && <span className="rv-unit">{categoryInfo.unit}</span>}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <div className="empty-state">

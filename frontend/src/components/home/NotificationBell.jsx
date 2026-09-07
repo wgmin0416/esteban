@@ -20,9 +20,9 @@ const NotificationBell = () => {
         onClick={() => setOpen((v) => !v)}
         aria-label="알림"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2a2 2 0 0 1 2 2v.34c2.58.79 4.5 3.2 4.5 6.06v3.79l1.4 2.09A1 1 0 0 1 19.07 18H4.93a1 1 0 0 1-.83-1.55l1.4-2.09V10.4c0-2.86 1.92-5.27 4.5-6.06V4a2 2 0 0 1 2-2z" />
+          <path d="M9.5 19.5h5a2.5 2.5 0 0 1-5 0z" />
         </svg>
         {unread > 0 && <span className="notif-badge">{unread}</span>}
       </button>

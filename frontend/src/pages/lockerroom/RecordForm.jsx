@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Tooltip } from 'react-tooltip';
 import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
@@ -10,6 +10,7 @@ import './RecordForm.scss';
 
 const RecordForm = () => {
   const navigate = useNavigate();
+  const { matchId: boundMatchId } = useParams();
   const teamInfo = useTeamStore((state) => state.teamInfo);
   const getTeamInfo = useTeamStore((state) => state.getTeamInfo);
   const getMembers = useTeamStore((state) => state.getMembers);
@@ -206,8 +207,8 @@ const RecordForm = () => {
     setLoading(true);
 
     try {
-      // 유효성 검사
-      if (!formData.match_date) {
+      // 유효성 검사 (경기에 종속된 경우 날짜는 이미 있으므로 생략)
+      if (!boundMatchId && !formData.match_date) {
         toastError(language === 'KR' ? '경기 날짜를 입력해주세요.' : 'Please enter match date.');
         setLoading(false);
         return;
@@ -229,27 +230,29 @@ const RecordForm = () => {
           return;
         }
 
-        // 경기 생성
-        const matchData = {
-          team_id: teamRecord.teamId,
-          title: formData.is_internal
-            ? language === 'KR' ? '팀 내 경기' : 'Internal Match'
-            : language === 'KR' ? '외부팀 경기' : 'External Match',
-          match_date: formData.match_date,
-          location: formData.location || '',
-          type: formData.is_internal ? 'intra_squad' : 'invitation',
-          total_players: validPlayers.length,
-        };
-
-        const matchResponse = await apiRequest('post', '/team/match', matchData);
-        const matchId = matchResponse.data.id;
+        // 경기 결정: 경기 상세에서 진입한 경우 기존 matchId 사용, 아니면 생성
+        let targetMatchId = boundMatchId ? parseInt(boundMatchId) : null;
+        if (!targetMatchId) {
+          const matchData = {
+            team_id: teamRecord.teamId,
+            title: formData.is_internal
+              ? language === 'KR' ? '팀 내 경기' : 'Internal Match'
+              : language === 'KR' ? '외부팀 경기' : 'External Match',
+            match_date: formData.match_date,
+            location: formData.location || '',
+            type: formData.is_internal ? 'intra_squad' : 'invitation',
+            total_players: validPlayers.length,
+          };
+          const matchResponse = await apiRequest('post', '/team/match', matchData);
+          targetMatchId = matchResponse.data.id;
+        }
 
         // 선수별 기록 저장
         for (const player of validPlayers) {
           const stats = calculateStats(player);
           const recordData = {
             team_id: teamRecord.teamId,
-            match_id: matchId,
+            match_id: targetMatchId,
             user_id: parseInt(player.user_id),
             fgm: stats.fgm,
             fga: stats.fga,
@@ -273,8 +276,15 @@ const RecordForm = () => {
         }
       }
 
-      toastSuccess(language === 'KR' ? '기록이 저장되었습니다.' : 'Record saved successfully.');
-      navigate('/locker-room/records');
+      // 경기에 종속된 경우 완료 처리 후 상세로 이동
+      if (boundMatchId) {
+        await apiRequest('post', `/team/match/${boundMatchId}/complete`, {});
+        toastSuccess(language === 'KR' ? '기록이 저장되었습니다.' : 'Record saved successfully.');
+        navigate(`/locker-room/matches/${boundMatchId}`);
+      } else {
+        toastSuccess(language === 'KR' ? '기록이 저장되었습니다.' : 'Record saved successfully.');
+        navigate('/locker-room/records');
+      }
     } catch (error) {
       console.error('기록 저장 실패:', error);
       toastError(language === 'KR' ? '기록 저장에 실패했습니다.' : 'Failed to save record.');
@@ -313,7 +323,10 @@ const RecordForm = () => {
       <div className="container">
         <div className="form-header">
           <h1 className="page-title">{language === 'KR' ? '기록 작성' : 'Create Record'}</h1>
-          <button className="btn btn-secondary" onClick={() => navigate('/locker-room/records')}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate(boundMatchId ? `/locker-room/matches/${boundMatchId}` : '/locker-room/records')}
+          >
             {language === 'KR' ? '취소' : 'Cancel'}
           </button>
         </div>

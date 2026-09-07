@@ -1,0 +1,188 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.matches-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  padding: $spacing-lg $spacing-md $spacing-xxl;
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .mp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .page-title {
+      margin: 0;
+      font-family: $font-display;
+      font-size: $font-2xl;
+      color: $text-primary;
+    }
+
+    .create-btn {
+      border: none;
+      border-radius: 999px;
+      padding: $spacing-sm $spacing-lg;
+      background: $gradient-primary;
+      color: #fff;
+      font-weight: 800;
+      font-size: $font-sm;
+      cursor: pointer;
+      box-shadow: $glow-primary;
+    }
+  }
+
+  // 생성 폼
+  .create-card {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .cc-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-md;
+    }
+
+    .cc-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 140px;
+
+      &.sm { flex: 0 0 90px; min-width: 90px; }
+
+      > span {
+        font-size: $font-xs;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: $text-light;
+      }
+
+      input {
+        padding: $spacing-sm $spacing-md;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        font-size: $font-base;
+        font-weight: 600;
+        color: $text-primary;
+        &:focus { outline: none; border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.12); }
+      }
+    }
+
+    .cc-submit {
+      align-self: flex-start;
+      border: none;
+      border-radius: $radius-md;
+      padding: $spacing-sm $spacing-xl;
+      background: $gradient-primary;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      &:disabled { opacity: 0.6; }
+    }
+  }
+
+  // 필터
+  .mp-filters {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+
+    select, .member-search {
+      padding: $spacing-sm $spacing-md;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $text-primary;
+      background: #fff;
+      &:focus { outline: none; border-color: $primary-color; }
+    }
+    .member-search { flex: 1; min-width: 140px; }
+  }
+
+  // 목록
+  .match-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .match-card {
+    text-align: left;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all $transition-base;
+
+    &:hover { transform: translateY(-2px); box-shadow: 0 6px 16px $shadow-md; }
+
+    .mc-top {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .mc-status {
+        font-size: $font-xs;
+        font-weight: 800;
+        padding: 2px 10px;
+        border-radius: 999px;
+        color: #fff;
+        &.scheduled { background: $secondary-color; }
+        &.live { background: $danger-color; }
+        &.done { background: $text-light; }
+      }
+      .mc-date { font-size: $font-xs; color: $text-light; font-weight: 600; }
+    }
+
+    .mc-title { font-family: $font-display; font-size: $font-lg; color: $text-primary; }
+
+    .mc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+      font-size: $font-xs;
+      color: $text-light;
+      font-weight: 600;
+
+      .mc-mine { color: $success-color; font-weight: 800; }
+    }
+
+    .mc-score {
+      display: flex;
+      gap: $spacing-md;
+      font-family: $font-display;
+      font-size: $font-lg;
+      color: $text-primary;
+      .mc-sq b { color: $primary-color; margin-right: 4px; }
+      .mc-vs { color: $text-lighter; margin-right: $spacing-sm; }
+    }
+  }
+
+  .mp-empty {
+    text-align: center;
+    padding: $spacing-xxl $spacing-lg;
+    .mp-empty-icon { font-size: 3rem; }
+    p { color: $text-light; margin-top: $spacing-sm; }
+  }
+}

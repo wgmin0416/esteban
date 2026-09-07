@@ -7,36 +7,26 @@ const NavBar = ({ language }) => {
   const t = {
     home: language === 'KR' ? '홈' : 'Home',
 
-    lockerRoom: language === 'KR' ? '라커룸' : 'Locker Room',
+    lockerRoom: language === 'KR' ? '우리 팀' : 'Team',
     teamBoard: language === 'KR' ? '게시판' : 'Team Board',
     schedule: language === 'KR' ? '일정' : 'Schedule',
     rankings: language === 'KR' ? '랭킹' : 'Rankings',
     records: language === 'KR' ? '기록' : 'Records',
-    teamManagement: language === 'KR' ? '팀 관리' : 'Team Management',
+    teamManagement: language === 'KR' ? '회원 관리' : 'Members',
 
     joinRecruit: language === 'KR' ? '팀원모집' : 'Member Recruitment',
     join: language === 'KR' ? '팀 구해요' : 'Join a Team',
     recruit: language === 'KR' ? '팀원 구해요' : 'Recruit Members',
 
-    matchBoard: language === 'KR' ? '경기모집' : 'Match Recruitment',
+    matchBoard: language === 'KR' ? '매치' : 'Matches',
 
-    courtBoard: language === 'KR' ? '코트대관' : 'Court Rental',
+    courtBoard: language === 'KR' ? '코트' : 'Courts',
   };
 
   return (
     <nav className="nav-bar">
       <div className="nav-group">
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => isActive ? 'active' : ''}
-          end
-        >
-          {t.home}
-        </NavLink>
-      </div>
-
-      <div className="nav-group">
-        <NavLink 
+        <NavLink
           to="/locker-room"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
@@ -44,17 +34,8 @@ const NavBar = ({ language }) => {
         </NavLink>
       </div>
 
-      <div className="nav-group dropdown">
-        <NavLink 
-          to="/recruit"
-          className={({ isActive }) => isActive ? 'active' : ''}
-        >
-          {t.joinRecruit}
-        </NavLink>
-      </div>
-
       <div className="nav-group">
-        <NavLink 
+        <NavLink
           to="/match-board"
           className={({ isActive }) => isActive ? 'active' : ''}
         >

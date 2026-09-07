@@ -5,18 +5,31 @@ const {
   UnauthorizedError,
 } = require('../errors/index.js');
 const {
+  sequelize,
   User,
   Team,
   BasketballTeamMember,
   JoinRequest,
   BasketballMemberPeriodRecord,
   BasketballMemberMatchRecord,
+  BasketballMemberQuarterRecord,
   BasketballMatchSquad,
+  BasketballMatchSquadMember,
+  BasketballMatchAttendance,
   BasketballMatch,
   TeamDue,
 } = require('../models/index.js');
 const { Op, Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
+const redisClient = require('../config/redisClient.js');
+
+// 창단 일시 정규화: 연·월만 입력('YYYY-MM')받아 해당 월 1일로 저장
+const normalizeEstablishedAt = (value) => {
+  if (!value || value.trim() === '') return null;
+  const v = value.trim();
+  if (/^\d{4}-\d{2}$/.test(v)) return `${v}-01`; // YYYY-MM → YYYY-MM-01
+  return v; // 이미 전체 날짜 형식이면 그대로
+};
 
 // 팀 생성
 /**
@@ -66,8 +79,8 @@ const logger = require('../utils/logger');
  *                 example: 서울
  *               established_at:
  *                 type: string
- *                 format: date-time
- *                 example: "2025-11-27T17:00:00Z"
+ *                 description: 창단 연·월 (YYYY-MM). 서버에서 해당 월 1일로 저장됨.
+ *                 example: "2025-11"
  *               is_public:
  *                 type: integer
  *                 example: 1
@@ -111,7 +124,8 @@ const createTeam = async (req, res) => {
       region: region.trim(),
       intro: intro && intro.trim() !== '' ? intro.trim() : null,
       logo_url: logo_url && logo_url.trim() !== '' ? logo_url.trim() : null,
-      established_at: established_at && established_at.trim() !== '' ? established_at : null,
+      // 창단은 연·월까지만 입력받음: 'YYYY-MM' → 해당 월 1일로 정규화
+      established_at: normalizeEstablishedAt(established_at),
       is_public: is_public !== undefined && is_public !== null ? parseInt(is_public) : 1,
     };
 
@@ -1823,45 +1837,62 @@ const rejectJoinRequest = async (req, res) => {
  *         description: 경기 생성 성공
  */
 const createMatch = async (req, res) => {
+  const t = await sequelize.transaction();
+  let committed = false;
   try {
     const userId = req.user?.id;
-    const { team_id, title, match_date, location, type, total_players } = req.body;
+    const { team_id, title, match_date, location, type, quarter_count, quarter_minutes } = req.body;
 
     if (!userId) {
       throw new BadRequestError('사용자 정보가 없습니다.');
     }
 
-    if (!team_id || !title || !match_date || !type) {
+    if (!team_id || !title || !match_date) {
       throw new BadRequestError('필수 정보가 누락되었습니다.');
     }
 
-    // 팀 멤버 확인
-    const teamMember = await BasketballTeamMember.findOne({
-      where: {
-        user_id: userId,
-        team_id: parseInt(team_id),
-        is_active: 1,
-      },
-    });
+    await assertTeamManager(userId, team_id, req.user?.role);
 
-    if (!teamMember) {
-      throw new UnauthorizedError('해당 팀의 멤버가 아닙니다.');
+    // 경기 생성 (예정 상태)
+    const match = await BasketballMatch.create(
+      {
+        team_id: parseInt(team_id),
+        title: title.trim(),
+        match_date: new Date(match_date),
+        location: location || '',
+        type: type || 'intra_squad',
+        total_players: 0,
+        quarter_count: Math.min(Math.max(toInt(quarter_count) || 4, 1), 12),
+        quarter_minutes: Math.min(Math.max(toInt(quarter_minutes) || 10, 1), 60),
+        status: 'scheduled',
+      },
+      { transaction: t }
+    );
+
+    // 참석투표 자동 생성: 팀 활성 멤버 전원 pending
+    const activeMembers = await BasketballTeamMember.findAll({
+      where: { team_id: parseInt(team_id), is_active: 1 },
+      attributes: ['user_id'],
+      transaction: t,
+    });
+    if (activeMembers.length > 0) {
+      await BasketballMatchAttendance.bulkCreate(
+        activeMembers.map((m) => ({ match_id: match.id, user_id: m.user_id, status: 'pending' })),
+        { transaction: t }
+      );
     }
 
-    // 경기 생성
-    const match = await BasketballMatch.create({
-      team_id: parseInt(team_id),
-      title,
-      match_date: new Date(match_date),
-      location: location || '',
-      type,
-      total_players: total_players || 0,
-    });
-
+    await t.commit();
+    committed = true;
     return res.status(200).json({ success: true, data: match.dataValues });
   } catch (err) {
+    if (!committed) await t.rollback();
     logger.error('경기 생성 에러:', err);
-    if (err instanceof BadRequestError || err instanceof UnauthorizedError) {
+    if (
+      err instanceof BadRequestError ||
+      err instanceof UnauthorizedError ||
+      err instanceof ForbiddenError
+    ) {
       throw err;
     }
     throw new BadGatewayError(`경기 생성 중 오류가 발생했습니다: ${err.message}`);
@@ -2051,6 +2082,1161 @@ const createMatchRecord = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// 라이브 경기 기록 (Redis 드래프트 → 종료 시 DB flush)
+//  - 진행 중 스탯은 Redis에만 누적(이벤트당 DB insert 없음)
+//  - 스쿼드 단위 키로 저장 → 여러 명이 각자 스쿼드를 동시에 기록해도 안 섞임
+//  - 종료 시 쿼터별/합산 record를 트랜잭션으로 일괄 저장
+// ─────────────────────────────────────────────────────────────
+const LIVE_TTL = 60 * 60 * 24; // 24시간
+const liveMetaKey = (matchId) => `live:${matchId}:meta`;
+const liveSquadKey = (matchId, squadId) => `live:${matchId}:squad:${squadId}`;
+const liveActiveKey = (teamId) => `live:team:${teamId}:active`;
+
+const STAT_FIELDS = [
+  'fgm', 'fga', 'threepm', 'threepa', 'ftm', 'fta',
+  'oreb', 'dreb', 'ast', 'stl', 'blk', 'turnover', 'pf',
+];
+const toInt = (v) => parseInt(v) || 0;
+const blankStat = () => STAT_FIELDS.reduce((o, f) => ((o[f] = 0), o), {});
+
+// 원시 스탯(성공/시도 카운트) → DB record 필드 계산 (createMatchRecord 로직과 동일)
+const buildRecordFields = (stat) => {
+  const fgm = toInt(stat.fgm);
+  const fga = toInt(stat.fga);
+  const threepm = toInt(stat.threepm);
+  const threepa = toInt(stat.threepa);
+  const ftm = toInt(stat.ftm);
+  const fta = toInt(stat.fta);
+  const oreb = toInt(stat.oreb);
+  const dreb = toInt(stat.dreb);
+  const twopm = Math.max(fgm - threepm, 0);
+  const twopa = Math.max(fga - threepa, 0);
+  const reb = oreb + dreb;
+  const pts = twopm * 2 + threepm * 3 + ftm;
+  const ast = toInt(stat.ast);
+  const stl = toInt(stat.stl);
+  const blk = toInt(stat.blk);
+  const turnover = toInt(stat.turnover);
+  const pf = toInt(stat.pf);
+  const fg_pct = fga > 0 ? Number(((fgm / fga) * 100).toFixed(2)) : 0;
+  const twop_pct = twopa > 0 ? Number(((twopm / twopa) * 100).toFixed(2)) : 0;
+  const threep_pct = threepa > 0 ? Number(((threepm / threepa) * 100).toFixed(2)) : 0;
+  const ft_pct = fta > 0 ? Number(((ftm / fta) * 100).toFixed(2)) : 0;
+  const doubleCount = [pts, reb, ast, stl, blk].filter((v) => v >= 10).length;
+  return {
+    fgm, fga, fg_pct, twopm, twopa, twop_pct, threepm, threepa, threep_pct,
+    ftm, fta, ft_pct, oreb, dreb, reb, ast, stl, blk, turnover, pf, pts,
+    dd2: doubleCount >= 2 ? 1 : 0,
+    td3: doubleCount >= 3 ? 1 : 0,
+  };
+};
+
+const sumStats = (statList) => {
+  const acc = blankStat();
+  for (const s of statList) for (const f of STAT_FIELDS) acc[f] += toInt(s?.[f]);
+  return acc;
+};
+
+// squadStats: { [quarter]: { [userId]: stat } } → 스쿼드 총 득점
+const squadTotalPoints = (squadStats) => {
+  let total = 0;
+  for (const q of Object.keys(squadStats || {})) {
+    for (const uid of Object.keys(squadStats[q] || {})) {
+      total += buildRecordFields(squadStats[q][uid]).pts;
+    }
+  }
+  return total;
+};
+
+const assertTeamMember = async (userId, teamId) => {
+  const tm = await BasketballTeamMember.findOne({
+    where: { user_id: userId, team_id: parseInt(teamId), is_active: 1 },
+  });
+  if (!tm) throw new UnauthorizedError('해당 팀의 멤버가 아닙니다.');
+  return tm;
+};
+
+// 팀장/운영진(또는 전역 admin·developer)만 허용
+const assertTeamManager = async (userId, teamId, globalRole) => {
+  if (['admin', 'developer'].includes(globalRole)) return null;
+  const tm = await assertTeamMember(userId, teamId);
+  if (!['leader', 'manager'].includes(tm.role)) {
+    throw new ForbiddenError('팀장 또는 운영진만 가능합니다.');
+  }
+  return tm;
+};
+
+// user_id → { user_id, name, image_url } 매핑
+const buildMemberMap = async (teamId, userIds) => {
+  const ids = [...new Set(userIds.map(Number))].filter(Boolean);
+  const tms = await BasketballTeamMember.findAll({
+    where: { team_id: parseInt(teamId), user_id: { [Op.in]: ids.length ? ids : [0] } },
+    include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+  });
+  return new Map(
+    tms.map((tm) => [tm.user_id, { user_id: tm.user_id, name: tm.user?.name, image_url: tm.image_url }])
+  );
+};
+
+// Redis 드래프트가 만료/유실됐지만 경기가 'live'인 경우, DB 팀 구성으로 드래프트 재생성
+// (스탯은 Redis에만 있었으므로 0으로 초기화되어 이어서 기록 가능)
+const rebuildLiveDraft = async (match) => {
+  const teamId = match.team_id;
+  const squads = await BasketballMatchSquad.findAll({
+    where: { match_id: match.id },
+    order: [['id', 'ASC']],
+  });
+  if (!squads.length) return null;
+  const squadMembers = await BasketballMatchSquadMember.findAll({
+    where: { squad_id: { [Op.in]: squads.map((s) => s.id) } },
+    order: [['id', 'ASC']],
+  });
+  const memberMap = await buildMemberMap(
+    teamId,
+    squadMembers.filter((sm) => sm.user_id != null).map((sm) => sm.user_id)
+  );
+  const bySquad = {};
+  for (const sm of squadMembers) (bySquad[sm.squad_id] = bySquad[sm.squad_id] || []).push(sm);
+
+  const qCount = match.quarter_count;
+  let guestSeq = 0;
+  const metaSquads = [];
+  for (const s of squads) {
+    const members = [];
+    for (const sm of bySquad[s.id] || []) {
+      if (sm.user_id != null) {
+        const mm = memberMap.get(sm.user_id) || { name: `#${sm.user_id}` };
+        members.push({ pid: `u${sm.user_id}`, userId: sm.user_id, name: mm.name, isGuest: false });
+      } else {
+        guestSeq += 1;
+        members.push({ pid: `g${guestSeq}`, userId: null, name: sm.guest_name || `게스트${guestSeq}`, isGuest: true });
+      }
+    }
+    metaSquads.push({ squadId: s.id, label: s.squad_label, members });
+  }
+
+  // 드래프트 유실 전 이미 확정 저장된 쿼터 복원
+  const savedQrecs = await BasketballMemberQuarterRecord.findAll({
+    where: { match_id: match.id },
+    attributes: ['quarter'],
+    group: ['quarter'],
+  });
+  const savedQuarters = savedQrecs.map((q) => q.quarter).sort((a, b) => a - b);
+
+  const meta = {
+    matchId: match.id,
+    teamId,
+    title: match.title,
+    location: match.location,
+    matchDate: new Date(match.match_date).toISOString(),
+    startedAt: new Date().toISOString(),
+    quarterCount: qCount,
+    quarterMinutes: Array.from({ length: qCount }, () => match.quarter_minutes || 10),
+    savedQuarters,
+    squads: metaSquads,
+  };
+  await redisClient.set(liveMetaKey(match.id), JSON.stringify(meta), { EX: LIVE_TTL });
+  for (const s of metaSquads) {
+    const init = {};
+    for (let q = 1; q <= qCount; q++) {
+      init[q] = {};
+      for (const m of s.members) init[q][m.pid] = blankStat();
+    }
+    await redisClient.set(liveSquadKey(match.id, s.squadId), JSON.stringify(init), { EX: LIVE_TTL });
+  }
+  await redisClient.sAdd(liveActiveKey(teamId), String(match.id));
+  await redisClient.expire(liveActiveKey(teamId), LIVE_TTL);
+  return meta;
+};
+
+const cleanupLive = async (matchId, teamId) => {
+  const metaRaw = await redisClient.get(liveMetaKey(matchId));
+  if (metaRaw) {
+    const meta = JSON.parse(metaRaw);
+    for (const s of meta.squads) await redisClient.del(liveSquadKey(matchId, s.squadId));
+  }
+  await redisClient.del(liveMetaKey(matchId));
+  if (teamId != null) await redisClient.sRem(liveActiveKey(teamId), String(matchId));
+};
+
+// 라이브 기록 시작: 기존 match에 스쿼드 구성 + Redis 드래프트 초기화
+const startLiveOnMatch = async (req, res) => {
+  const t = await sequelize.transaction();
+  let committed = false;
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    const { squads, quarter_minutes } = req.body;
+
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!Array.isArray(squads) || squads.length < 2) {
+      throw new BadRequestError('최소 2개의 스쿼드가 필요합니다.');
+    }
+
+    const match = await BasketballMatch.findByPk(parseInt(matchId), { transaction: t });
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    if (match.status === 'completed') throw new BadRequestError('이미 종료된 경기입니다.');
+    const team_id = match.team_id;
+    await assertTeamMember(userId, team_id);
+
+    const qCount = match.quarter_count;
+    // 쿼터 분은 기록 시작 시 입력(미입력 시 기존값/기본 10분)
+    const qMinutes = quarter_minutes != null
+      ? Math.min(Math.max(toInt(quarter_minutes) || 10, 1), 60)
+      : match.quarter_minutes;
+    const matchDate = match.match_date;
+
+    // 재구성 대비: 기존 스쿼드/멤버 제거
+    const oldSquads = await BasketballMatchSquad.findAll({
+      where: { match_id: match.id },
+      transaction: t,
+    });
+    if (oldSquads.length) {
+      await BasketballMatchSquadMember.destroy({
+        where: { squad_id: { [Op.in]: oldSquads.map((s) => s.id) } },
+        transaction: t,
+      });
+      await BasketballMatchSquad.destroy({ where: { match_id: match.id }, transaction: t });
+      for (const s of oldSquads) await redisClient.del(liveSquadKey(match.id, s.id));
+    }
+
+    // 참가자 정규화: members = [{userId} | {guestName}] (구버전 memberUserIds도 허용)
+    const normalized = squads.map((s) =>
+      s.members || (s.memberUserIds || []).map((u) => ({ userId: u }))
+    );
+    const allUserIds = normalized
+      .flat()
+      .filter((m) => m && m.userId != null)
+      .map((m) => Number(m.userId));
+    const memberMap = await buildMemberMap(team_id, allUserIds);
+
+    let guestSeq = 0;
+    const squadMeta = [];
+    for (let i = 0; i < squads.length; i++) {
+      const label =
+        squads[i].label && squads[i].label.trim() ? squads[i].label.trim() : String.fromCharCode(65 + i);
+      const squad = await BasketballMatchSquad.create(
+        { match_id: match.id, squad_label: label },
+        { transaction: t }
+      );
+      const members = [];
+      const seenU = new Set();
+      for (const rm of normalized[i]) {
+        if (rm.userId != null) {
+          const uid = Number(rm.userId);
+          if (!uid || seenU.has(uid)) continue;
+          seenU.add(uid);
+          await BasketballMatchSquadMember.create(
+            { squad_id: squad.id, user_id: uid, guest_name: null },
+            { transaction: t }
+          );
+          const mm = memberMap.get(uid) || { name: `#${uid}`, image_url: null };
+          members.push({ pid: `u${uid}`, userId: uid, name: mm.name, image_url: mm.image_url || null, isGuest: false });
+        } else if (rm.guestName != null && String(rm.guestName).trim()) {
+          guestSeq += 1;
+          const gname = String(rm.guestName).trim().slice(0, 64);
+          await BasketballMatchSquadMember.create(
+            { squad_id: squad.id, user_id: null, guest_name: gname },
+            { transaction: t }
+          );
+          members.push({ pid: `g${guestSeq}`, userId: null, name: gname, image_url: null, isGuest: true });
+        }
+      }
+      squadMeta.push({ squadId: squad.id, label, members });
+    }
+
+    await match.update({ status: 'live', quarter_minutes: qMinutes }, { transaction: t });
+
+    await t.commit();
+    committed = true;
+
+    // Redis 드래프트 초기화
+    const meta = {
+      matchId: match.id,
+      teamId: parseInt(team_id),
+      title: match.title,
+      location: match.location,
+      matchDate: matchDate.toISOString(),
+      startedAt: new Date().toISOString(),
+      quarterCount: qCount,
+      // 쿼터별 시간(분) 배열 — 라이브 보드에서 쿼터마다 조절
+      quarterMinutes: Array.from({ length: qCount }, () => qMinutes),
+      // 이미 DB에 저장(확정)된 쿼터 번호 목록 — 쿼터별 누적 저장
+      savedQuarters: [],
+      squads: squadMeta.map((s) => ({
+        squadId: s.squadId,
+        label: s.label,
+        members: s.members.map((m) => ({ pid: m.pid, userId: m.userId, name: m.name, isGuest: m.isGuest })),
+      })),
+    };
+    await redisClient.set(liveMetaKey(match.id), JSON.stringify(meta), { EX: LIVE_TTL });
+    for (const s of squadMeta) {
+      const init = {};
+      for (let q = 1; q <= qCount; q++) {
+        init[q] = {};
+        for (const m of s.members) init[q][m.pid] = blankStat();
+      }
+      await redisClient.set(liveSquadKey(match.id, s.squadId), JSON.stringify(init), { EX: LIVE_TTL });
+    }
+    await redisClient.sAdd(liveActiveKey(parseInt(team_id)), String(match.id));
+    await redisClient.expire(liveActiveKey(parseInt(team_id)), LIVE_TTL);
+
+    return res.status(200).json({
+      success: true,
+      data: { matchId: match.id, quarterCount: qCount, quarterMinutes: qMinutes, squads: squadMeta },
+    });
+  } catch (err) {
+    if (!committed) await t.rollback();
+    logger.error('라이브 경기 시작 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 경기 시작 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 진행 중인 라이브 경기 목록
+const getActiveLiveMatches = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const teamId = req.query.team_id;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!teamId) throw new BadRequestError('팀 ID가 필요합니다.');
+    await assertTeamMember(userId, teamId);
+
+    const ids = await redisClient.sMembers(liveActiveKey(parseInt(teamId)));
+    const games = [];
+    for (const id of ids) {
+      const metaRaw = await redisClient.get(liveMetaKey(id));
+      if (!metaRaw) {
+        await redisClient.sRem(liveActiveKey(parseInt(teamId)), id);
+        continue;
+      }
+      const meta = JSON.parse(metaRaw);
+      const squads = [];
+      for (const s of meta.squads) {
+        const statRaw = await redisClient.get(liveSquadKey(id, s.squadId));
+        squads.push({
+          squadId: s.squadId,
+          label: s.label,
+          memberCount: (s.members || []).length,
+          points: statRaw ? squadTotalPoints(JSON.parse(statRaw)) : 0,
+        });
+      }
+      games.push({
+        matchId: Number(id),
+        title: meta.title,
+        startedAt: meta.startedAt,
+        quarterCount: meta.quarterCount,
+        quarterMinutes: meta.quarterMinutes,
+        squads,
+      });
+    }
+    return res.status(200).json({ success: true, data: games });
+  } catch (err) {
+    logger.error('라이브 경기 목록 조회 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 경기 목록 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 라이브 경기 드래프트 전체 조회 (재진입/합류/스코어보드)
+const getLiveMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const metaRaw = await redisClient.get(liveMetaKey(matchId));
+    let meta;
+    if (metaRaw) {
+      meta = JSON.parse(metaRaw);
+    } else {
+      // 드래프트 만료/유실: 경기가 live면 DB 구성으로 복구
+      const match = await BasketballMatch.findByPk(parseInt(matchId));
+      if (!match || match.status !== 'live') throw new BadRequestError('진행 중인 경기가 아닙니다.');
+      await assertTeamMember(userId, match.team_id);
+      meta = await rebuildLiveDraft(match);
+      if (!meta) throw new BadRequestError('진행 중인 경기가 아닙니다.');
+    }
+    await assertTeamMember(userId, meta.teamId);
+
+    const memberMap = await buildMemberMap(
+      meta.teamId,
+      meta.squads.flatMap((s) => (s.members || []).filter((m) => m.userId != null).map((m) => m.userId))
+    );
+    const squads = [];
+    for (const s of meta.squads) {
+      const statRaw = await redisClient.get(liveSquadKey(matchId, s.squadId));
+      squads.push({
+        squadId: s.squadId,
+        label: s.label,
+        members: (s.members || []).map((m) => ({
+          pid: m.pid,
+          userId: m.userId,
+          name: m.name,
+          isGuest: m.isGuest,
+          image_url: m.userId != null ? memberMap.get(m.userId)?.image_url || null : null,
+        })),
+        stats: statRaw ? JSON.parse(statRaw) : {},
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: {
+        matchId: Number(matchId),
+        title: meta.title,
+        quarterCount: meta.quarterCount,
+        quarterMinutes: meta.quarterMinutes,
+        savedQuarters: meta.savedQuarters || [],
+        startedAt: meta.startedAt,
+        squads,
+      },
+    });
+  } catch (err) {
+    logger.error('라이브 경기 조회 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 경기 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 스쿼드 스탯 저장 (디바운스 자동저장) — 해당 스쿼드 전체 쿼터 JSON 덮어쓰기
+const saveLiveSquad = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId, squadId } = req.params;
+    const { stats } = req.body;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (typeof stats !== 'object' || stats === null) throw new BadRequestError('stats가 필요합니다.');
+
+    const metaRaw = await redisClient.get(liveMetaKey(matchId));
+    if (!metaRaw) throw new BadRequestError('진행 중인 경기가 아닙니다.');
+    const meta = JSON.parse(metaRaw);
+    await assertTeamMember(userId, meta.teamId);
+    if (!meta.squads.some((s) => String(s.squadId) === String(squadId))) {
+      throw new BadRequestError('스쿼드를 찾을 수 없습니다.');
+    }
+
+    await redisClient.set(liveSquadKey(matchId, squadId), JSON.stringify(stats), { EX: LIVE_TTL });
+    await redisClient.expire(liveMetaKey(matchId), LIVE_TTL);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error('라이브 스쿼드 저장 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 스쿼드 저장 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 쿼터별 시간(분) 갱신 — 라이브 보드에서 쿼터마다 조절
+const updateLiveQuarterMinutes = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    const { quarterMinutes } = req.body;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!Array.isArray(quarterMinutes)) throw new BadRequestError('quarterMinutes 배열이 필요합니다.');
+
+    const metaRaw = await redisClient.get(liveMetaKey(matchId));
+    if (!metaRaw) throw new BadRequestError('진행 중인 경기가 아닙니다.');
+    const meta = JSON.parse(metaRaw);
+    await assertTeamMember(userId, meta.teamId);
+
+    meta.quarterMinutes = Array.from({ length: meta.quarterCount }, (_, i) => {
+      const n = parseInt(quarterMinutes[i]);
+      return Number.isNaN(n) ? 10 : Math.min(Math.max(n, 1), 60);
+    });
+    await redisClient.set(liveMetaKey(matchId), JSON.stringify(meta), { EX: LIVE_TTL });
+    return res.status(200).json({ success: true, data: { quarterMinutes: meta.quarterMinutes } });
+  } catch (err) {
+    logger.error('쿼터 시간 갱신 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`쿼터 시간 갱신 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 저장된 쿼터 레코드로부터 합산(경기) 레코드 재계산 후 재생성 → 플레이어 수 반환
+const recomputeMatchRecords = async (matchId, teamId, t) => {
+  const qrecs = await BasketballMemberQuarterRecord.findAll({
+    where: { match_id: parseInt(matchId) },
+    transaction: t,
+  });
+  // 소유자(user_id/guest_name)별 합산
+  const groups = new Map();
+  for (const r of qrecs) {
+    const key = r.user_id != null ? `u:${r.user_id}` : `g:${r.guest_name}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { user_id: r.user_id ?? null, guest_name: r.user_id == null ? r.guest_name : null, squad_id: r.squad_id, stats: [] };
+      groups.set(key, g);
+    }
+    g.stats.push(r);
+  }
+  // 스쿼드 총점 → 최고 득점 스쿼드 승(동점 공동승)
+  const squadPts = {};
+  const aggregates = [];
+  for (const g of groups.values()) {
+    const fields = buildRecordFields(sumStats(g.stats));
+    aggregates.push({ ...g, fields });
+    if (g.squad_id != null) squadPts[g.squad_id] = (squadPts[g.squad_id] || 0) + fields.pts;
+  }
+  const maxPts = Math.max(0, ...Object.values(squadPts));
+
+  // 기존 합산 레코드 제거 후 재생성
+  await BasketballMemberMatchRecord.destroy({ where: { match_id: parseInt(matchId) }, transaction: t });
+  for (const a of aggregates) {
+    const isWin = maxPts > 0 && a.squad_id != null && squadPts[a.squad_id] === maxPts ? 1 : 0;
+    await BasketballMemberMatchRecord.create(
+      {
+        team_id: teamId,
+        match_id: parseInt(matchId),
+        squad_id: a.squad_id,
+        user_id: a.user_id,
+        guest_name: a.guest_name,
+        is_win: isWin,
+        ...a.fields,
+      },
+      { transaction: t }
+    );
+  }
+  return aggregates.length;
+};
+
+// 쿼터별 누적 저장 → 해당 쿼터 record 확정 + 합산 record 재계산
+// 모든 쿼터가 저장되면 경기 자동 종료(completed), 아니면 live 유지
+const saveLiveQuarter = async (req, res) => {
+  const t = await sequelize.transaction();
+  let committed = false;
+  try {
+    const userId = req.user?.id;
+    const { matchId, quarter } = req.params;
+    const q = parseInt(quarter);
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const metaRaw = await redisClient.get(liveMetaKey(matchId));
+    let meta;
+    if (metaRaw) {
+      meta = JSON.parse(metaRaw);
+    } else {
+      const match = await BasketballMatch.findByPk(parseInt(matchId));
+      if (!match || match.status !== 'live') throw new BadRequestError('진행 중인 경기가 아닙니다.');
+      await assertTeamMember(userId, match.team_id);
+      meta = await rebuildLiveDraft(match);
+      if (!meta) throw new BadRequestError('진행 중인 경기가 아닙니다.');
+    }
+    await assertTeamMember(userId, meta.teamId);
+    if (!Number.isInteger(q) || q < 1 || q > meta.quarterCount) {
+      throw new BadRequestError('유효하지 않은 쿼터입니다.');
+    }
+
+    // 스쿼드별 stats 로드 (모든 스쿼드의 해당 쿼터 기록 확정)
+    const squadData = [];
+    for (const s of meta.squads) {
+      const statRaw = await redisClient.get(liveSquadKey(matchId, s.squadId));
+      squadData.push({ ...s, stats: statRaw ? JSON.parse(statRaw) : {} });
+    }
+
+    // 해당 쿼터 레코드 재작성(재저장 시 덮어쓰기)
+    await BasketballMemberQuarterRecord.destroy({
+      where: { match_id: parseInt(matchId), quarter: q },
+      transaction: t,
+    });
+    for (const s of squadData) {
+      for (const m of s.members || []) {
+        const stat = s.stats?.[q]?.[m.pid] || blankStat();
+        await BasketballMemberQuarterRecord.create(
+          {
+            team_id: meta.teamId,
+            match_id: parseInt(matchId),
+            squad_id: s.squadId,
+            user_id: m.userId ?? null,
+            guest_name: m.isGuest ? m.name : null,
+            quarter: q,
+            is_win: 0,
+            ...buildRecordFields(stat),
+          },
+          { transaction: t }
+        );
+      }
+    }
+
+    // 저장된 전 쿼터 기준 합산 레코드 재계산
+    const totalPlayers = await recomputeMatchRecords(matchId, meta.teamId, t);
+
+    // 저장된 쿼터 목록 갱신 (경기 종료는 사용자가 명시적으로 → 상태는 그대로 유지)
+    const savedQuarters = Array.from(new Set([...(meta.savedQuarters || []), q])).sort((a, b) => a - b);
+    const allSaved = Array.from({ length: meta.quarterCount }, (_, i) => i + 1).every((n) =>
+      savedQuarters.includes(n)
+    );
+
+    await BasketballMatch.update(
+      { total_players: totalPlayers },
+      { where: { id: parseInt(matchId) }, transaction: t }
+    );
+    await t.commit();
+    committed = true;
+
+    meta.savedQuarters = savedQuarters;
+    await redisClient.set(liveMetaKey(matchId), JSON.stringify(meta), { EX: LIVE_TTL });
+
+    return res.status(200).json({
+      success: true,
+      data: { matchId: Number(matchId), quarter: q, savedQuarters, allSaved },
+    });
+  } catch (err) {
+    if (!committed) await t.rollback();
+    logger.error('라이브 쿼터 저장 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 쿼터 저장 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 경기 종료 → 모든 쿼터 저장 확인 후 completed 확정, Redis 정리
+// (기록은 쿼터별 저장 시 이미 DB에 반영됨. 여기서는 상태만 확정)
+const finishLiveMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamMember(userId, match.team_id);
+
+    // 모든 쿼터가 저장되어 있어야 종료 가능
+    const qs = await BasketballMemberQuarterRecord.findAll({
+      where: { match_id: match.id },
+      attributes: ['quarter'],
+      group: ['quarter'],
+    });
+    const saved = new Set(qs.map((x) => x.quarter));
+    const allSaved =
+      saved.size > 0 &&
+      Array.from({ length: match.quarter_count }, (_, i) => i + 1).every((n) => saved.has(n));
+    if (!allSaved) throw new BadRequestError('모든 쿼터를 저장해야 경기를 종료할 수 있습니다.');
+
+    const totalPlayers = await BasketballMemberMatchRecord.count({ where: { match_id: match.id } });
+    await match.update({ status: 'completed', total_players: totalPlayers });
+    await cleanupLive(matchId, match.team_id);
+
+    return res.status(200).json({ success: true, data: { matchId: Number(matchId) } });
+  } catch (err) {
+    logger.error('라이브 경기 종료 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 경기 종료 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// DB record 카운트 → 성공 슛 시퀀스 근사 복원 (순서는 저장되지 않으므로 값 기준 재구성)
+const reconstructMakes = (r) => {
+  const makes = [];
+  const twopm = Math.max(toInt(r.fgm) - toInt(r.threepm), 0);
+  for (let i = 0; i < twopm; i++) makes.push(2);
+  for (let i = 0; i < toInt(r.threepm); i++) makes.push(3);
+  for (let i = 0; i < toInt(r.ftm); i++) makes.push(1);
+  return makes;
+};
+
+// 종료된 경기 기록 수정 — DB 기록을 Redis 라이브 드래프트로 복원 후 다시 live 전환
+const reopenLiveMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    if (match.status !== 'completed') throw new BadRequestError('종료된 경기만 수정할 수 있습니다.');
+    await assertTeamMember(userId, match.team_id);
+
+    // 스쿼드/멤버 구성으로 드래프트(meta + 0 스탯) 재생성
+    const meta = await rebuildLiveDraft(match);
+    if (!meta) throw new BadRequestError('스쿼드 구성이 없어 수정할 수 없습니다.');
+
+    // 저장된 쿼터 레코드로 스쿼드 스탯 시딩(0 → 실제 값)
+    const qrecs = await BasketballMemberQuarterRecord.findAll({ where: { match_id: match.id } });
+    for (const s of meta.squads) {
+      const stats = {};
+      for (let q = 1; q <= meta.quarterCount; q++) stats[q] = {};
+      for (const m of s.members) {
+        const rows = qrecs.filter(
+          (r) =>
+            r.squad_id === s.squadId &&
+            (m.userId != null ? r.user_id === m.userId : r.user_id == null && r.guest_name === m.name)
+        );
+        for (const r of rows) {
+          if (!stats[r.quarter]) stats[r.quarter] = {};
+          stats[r.quarter][m.pid] = {
+            fgm: toInt(r.fgm), fga: toInt(r.fga),
+            threepm: toInt(r.threepm), threepa: toInt(r.threepa),
+            ftm: toInt(r.ftm), fta: toInt(r.fta),
+            oreb: toInt(r.oreb), dreb: toInt(r.dreb),
+            ast: toInt(r.ast), stl: toInt(r.stl), blk: toInt(r.blk),
+            turnover: toInt(r.turnover), pf: toInt(r.pf),
+            makes: reconstructMakes(r),
+          };
+        }
+      }
+      await redisClient.set(liveSquadKey(match.id, s.squadId), JSON.stringify(stats), { EX: LIVE_TTL });
+    }
+
+    // 이미 저장된 쿼터 표시. 경기는 completed 유지(수정 후 저장 안 하고 나가도 완료 상태 보존)
+    // → 라이브 보드는 Redis meta로 로드되므로 status 전환 불필요, '이어하기'가 아니라 '기록 수정'으로 유지
+    meta.savedQuarters = [...new Set(qrecs.map((r) => r.quarter))].sort((a, b) => a - b);
+    await redisClient.set(liveMetaKey(match.id), JSON.stringify(meta), { EX: LIVE_TTL });
+
+    return res.status(200).json({ success: true, data: { matchId: Number(matchId) } });
+  } catch (err) {
+    logger.error('라이브 경기 재개(수정) 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`기록 수정 준비 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 라이브 드래프트 폐기 (경기는 유지, 스쿼드/드래프트만 제거 후 '예정'으로 복귀)
+const discardLiveMatch = async (req, res) => {
+  const t = await sequelize.transaction();
+  let committed = false;
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const match = await BasketballMatch.findByPk(parseInt(matchId), { transaction: t });
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    if (match.status === 'completed') throw new BadRequestError('이미 종료된 경기입니다.');
+    const teamId = match.team_id;
+    await assertTeamMember(userId, teamId);
+
+    const squads = await BasketballMatchSquad.findAll({
+      where: { match_id: parseInt(matchId) },
+      transaction: t,
+    });
+    const squadIds = squads.map((s) => s.id);
+    if (squadIds.length) {
+      await BasketballMatchSquadMember.destroy({ where: { squad_id: { [Op.in]: squadIds } }, transaction: t });
+    }
+    await BasketballMatchSquad.destroy({ where: { match_id: parseInt(matchId) }, transaction: t });
+    await match.update({ status: 'scheduled' }, { transaction: t });
+
+    await t.commit();
+    committed = true;
+    await cleanupLive(matchId, teamId);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    if (!committed) await t.rollback();
+    logger.error('라이브 드래프트 폐기 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`라이브 드래프트 폐기 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// 매치(경기) 목록 / 상세 / 참석투표 / 삭제
+// ─────────────────────────────────────────────────────────────
+const ATT_STATUSES = ['attend', 'absent', 'pending'];
+
+// 경기 목록 (연/월/멤버/상태 필터)
+const getMatches = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { team_id, year, month, member, status } = req.query;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!team_id) throw new BadRequestError('팀 ID가 필요합니다.');
+    await assertTeamMember(userId, team_id);
+
+    const where = { team_id: parseInt(team_id) };
+    if (status && ['scheduled', 'live', 'completed'].includes(status)) where.status = status;
+    if (year) {
+      const y = parseInt(year);
+      if (month) {
+        const m = parseInt(month);
+        where.match_date = { [Op.gte]: new Date(y, m - 1, 1), [Op.lt]: new Date(y, m, 1) };
+      } else {
+        where.match_date = { [Op.gte]: new Date(y, 0, 1), [Op.lt]: new Date(y + 1, 0, 1) };
+      }
+    }
+
+    let matches = await BasketballMatch.findAll({ where, order: [['match_date', 'DESC']] });
+
+    // 멤버 이름 필터: 그 멤버가 참석(attend)했거나 기록이 있는 경기만
+    if (member && member.trim()) {
+      const memTms = await BasketballTeamMember.findAll({
+        where: { team_id: parseInt(team_id), is_active: 1 },
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name'],
+            where: { name: { [Op.like]: `%${member.trim()}%` } },
+          },
+        ],
+      });
+      const memUserIds = memTms.map((tm) => tm.user_id);
+      const matchIds = matches.map((m) => m.id);
+      if (memUserIds.length === 0 || matchIds.length === 0) {
+        return res.status(200).json({ success: true, data: [] });
+      }
+      const [attRows, recRows] = await Promise.all([
+        BasketballMatchAttendance.findAll({
+          where: { match_id: { [Op.in]: matchIds }, user_id: { [Op.in]: memUserIds }, status: 'attend' },
+          attributes: ['match_id'],
+        }),
+        BasketballMemberMatchRecord.findAll({
+          where: { match_id: { [Op.in]: matchIds }, user_id: { [Op.in]: memUserIds } },
+          attributes: ['match_id'],
+        }),
+      ]);
+      const okIds = new Set([...attRows.map((r) => r.match_id), ...recRows.map((r) => r.match_id)]);
+      matches = matches.filter((m) => okIds.has(m.id));
+    }
+
+    const matchIds = matches.map((m) => m.id);
+    // 참석 집계 + 내 투표
+    const atts = matchIds.length
+      ? await BasketballMatchAttendance.findAll({
+          where: { match_id: { [Op.in]: matchIds } },
+          attributes: ['match_id', 'user_id', 'status'],
+        })
+      : [];
+    const attByMatch = {};
+    for (const a of atts) {
+      const e = (attByMatch[a.match_id] = attByMatch[a.match_id] || { attend: 0, absent: 0, pending: 0, mine: null });
+      if (ATT_STATUSES.includes(a.status)) e[a.status]++;
+      if (a.user_id === userId) e.mine = a.status;
+    }
+
+    // 완료 경기 스쿼드 스코어
+    const completedIds = matches.filter((m) => m.status === 'completed').map((m) => m.id);
+    const squadScore = {};
+    if (completedIds.length) {
+      const [squads, recs] = await Promise.all([
+        BasketballMatchSquad.findAll({ where: { match_id: { [Op.in]: completedIds } } }),
+        BasketballMemberMatchRecord.findAll({
+          where: { match_id: { [Op.in]: completedIds } },
+          attributes: ['match_id', 'squad_id', 'pts'],
+        }),
+      ]);
+      const ptsBySquad = {};
+      for (const r of recs) {
+        if (r.squad_id == null) continue;
+        (ptsBySquad[r.match_id] = ptsBySquad[r.match_id] || {});
+        ptsBySquad[r.match_id][r.squad_id] = (ptsBySquad[r.match_id][r.squad_id] || 0) + r.pts;
+      }
+      for (const s of squads) {
+        (squadScore[s.match_id] = squadScore[s.match_id] || []).push({
+          label: s.squad_label,
+          points: ptsBySquad[s.match_id]?.[s.id] || 0,
+        });
+      }
+    }
+
+    const data = matches.map((m) => ({
+      id: m.id,
+      title: m.title,
+      match_date: m.match_date,
+      location: m.location,
+      type: m.type,
+      status: m.status,
+      quarterCount: m.quarter_count,
+      quarterMinutes: m.quarter_minutes,
+      attendeeCount: attByMatch[m.id]?.attend || 0,
+      myAttendance: attByMatch[m.id]?.mine || null,
+      squads: squadScore[m.id] || [],
+    }));
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    logger.error('경기 목록 조회 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`경기 목록 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 다음 경기 (현재 시각 기준 가장 가까운 예정/진행 경기) — 홈 투표 카드용
+const getNextMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { team_id } = req.query;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!team_id) throw new BadRequestError('팀 ID가 필요합니다.');
+    await assertTeamMember(userId, team_id);
+
+    const match = await BasketballMatch.findOne({
+      where: {
+        team_id: parseInt(team_id),
+        status: { [Op.in]: ['scheduled', 'live'] },
+        match_date: { [Op.gte]: new Date() },
+      },
+      order: [['match_date', 'ASC']],
+    });
+    if (!match) return res.status(200).json({ success: true, data: null });
+
+    const atts = await BasketballMatchAttendance.findAll({ where: { match_id: match.id } });
+    const memberMap = await buildMemberMap(match.team_id, atts.map((a) => a.user_id));
+    const groups = { attend: [], absent: [], pending: [] };
+    let mine = null;
+    for (const a of atts) {
+      const name = memberMap.get(a.user_id)?.name || `#${a.user_id}`;
+      if (groups[a.status]) groups[a.status].push(name);
+      if (a.user_id === userId) mine = a.status;
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: match.id,
+        title: match.title,
+        match_date: match.match_date,
+        location: match.location,
+        status: match.status,
+        attend: groups.attend,
+        absent: groups.absent,
+        pending: groups.pending,
+        mine,
+      },
+    });
+  } catch (err) {
+    logger.error('다음 경기 조회 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`다음 경기 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 경기 상세 (참석현황 + 스쿼드 + 결과)
+const getMatchDetail = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamMember(userId, match.team_id);
+
+    // 참석 현황
+    const atts = await BasketballMatchAttendance.findAll({ where: { match_id: match.id } });
+    const attMemberMap = await buildMemberMap(match.team_id, atts.map((a) => a.user_id));
+    const attendance = {
+      summary: { attend: 0, absent: 0, pending: 0 },
+      list: atts.map((a) => ({
+        user_id: a.user_id,
+        status: a.status,
+        ...(attMemberMap.get(a.user_id) || { name: `#${a.user_id}`, image_url: null }),
+      })),
+      mine: atts.find((a) => a.user_id === userId)?.status || null,
+    };
+    for (const a of atts) if (ATT_STATUSES.includes(a.status)) attendance.summary[a.status]++;
+
+    // 스쿼드
+    const squads = await BasketballMatchSquad.findAll({ where: { match_id: match.id } });
+    const squadMembers = squads.length
+      ? await BasketballMatchSquadMember.findAll({ where: { squad_id: { [Op.in]: squads.map((s) => s.id) } } })
+      : [];
+    const sqMemMap = {};
+    for (const sm of squadMembers) (sqMemMap[sm.squad_id] = sqMemMap[sm.squad_id] || []).push(sm);
+    const smUserMap = await buildMemberMap(
+      match.team_id,
+      squadMembers.filter((sm) => sm.user_id != null).map((sm) => sm.user_id)
+    );
+    const squadList = squads.map((s) => ({
+      squadId: s.id,
+      label: s.squad_label,
+      members: (sqMemMap[s.id] || []).map((sm) =>
+        sm.user_id != null
+          ? smUserMap.get(sm.user_id) || { user_id: sm.user_id, name: `#${sm.user_id}`, image_url: null }
+          : { user_id: null, name: sm.guest_name, image_url: null, isGuest: true }
+      ),
+    }));
+
+    // 결과 (완료 또는 쿼터별 누적 저장으로 기록이 존재하는 경우)
+    let result = null;
+    const recs = await BasketballMemberMatchRecord.findAll({ where: { match_id: match.id } });
+    if (recs.length) {
+      const qrecs = await BasketballMemberQuarterRecord.findAll({
+        where: { match_id: match.id },
+        order: [['quarter', 'ASC']],
+      });
+      const recUserMap = await buildMemberMap(
+        match.team_id,
+        recs.filter((r) => r.user_id != null).map((r) => r.user_id)
+      );
+      const sqLabelById = {};
+      for (const s of squads) sqLabelById[s.id] = s.squad_label;
+      const squadScores = {};
+      for (const r of recs) if (r.squad_id != null) squadScores[r.squad_id] = (squadScores[r.squad_id] || 0) + r.pts;
+      result = {
+        squads: squads.map((s) => ({
+          squadId: s.id,
+          label: s.squad_label,
+          points: squadScores[s.id] || 0,
+          isWin: !!recs.find((r) => r.squad_id === s.id && r.is_win),
+        })),
+        players: recs.map((r) => ({
+          key: r.user_id != null ? `u${r.user_id}` : `g${r.guest_name}`,
+          user_id: r.user_id,
+          name: r.user_id != null
+            ? recUserMap.get(r.user_id)?.name || `#${r.user_id}`
+            : r.guest_name || '게스트',
+          image_url: r.user_id != null ? recUserMap.get(r.user_id)?.image_url || null : null,
+          isGuest: r.user_id == null,
+          squad_id: r.squad_id,
+          squad_label: r.squad_id != null ? sqLabelById[r.squad_id] : null,
+          pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, turnover: r.turnover, pf: r.pf,
+          fg_pct: r.fg_pct, threep_pct: r.threep_pct, ft_pct: r.ft_pct, is_win: r.is_win,
+        })),
+        quarters: qrecs.reduce((acc, q) => {
+          (acc[q.quarter] = acc[q.quarter] || []).push({
+            key: q.user_id != null ? `u${q.user_id}` : `g${q.guest_name}`,
+            user_id: q.user_id, squad_id: q.squad_id,
+            pts: q.pts, reb: q.reb, ast: q.ast, stl: q.stl, blk: q.blk, turnover: q.turnover, pf: q.pf,
+          });
+          return acc;
+        }, {}),
+        savedQuarters: [...new Set(qrecs.map((q) => q.quarter))].sort((a, b) => a - b),
+      };
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: match.id,
+        title: match.title,
+        match_date: match.match_date,
+        location: match.location,
+        type: match.type,
+        status: match.status,
+        quarterCount: match.quarter_count,
+        quarterMinutes: match.quarter_minutes,
+        attendance,
+        squads: squadList,
+        result,
+      },
+    });
+  } catch (err) {
+    logger.error('경기 상세 조회 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`경기 상세 조회 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 참석 투표 (본인)
+const updateAttendance = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    const { status } = req.body;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    if (!ATT_STATUSES.includes(status)) throw new BadRequestError('올바르지 않은 참석 상태입니다.');
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamMember(userId, match.team_id);
+
+    const [row, created] = await BasketballMatchAttendance.findOrCreate({
+      where: { match_id: match.id, user_id: userId },
+      defaults: { status },
+    });
+    if (!created) await row.update({ status });
+    return res.status(200).json({ success: true, data: { status } });
+  } catch (err) {
+    logger.error('참석 투표 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`참석 투표 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 수동 기록 입력 후 경기 완료 처리
+const completeMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamMember(userId, match.team_id);
+    const cnt = await BasketballMemberMatchRecord.count({ where: { match_id: match.id } });
+    await match.update({ status: 'completed', total_players: cnt });
+    return res.status(200).json({ success: true, data: { matchId: match.id } });
+  } catch (err) {
+    logger.error('경기 완료 처리 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`경기 완료 처리 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 경기 수정 (팀장/운영진, 종료 전)
+const updateMatch = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    const { title, match_date, location, quarter_count } = req.body;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamManager(userId, match.team_id, req.user?.role);
+    if (match.status === 'completed') throw new BadRequestError('종료된 경기는 수정할 수 없습니다.');
+
+    const fields = {};
+    if (title != null && title.trim()) fields.title = title.trim();
+    if (match_date != null) fields.match_date = new Date(match_date);
+    if (location != null) fields.location = location;
+    // 쿼터 수는 예정 상태에서만 변경 가능(진행 중 드래프트 구조 보호)
+    if (quarter_count != null && match.status === 'scheduled') {
+      fields.quarter_count = Math.min(Math.max(toInt(quarter_count) || 4, 1), 12);
+    }
+    await match.update(fields);
+    return res.status(200).json({ success: true, data: match.dataValues });
+  } catch (err) {
+    logger.error('경기 수정 에러:', err);
+    if (
+      err instanceof BadRequestError ||
+      err instanceof UnauthorizedError ||
+      err instanceof ForbiddenError
+    ) {
+      throw err;
+    }
+    throw new BadGatewayError(`경기 수정 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
+// 경기 삭제/취소 (종료 전)
+const deleteMatch = async (req, res) => {
+  const t = await sequelize.transaction();
+  let committed = false;
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+    const match = await BasketballMatch.findByPk(parseInt(matchId), { transaction: t });
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    await assertTeamManager(userId, match.team_id, req.user?.role);
+    if (match.status === 'completed') throw new BadRequestError('종료된 경기는 삭제할 수 없습니다.');
+
+    const squads = await BasketballMatchSquad.findAll({ where: { match_id: match.id }, transaction: t });
+    if (squads.length) {
+      await BasketballMatchSquadMember.destroy({
+        where: { squad_id: { [Op.in]: squads.map((s) => s.id) } },
+        transaction: t,
+      });
+    }
+    await BasketballMatchSquad.destroy({ where: { match_id: match.id }, transaction: t });
+    await BasketballMatchAttendance.destroy({ where: { match_id: match.id }, transaction: t });
+    await match.destroy({ transaction: t }); // soft delete
+
+    await t.commit();
+    committed = true;
+    await cleanupLive(matchId, match.team_id);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    if (!committed) await t.rollback();
+    logger.error('경기 삭제 에러:', err);
+    if (
+      err instanceof BadRequestError ||
+      err instanceof UnauthorizedError ||
+      err instanceof ForbiddenError
+    ) {
+      throw err;
+    }
+    throw new BadGatewayError(`경기 삭제 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
 module.exports = {
   createTeam,
   getTeamInfo,
@@ -2071,4 +3257,20 @@ module.exports = {
   rejectJoinRequest,
   createMatch,
   createMatchRecord,
+  getMatches,
+  getNextMatch,
+  getMatchDetail,
+  updateAttendance,
+  completeMatch,
+  updateMatch,
+  deleteMatch,
+  startLiveOnMatch,
+  getActiveLiveMatches,
+  getLiveMatch,
+  saveLiveSquad,
+  updateLiveQuarterMinutes,
+  saveLiveQuarter,
+  finishLiveMatch,
+  reopenLiveMatch,
+  discardLiveMatch,
 };

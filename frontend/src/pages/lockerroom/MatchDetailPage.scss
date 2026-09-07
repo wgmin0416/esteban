@@ -1,0 +1,289 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.match-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  padding: $spacing-md $spacing-md $spacing-xxl;
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .back-link {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: $text-secondary;
+    font-weight: 700;
+    font-size: $font-sm;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  // 헤더
+  .md-header {
+    background: $gradient-hero;
+    border-radius: $radius-xl;
+    padding: $spacing-lg;
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(11, 16, 32, 0.3);
+
+    .md-status {
+      display: inline-block;
+      font-size: $font-xs;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 999px;
+      color: #fff;
+      margin-bottom: $spacing-sm;
+      &.scheduled { background: $secondary-color; }
+      &.live { background: $danger-color; }
+      &.done { background: rgba(255, 255, 255, 0.25); }
+    }
+    .md-title { font-family: $font-display; font-size: $font-2xl; margin: 0 0 $spacing-sm; }
+    .md-sub {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-md;
+      font-size: $font-sm;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  .md-section-title {
+    margin: 0 0 $spacing-sm;
+    font-family: $font-display;
+    font-size: $font-lg;
+    color: $text-primary;
+  }
+
+  // 결과
+  .md-result {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .result-scores {
+      display: flex;
+      justify-content: center;
+      gap: $spacing-lg;
+      flex-wrap: wrap;
+
+      .rs-squad {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 72px;
+
+        .rs-label { font-size: $font-sm; font-weight: 800; color: $text-secondary; }
+        .rs-pts { font-family: $font-display; font-size: 2.2rem; color: $text-primary; }
+        &.win .rs-pts { color: $primary-color; }
+      }
+    }
+
+    .quarter-filter {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      background: $background-alt;
+      padding: 4px;
+      border-radius: $radius-md;
+
+      button {
+        flex: 1;
+        min-width: 48px;
+        border: none;
+        background: transparent;
+        padding: $spacing-xs $spacing-sm;
+        border-radius: $radius-sm;
+        font-family: $font-display;
+        font-size: $font-sm;
+        color: $text-secondary;
+        cursor: pointer;
+        &.on { background: $gradient-primary; color: #fff; }
+      }
+    }
+
+    .box-score {
+      overflow-x: auto;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: $font-sm;
+        white-space: nowrap;
+
+        th, td { padding: $spacing-xs $spacing-sm; text-align: center; }
+        th { font-size: $font-xs; color: $text-light; font-weight: 800; border-bottom: 2px solid $border-color; }
+        td { border-bottom: 1px solid $border-light; color: $text-secondary; }
+        .bs-name { text-align: left; font-weight: 700; color: $text-primary; }
+        .bs-pts { font-family: $font-display; color: $primary-color; }
+      }
+    }
+  }
+
+  // 참석 투표
+  .md-vote {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+
+    .vote-buttons {
+      display: flex;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-sm;
+
+      .vb {
+        flex: 1;
+        border: 1.5px solid $border-color;
+        background: #fff;
+        border-radius: $radius-md;
+        padding: $spacing-md;
+        font-weight: 800;
+        font-size: $font-base;
+        color: $text-secondary;
+        cursor: pointer;
+        transition: all $transition-fast;
+
+        &.attend.on { background: $success-color; border-color: $success-color; color: #fff; }
+        &.absent.on { background: $danger-color; border-color: $danger-color; color: #fff; }
+        &.pending.on { background: $text-light; border-color: $text-light; color: #fff; }
+        &:disabled { opacity: 0.6; }
+      }
+    }
+
+    .vote-summary {
+      display: flex;
+      gap: $spacing-md;
+      font-size: $font-sm;
+      font-weight: 700;
+      margin-bottom: $spacing-md;
+
+      .vs.attend { color: $success-color; }
+      .vs.absent { color: $danger-color; }
+      .vs.pending { color: $text-light; }
+    }
+
+    .vote-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: $spacing-xs;
+
+      .vl-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+        padding: $spacing-xs;
+        border-radius: $radius-md;
+        background: $background-gray;
+
+        img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+        .vl-name { flex: 1; font-size: $font-xs; font-weight: 700; color: $text-primary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vl-badge {
+          font-size: 10px;
+          font-weight: 800;
+          padding: 1px 6px;
+          border-radius: 999px;
+          &.attend { background: rgba($success-color, 0.15); color: $success-color; }
+          &.absent { background: rgba($danger-color, 0.15); color: $danger-color; }
+          &.pending { background: $background-alt; color: $text-light; }
+        }
+      }
+    }
+  }
+
+  // 액션
+  .md-actions {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .act {
+      border: none;
+      border-radius: 999px;
+      padding: $spacing-md;
+      font-weight: 800;
+      font-size: $font-base;
+      cursor: pointer;
+
+      &.primary { background: $gradient-primary; color: #fff; box-shadow: $glow-primary; font-family: $font-display; }
+      &.ghost { background: #fff; border: 1px solid $border-color; color: $text-secondary; }
+      &.danger { background: #fff; border: 1px solid rgba($danger-color, 0.4); color: $danger-color; }
+    }
+  }
+
+  // 모달
+  .md-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 16, 32, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: $spacing-lg;
+  }
+  .md-modal {
+    background: #fff;
+    border-radius: $radius-xl;
+    padding: $spacing-lg;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+
+    h3 { font-family: $font-display; font-size: $font-xl; margin: 0 0 $spacing-sm; color: $text-primary; }
+    p { font-size: $font-sm; color: $text-secondary; margin: 0 0 $spacing-lg; }
+    .md-modal-actions {
+      display: flex;
+      gap: $spacing-sm;
+      button { flex: 1; border-radius: $radius-md; padding: $spacing-md; font-weight: 800; cursor: pointer; }
+      .cancel { border: 1px solid $border-color; background: #fff; color: $text-secondary; }
+      .confirm { border: none; background: $danger-color; color: #fff; }
+    }
+
+    &.edit {
+      text-align: left;
+
+      .ef-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: $spacing-sm;
+
+        > span { font-size: $font-xs; font-weight: 800; text-transform: uppercase; color: $text-light; }
+        input {
+          padding: $spacing-sm $spacing-md;
+          border: 1px solid $border-color;
+          border-radius: $radius-md;
+          font-size: $font-base;
+          font-weight: 600;
+          color: $text-primary;
+          &:focus { outline: none; border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.12); }
+        }
+      }
+
+      .md-modal-actions { margin-top: $spacing-md; }
+      .md-modal-actions .confirm { background: $gradient-primary; }
+    }
+  }
+
+  .md-empty {
+    text-align: center;
+    padding: $spacing-xxl $spacing-lg;
+    .md-empty-icon { font-size: 3rem; }
+    p { color: $text-secondary; margin: $spacing-sm 0 $spacing-lg; }
+    .md-btn { border: none; background: $gradient-primary; color: #fff; border-radius: 999px; padding: $spacing-sm $spacing-xl; font-weight: 800; cursor: pointer; }
+  }
+}

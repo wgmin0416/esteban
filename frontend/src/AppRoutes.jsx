@@ -1,18 +1,20 @@
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { setNavigator } from './lib/navigation';
 // page
 import LoginPage from './pages/user/LoginPage';
 import ProfilePage from './pages/user/ProfilePage';
 import AuthPage from './pages/auth/AuthPage';
-import HomePage from './pages/HomePage';
 
 // locker room page
 import LockerRoomHomePage from './pages/lockerroom/LockerRoomHomePage';
 import RankingsPage from './pages/lockerroom/RankingsPage';
 import RecordsPage from './pages/lockerroom/RecordsPage';
 import RecordForm from './pages/lockerroom/RecordForm';
-import SchedulePage from './pages/lockerroom/SchedulePage';
+import LiveSetupPage from './pages/lockerroom/LiveSetupPage';
+import LiveTrackingPage from './pages/lockerroom/LiveTrackingPage';
+import MatchesPage from './pages/lockerroom/MatchesPage';
+import MatchDetailPage from './pages/lockerroom/MatchDetailPage';
 import BoardPage from './pages/lockerroom/BoardPage';
 import ManagementPage from './pages/lockerroom/ManagementPage';
 import DuesHistoryPage from './pages/lockerroom/DuesHistoryPage';
@@ -52,7 +54,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      {/* 홈 탭 제거 → 로그인 후 '우리 팀'으로 바로 진입 */}
+      <Route path="/" element={<Navigate to="/locker-room" replace />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
@@ -105,18 +108,42 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/locker-room/records/create"
+        path="/locker-room/matches"
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
-            <RecordForm />
+            <MatchesPage />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/locker-room/schedule"
+        path="/locker-room/matches/:matchId"
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
-            <SchedulePage />
+            <MatchDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/matches/:matchId/live-setup"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <LiveSetupPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/matches/:matchId/live"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <LiveTrackingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/matches/:matchId/record"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <RecordForm />
           </ProtectedRoute>
         }
       />

@@ -1,428 +1,354 @@
 @use '../../styles/variables' as *;
 @use '../../styles/mixins' as *;
-@use '../../styles/common' as *;
 
 .locker-room-page {
-  @extend %page-container;
+  min-height: 100vh;
 
   .container {
-    max-width: $container-width;
+    max-width: 720px;
     margin: 0 auto;
+    padding: $spacing-md $spacing-md $spacing-xxl;
   }
+}
 
-  .page-title {
-    @extend %page-title;
-  }
-
-  .locker-room-content {
+// 대시보드 레이아웃
+.lr-dashboard {
+  .container {
     display: flex;
     flex-direction: column;
-    gap: $spacing-xl;
-  }
-}
-
-// 빈 팀 상태
-.empty-team-state {
-  @include flex-center;
-  flex-direction: column;
-  padding: $spacing-xxl;
-  text-align: center;
-
-  .empty-icon {
-    font-size: 4rem;
-    margin-bottom: $spacing-md;
-  }
-
-  h2 {
-    font-size: $font-2xl;
-    margin-bottom: $spacing-sm;
-    color: $text-primary;
-  }
-
-  p {
-    color: $text-secondary;
-    margin-bottom: $spacing-lg;
-  }
-
-  .empty-state-actions {
-    display: flex;
-    gap: $spacing-md;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    @include button-base;
-    text-decoration: none;
-    display: inline-block;
-    font-weight: 600;
-    min-width: 120px;
-
-    &.btn-primary {
-      background: linear-gradient(135deg, $primary-color, $primary-light);
-      color: white;
-      box-shadow: 0 4px 6px $shadow-md;
-
-      &:hover {
-        background: linear-gradient(135deg, $primary-hover, $primary-color);
-        box-shadow: 0 6px 12px $shadow-hover;
-        transform: translateY(-2px);
-      }
-    }
-
-    &.btn-secondary {
-      background: $background-light;
-      color: $text-primary;
-      border: 1px solid $border-color;
-
-      &:hover {
-        background: $background-gray;
-        border-color: $primary-color;
-        color: $primary-color;
-      }
-    }
-  }
-}
-
-// 섹션 공통 스타일
-.section-header {
-  @include flex-between;
-  margin-bottom: $spacing-lg;
-
-  h2 {
-    font-size: $font-2xl;
-    font-weight: 700;
-    color: $text-primary;
-    margin: 0;
-  }
-}
-
-// 기본 팀 툴팁 (react-tooltip)
-.default-team-tooltip {
-  background: rgba(0, 0, 0, 0.9) !important;
-  color: #fff !important;
-  font-size: $font-sm !important;
-  padding: $spacing-xs $spacing-sm !important;
-  border-radius: $radius-sm !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-  max-width: 280px !important;
-  z-index: 10001 !important;
-}
-
-// 팀 정보 섹션
-.team-info-section {
-  .default-team-trigger {
-    position: relative;
-  }
-
-  .default-team-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: $spacing-sm;
-    min-width: 0;
-    max-width: 280px;
-
-    .default-team-name {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-weight: 600;
-      color: $text-primary;
-      cursor: default;
-    }
-
-    .default-team-arrow {
-      flex-shrink: 0;
-      font-size: 10px;
-      color: $text-light;
-    }
-  }
-
-  .default-team-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: $spacing-xs;
-    min-width: 260px;
-    max-width: 320px;
-    @include card;
-    padding: $spacing-md;
-    box-shadow: 0 8px 24px $shadow-md;
-    z-index: 100;
-  }
-
-  .dropdown-title {
-    font-size: $font-sm;
-    font-weight: 600;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
-    padding-bottom: $spacing-sm;
-    border-bottom: 1px solid $border-color;
-  }
-
-  .dropdown-team-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-xs;
-  }
-
-  .dropdown-team-item {
-    @include flex-between;
-    align-items: center;
-    gap: $spacing-sm;
-    padding: $spacing-sm $spacing-md;
-    border: 1px solid $border-color;
-    border-radius: $radius-md;
-    background: white;
-
-    &.active {
-      border-color: $primary-color;
-      background: rgba($primary-color, 0.05);
-    }
-
-    &.clickable {
-      cursor: pointer;
-
-      &:hover {
-        border-color: $primary-color;
-        background: rgba($primary-color, 0.08);
-      }
-    }
-
-    .dropdown-team-name {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-weight: 600;
-      color: $text-primary;
-    }
-
-    .dropdown-team-check {
-      flex-shrink: 0;
-      width: 20px;
-      color: $primary-color;
-      font-size: 1rem;
-      font-weight: 700;
-      line-height: 1;
-      text-align: center;
-    }
-  }
-
-  .team-info-card {
-    @include card;
-    display: flex;
-    gap: $spacing-xl;
-    flex-direction: column;
-
-    @include respond-to(md) {
-      flex-direction: row;
-    }
-
-    .team-logo {
-      flex-shrink: 0;
-      width: 150px;
-      height: 150px;
-      border-radius: $radius-lg;
-      overflow: hidden;
-      background: linear-gradient(135deg, $background-gray, #ffffff);
-      border: 2px solid $border-light;
-      @include flex-center;
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-    }
-
-    .team-details {
-      flex: 1;
-
-      .team-name {
-        font-size: $font-2xl;
-        font-weight: 800;
-        margin-bottom: $spacing-lg;
-        color: $text-primary;
-        background: linear-gradient(135deg, $primary-color, $secondary-color);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .team-info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: $spacing-md;
-        margin-bottom: $spacing-lg;
-
-        .info-item {
-          display: flex;
-          flex-direction: column;
-          gap: $spacing-xs;
-
-          .info-label {
-            font-size: $font-sm;
-            color: $text-light;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-
-          .info-value {
-            font-size: $font-base;
-            color: $text-primary;
-            font-weight: 600;
-          }
-        }
-      }
-
-      .team-intro {
-        padding-top: $spacing-lg;
-        border-top: 1px solid $border-color;
-
-        .info-label {
-          display: block;
-          font-size: $font-sm;
-          color: $text-light;
-          font-weight: 500;
-          margin-bottom: $spacing-sm;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        p {
-          color: $text-secondary;
-          line-height: 1.6;
-          margin: 0;
-        }
-      }
-    }
-  }
-}
-
-// 일정 섹션
-.schedule-section {
-  .schedule-list {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
-  }
-
-  .schedule-card {
-    @include card;
-    display: flex;
     gap: $spacing-lg;
-    align-items: flex-start;
+  }
+}
 
-    .schedule-date {
-      flex-shrink: 0;
-      width: 80px;
-      text-align: center;
-      padding: $spacing-md;
-      background: linear-gradient(135deg, $primary-color, $primary-light);
-      border-radius: $radius-lg;
-      color: white;
-      box-shadow: 0 4px 6px $shadow-md;
+// 팀 헤더
+.team-hero {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
 
-      .date-day {
-        font-size: $font-2xl;
-        font-weight: 700;
-        line-height: 1;
+  &__logo {
+    width: 56px;
+    height: 56px;
+    border-radius: $radius-lg;
+    background: $gradient-hero;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  &__name {
+    margin: 0;
+    font-family: $font-display;
+    font-size: $font-2xl;
+    color: $text-primary;
+    line-height: 1.1;
+  }
+
+  &__meta {
+    margin: 2px 0 0;
+    font-size: $font-sm;
+    color: $text-light;
+  }
+}
+
+// 다음 경기 참석 투표 (컴팩트)
+.next-game {
+  position: relative;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  background: $gradient-hero;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(11, 16, 32, 0.3);
+  overflow: hidden;
+
+  .ng-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $spacing-sm;
+
+    .ng-tag {
+      font-size: $font-xs;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: $accent-color;
+    }
+    .ng-dt { font-family: $font-display; font-size: 1.15rem; }
+  }
+
+  .ng-loc { margin-top: 2px; font-size: $font-xs; color: rgba(255, 255, 255, 0.75); }
+
+  .vote-bar {
+    display: flex;
+    height: 7px;
+    margin-top: $spacing-md;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.15);
+
+    .seg.attend { background: $accent-color; }
+    .seg.absent { background: $danger-color; }
+  }
+
+  .vote-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: $spacing-sm;
+
+    .vote-counts {
+      display: flex;
+      gap: $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 700;
+
+      .c.attend { color: $accent-color; }
+      .c.absent { color: $danger-color; }
+      .c.pending { color: rgba(255, 255, 255, 0.55); }
+    }
+
+    .roster-toggle {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: $font-xs;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  }
+
+  .vote-actions {
+    display: flex;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .vote-btn {
+      flex: 1;
+      padding: $spacing-sm;
+      border-radius: $radius-md;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-weight: 800;
+      font-size: $font-sm;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &.attend.on { background: $accent-color; border-color: $accent-color; color: #0b1020; }
+      &.absent.on { background: $danger-color; border-color: $danger-color; }
+      &:active { transform: scale(0.98); }
+    }
+  }
+
+  // 투표 명단
+  .vote-roster {
+    margin-top: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .rg {
+      font-size: $font-sm;
+
+      .rg-label {
+        display: inline-block;
+        font-weight: 800;
+        font-size: $font-xs;
+        margin-bottom: 2px;
+
+        &.attend { color: $accent-color; }
+        &.absent { color: $danger-color; }
+        &.pending { color: rgba(255, 255, 255, 0.7); }
       }
 
-      .date-month {
-        font-size: $font-sm;
-        margin-top: $spacing-xs;
-        opacity: 0.9;
+      .rg-names {
+        display: block;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.5;
+      }
+
+      .rg-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $spacing-sm;
       }
     }
 
-    .schedule-details {
-      flex: 1;
+    .remind-btn {
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: none;
+      background: $gradient-primary;
+      color: #fff;
+      font-size: $font-xs;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(255, 90, 31, 0.5);
+      transition: all $transition-base;
 
-      .schedule-title {
-        font-size: $font-lg;
-        font-weight: 700;
-        margin-bottom: $spacing-sm;
-        color: $text-primary;
+      &:disabled {
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.5);
+        box-shadow: none;
+        cursor: default;
       }
+    }
 
-      .schedule-info {
-        display: flex;
-        flex-wrap: wrap;
-        gap: $spacing-md;
-        margin-bottom: $spacing-md;
-        font-size: $font-sm;
-        color: $text-secondary;
-
-        span {
-          display: flex;
-          align-items: center;
-          gap: $spacing-xs;
-        }
-      }
-
-      .schedule-vote-btn {
-        margin-top: $spacing-sm;
-      }
+    .remind-hint {
+      margin: 0;
+      font-size: $font-xs;
+      color: rgba(255, 255, 255, 0.45);
     }
   }
 }
 
-// 버튼 스타일
-.btn {
-  @include button-base;
+// 상태 요약
+.lr-status {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
 
-  &.btn-primary {
-    background: linear-gradient(135deg, $primary-color, $primary-light);
-    color: white;
-    box-shadow: 0 4px 6px $shadow-md;
-    font-weight: 600;
-    border: none;
-
-    &:hover {
-      background: linear-gradient(135deg, $primary-hover, $primary-color);
-      box-shadow: 0 6px 12px $shadow-hover;
-      transform: translateY(-2px);
-    }
-  }
-
-  &.btn-secondary {
-    background-color: $background-gray;
-    color: $text-primary;
-    border-color: $border-color;
-    font-weight: 500;
-
-    &:hover {
-      background-color: $border-light;
-      border-color: $primary-color;
-      color: $primary-color;
-    }
-  }
-
-  &.btn-link {
-    background: none;
-    border: none;
-    color: $primary-color;
-    padding: 0;
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    background: #fff;
+    border: 1px solid $border-light;
+    box-shadow: 0 2px 8px $shadow-sm;
     text-decoration: none;
-    font-weight: 600;
+    color: $text-primary;
+    transition: all $transition-base;
 
-    &:hover {
-      color: $primary-hover;
-      transform: none;
+    &:hover { transform: translateY(-2px); box-shadow: 0 6px 16px $shadow-md; }
+
+    .sc-label { font-size: $font-xs; color: $text-light; font-weight: 700; }
+    .sc-main { font-family: $font-display; font-size: $font-xl; }
+    .sc-sub { font-size: $font-xs; color: $text-light; }
+
+    .sc-badge {
+      align-self: flex-start;
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: $font-xs;
+      font-weight: 800;
+      color: #fff;
+      &.win { background: $success-color; }
+      &.lose { background: $danger-color; }
+    }
+
+    .notice-title {
+      font-family: inherit;
+      font-size: $font-sm;
+      font-weight: 700;
+      line-height: 1.35;
+      @include text-ellipsis(2);
+    }
+
+    &.notice { grid-column: 1 / -1; }
+    &.dues.warn {
+      border-color: rgba(255, 90, 31, 0.4);
+      .sc-main { color: $primary-color; }
     }
   }
+}
 
-  &.btn-sm {
-    padding: $spacing-xs $spacing-md;
+// 팀 없음
+.lr-empty {
+  text-align: center;
+  padding: $spacing-xxl $spacing-lg;
+  border-radius: $radius-xl;
+  background: $gradient-hero;
+  color: #fff;
+  margin-top: $spacing-lg;
+
+  &__emoji { font-size: 3rem; }
+  h2 { font-family: $font-display; margin: $spacing-sm 0 4px; }
+  p { margin: 0 0 $spacing-lg; color: rgba(255, 255, 255, 0.75); }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-sm;
+    justify-content: center;
+
+    .lr-btn {
+      padding: $spacing-md $spacing-xl;
+      border-radius: 999px;
+      font-weight: 800;
+      text-decoration: none;
+
+      &.primary { background: $gradient-primary; color: #fff; box-shadow: $glow-primary; }
+      &.ghost { border: 1.5px solid rgba(255, 255, 255, 0.4); color: #fff; }
+    }
+  }
+}
+
+// 내 능력치 섹션
+.my-stat {
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: $spacing-sm;
+
+    .sec-title {
+      margin: 0;
+      font-family: $font-display;
+      font-size: $font-lg;
+      color: $text-primary;
+    }
+    .sec-more {
+      font-size: $font-sm;
+      font-weight: 700;
+      color: $primary-color;
+      text-decoration: none;
+    }
+  }
+}
+
+// 다음 경기 없음(빈 상태) — .next-game 다크 카드 재사용
+.next-game--empty {
+  text-align: center;
+  padding: $spacing-lg $spacing-md;
+
+  .ng-tag {
+    font-size: $font-xs;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $accent-color;
+  }
+  .ng-empty-msg {
+    margin: $spacing-sm 0 $spacing-md;
+    font-family: $font-display;
+    font-size: $font-lg;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .ng-empty-cta {
+    display: inline-block;
+    padding: $spacing-sm $spacing-xl;
+    border-radius: 999px;
+    background: $gradient-primary;
+    color: #fff;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: $glow-primary;
+  }
+  .ng-empty-sub {
+    margin: 0;
     font-size: $font-sm;
+    color: rgba(255, 255, 255, 0.55);
   }
 }

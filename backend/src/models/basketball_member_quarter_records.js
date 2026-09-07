@@ -1,34 +1,30 @@
 'use strict';
-const { Model, Sequelize } = require('sequelize');
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class BasketballMemberMatchRecord extends Model {
+  class BasketballMemberQuarterRecord extends Model {
     static associate(models) {
       // User
-      // BasketballMemberMatchRecord(N) : User(1) - 한 유저가 여러 개의 경기 기록을 가질 수 있음
-      BasketballMemberMatchRecord.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
+      BasketballMemberQuarterRecord.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
 
       // Team
-      // BasketballMemberMatchRecord(N) : Team(1) - 한 팀이 여러 개의 경기 기록을 가질 수 있음
-      BasketballMemberMatchRecord.belongsTo(models.Team, { foreignKey: 'team_id', as: 'team' });
+      BasketballMemberQuarterRecord.belongsTo(models.Team, { foreignKey: 'team_id', as: 'team' });
 
       // BasketballMatch
-      // BasketballMemberMatchRecord(N) : BasketballMatch(1) - 한 경기가 여러 개의 경기 기록을 가질 수 있음
-      BasketballMemberMatchRecord.belongsTo(models.BasketballMatch, {
+      BasketballMemberQuarterRecord.belongsTo(models.BasketballMatch, {
         foreignKey: 'match_id',
         as: 'match',
       });
 
       // BasketballMatchSquad
-      // BasketballMemberMatchRecord(N) : BasketballMatchSquad(1) - 한 스쿼드가 여러 개의 경기 기록을 가질 수 있음
-      BasketballMemberMatchRecord.belongsTo(models.BasketballMatchSquad, {
+      BasketballMemberQuarterRecord.belongsTo(models.BasketballMatchSquad, {
         foreignKey: 'squad_id',
         as: 'squad',
       });
     }
   }
 
-  BasketballMemberMatchRecord.init(
+  BasketballMemberQuarterRecord.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -62,15 +58,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: '스쿼드 ID',
       },
-      minutes: {
+      quarter: {
         type: DataTypes.TINYINT.UNSIGNED,
-        allowNull: true,
-        comment: '플레이 타임',
+        allowNull: false,
+        comment: '쿼터 번호(1부터)',
       },
       is_win: {
         type: DataTypes.TINYINT(1),
         allowNull: false,
-        comment: '승패 여부',
+        defaultValue: 0,
+        comment: '승패 여부(경기 기준)',
       },
       pts: {
         type: DataTypes.TINYINT.UNSIGNED,
@@ -223,8 +220,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'BasketballMemberMatchRecord',
-      tableName: 'basketball_member_match_records', // 복수형 테이블명
+      modelName: 'BasketballMemberQuarterRecord',
+      tableName: 'basketball_member_quarter_records',
       timestamps: true,
       underscored: true,
       createdAt: 'created_at',
@@ -232,12 +229,12 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['match_id', 'user_id'],
-          name: 'uq_match_record_match_user',
+          fields: ['match_id', 'user_id', 'quarter'],
+          name: 'uq_quarter_record_match_user_quarter',
         },
       ],
     }
   );
 
-  return BasketballMemberMatchRecord;
+  return BasketballMemberQuarterRecord;
 };

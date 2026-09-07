@@ -68,6 +68,24 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '총 참석 인원',
       },
+      quarter_count: {
+        type: DataTypes.TINYINT.UNSIGNED,
+        allowNull: false,
+        defaultValue: 4,
+        comment: '쿼터 수',
+      },
+      quarter_minutes: {
+        type: DataTypes.TINYINT.UNSIGNED,
+        allowNull: false,
+        defaultValue: 10,
+        comment: '쿼터당 경기 시간(분)',
+      },
+      status: {
+        type: DataTypes.ENUM('scheduled', 'live', 'completed'),
+        allowNull: false,
+        defaultValue: 'scheduled',
+        comment: '경기 상태(예정/진행중/종료)',
+      },
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,

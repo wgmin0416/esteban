@@ -3,10 +3,12 @@
 $tab-height: 56px;
 
 .bottom-tab-bar {
-  display: none; // 데스크톱 기본 숨김 (모바일/네이티브에서만 노출)
+  display: flex; // 앱 전용 → 항상 노출
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px; // 앱 프레임 폭에 맞춤 (PC/태블릿에서 가운데)
   bottom: 0;
   z-index: 1000;
   align-items: stretch;

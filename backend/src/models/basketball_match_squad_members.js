@@ -36,8 +36,13 @@ module.exports = (sequelize, DataTypes) => {
       },
       user_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: '유저 ID',
+        allowNull: true,
+        comment: '유저 ID(게스트면 NULL)',
+      },
+      guest_name: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+        comment: '게스트 이름(실유저가 아닌 경우)',
       },
       created_at: {
         type: Sequelize.DATE,

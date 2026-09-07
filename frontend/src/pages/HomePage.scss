@@ -314,41 +314,7 @@
   }
 }
 
-// 팀 전환 칩
-.team-switcher {
-  display: flex;
-  gap: $spacing-sm;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
-
-  .ts-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    border: 1.5px solid $border-color;
-    background: #fff;
-    color: $text-secondary;
-    font-weight: 700;
-    font-size: $font-sm;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all $transition-base;
-
-    img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
-    .ts-emoji { font-size: 15px; }
-
-    &.active {
-      border-color: transparent;
-      background: $gradient-brand;
-      color: #fff;
-      box-shadow: $glow-primary;
-    }
-  }
-}
+// (팀 전환 칩 제거 — 팀 전환은 상단 헤더 TeamSwitcher로 이동)
 
 // 센터피스: 다음 경기 참석 투표
 .next-game {
@@ -557,5 +523,160 @@
       &.primary { background: $gradient-primary; color: #fff; box-shadow: $glow-primary; }
       &.ghost { border: 1.5px solid rgba(255, 255, 255, 0.4); color: #fff; }
     }
+  }
+}
+
+// ───────────────────────────────────────────────
+// 비로그인 랜딩: 히어로 + 게스트 모집 프리뷰 (가입 유도)
+// ───────────────────────────────────────────────
+.home-guest {
+  padding: $spacing-xl $spacing-md $spacing-xxl;
+
+  .container {
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .hero-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: $spacing-lg;
+
+    .hero-kicker {
+      margin: 0 0 $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: $gradient-brand;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-title {
+      font-family: $font-display;
+      font-size: 2.6rem;
+      margin: 0 0 $spacing-md;
+      color: $text-primary;
+      line-height: 1.05;
+
+      @include respond-to(md) {
+        font-size: 3.4rem;
+      }
+    }
+
+    .hero-desc {
+      margin: 0 0 $spacing-lg;
+      font-size: $font-base;
+      color: $text-secondary;
+    }
+
+    .btn {
+      @include button-base;
+      background: $gradient-primary;
+      color: #fff;
+      text-decoration: none;
+      padding: $spacing-md $spacing-xxl;
+      font-size: $font-lg;
+      font-weight: 800;
+      border-radius: 999px;
+      box-shadow: $glow-primary;
+
+      &:hover {
+        filter: brightness(1.05);
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// 게스트 모집 프리뷰
+.guest-preview {
+  .guest-head {
+    margin-bottom: $spacing-md;
+
+    .section-title {
+      margin: 0;
+      font-family: $font-display;
+      font-size: $font-xl;
+      color: $text-primary;
+    }
+  }
+
+  .guest-state {
+    padding: $spacing-xl;
+    text-align: center;
+    color: $text-light;
+    font-size: $font-sm;
+  }
+
+  .guest-list {
+    list-style: none;
+    margin: 0 0 $spacing-lg;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .guest-card {
+    display: block;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    background: #fff;
+    border: 1px solid $border-light;
+    box-shadow: 0 2px 8px $shadow-sm;
+    text-decoration: none;
+    color: $text-primary;
+    transition: all $transition-base;
+
+    &:hover {
+      transform: translateY(-2px);
+      border-color: $primary-color;
+      box-shadow: 0 6px 16px $shadow-md;
+    }
+
+    .gc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+
+      .gc-when { font-weight: 800; color: $primary-color; font-size: $font-sm; }
+      .gc-cost { font-size: $font-xs; font-weight: 700; color: $text-secondary; }
+    }
+
+    .gc-team { font-family: $font-display; font-size: $font-lg; }
+    .gc-loc { margin-top: 2px; font-size: $font-sm; color: $text-light; }
+  }
+
+}
+
+// 로그인 유도 CTA (섹션 밖)
+.home-guest .guest-cta {
+  text-align: center;
+  padding: $spacing-lg;
+  border-radius: $radius-xl;
+  background: $gradient-hero;
+  color: #fff;
+
+  p { margin: 0 0 $spacing-md; font-size: $font-sm; color: rgba(255, 255, 255, 0.85); }
+
+  .btn {
+    @include button-base;
+    display: inline-block;
+    background: $gradient-primary;
+    color: #fff;
+    text-decoration: none;
+    padding: $spacing-sm $spacing-xl;
+    font-weight: 800;
+    border-radius: 999px;
+    box-shadow: $glow-primary;
   }
 }

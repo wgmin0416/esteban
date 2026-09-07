@@ -2,471 +2,336 @@
 @use '../../styles/mixins' as *;
 @use '../../styles/common' as *;
 
+// ───────────────────────────────────────────────
+// 랭킹 (홈 대시보드와 동일한 Court Energy 테마)
+// ───────────────────────────────────────────────
 .rankings-page {
-  @extend %page-container;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  padding: $spacing-lg $spacing-md $spacing-xxl;
 
   .container {
-    max-width: $container-width;
+    max-width: 720px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
   }
 
   .page-title {
-    @extend %page-title;
+    margin: 0;
+    font-family: $font-display;
+    font-size: $font-2xl;
+    color: $text-primary;
     display: flex;
-    align-items: center;
-    gap: $spacing-md;
+    align-items: baseline;
+    gap: $spacing-sm;
     flex-wrap: wrap;
 
     .page-subtitle {
-      font-size: $font-sm;
-      font-weight: 400;
-      color: $text-secondary;
-      font-style: italic;
+      font-family: system-ui, sans-serif;
+      font-size: $font-xs;
+      font-weight: 500;
+      color: $text-light;
     }
   }
 
-  // 빈 팀 상태
-  .empty-team-state {
-    @include flex-center;
-    flex-direction: column;
-    padding: $spacing-xxl;
-    text-align: center;
-
-    .empty-icon {
-      font-size: 4rem;
-      margin-bottom: $spacing-md;
-    }
-
-    h2 {
-      font-size: $font-2xl;
-      margin-bottom: $spacing-sm;
-      color: $text-primary;
-    }
-
-    p {
-      color: $text-secondary;
-      margin-bottom: $spacing-lg;
-    }
-
-    .empty-state-actions {
-      display: flex;
-      gap: $spacing-md;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      @include button-base;
-      text-decoration: none;
-      display: inline-block;
-      font-weight: 600;
-      min-width: 120px;
-
-      &.btn-primary {
-        background: linear-gradient(135deg, $primary-color, $primary-light);
-        color: white;
-        box-shadow: 0 4px 6px $shadow-md;
-
-        &:hover {
-          background: linear-gradient(135deg, $primary-hover, $primary-color);
-          box-shadow: 0 6px 12px $shadow-hover;
-          transform: translateY(-2px);
-        }
-      }
-
-      &.btn-secondary {
-        background: $background-light;
-        color: $text-primary;
-        border: 1px solid $border-color;
-
-        &:hover {
-          background: $background-gray;
-          border-color: $primary-color;
-          color: $primary-color;
-        }
-      }
-    }
-  }
-
+  // 필터 (항목 · 시즌)
   .rankings-filters {
     display: flex;
-    gap: $spacing-lg;
-    margin-bottom: $spacing-xxl;
-    padding: $spacing-lg;
-    background: $background-light;
-    border-radius: $radius-lg;
-    box-shadow: 0 2px 8px $shadow-sm;
-
-    @include respond-to(md) {
-      gap: $spacing-xl;
-    }
+    gap: $spacing-sm;
 
     .filter-group {
       display: flex;
       flex-direction: column;
-      gap: $spacing-sm;
+      gap: $spacing-xs;
       flex: 1;
 
       label {
-        font-size: $font-sm;
-        font-weight: 600;
-        color: $text-secondary;
+        font-size: $font-xs;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: $text-light;
       }
 
       .filter-select {
-        @include input-base;
-        padding: $spacing-sm $spacing-md;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: $spacing-md $spacing-lg $spacing-md $spacing-md;
         font-size: $font-base;
-        font-weight: 500;
+        font-weight: 700;
+        color: $text-primary;
         cursor: pointer;
-        background-color: $background-light;
-        border: 2px solid $border-color;
+        background-color: #fff;
+        border: 1px solid $border-light;
+        border-radius: $radius-lg;
+        box-shadow: 0 2px 8px $shadow-sm;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ff5a1f' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right $spacing-md center;
+        transition: all $transition-base;
 
         &:focus {
+          outline: none;
           border-color: $primary-color;
-          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
         }
 
         &:hover {
-          border-color: $primary-light;
+          border-color: rgba($primary-color, 0.5);
         }
       }
     }
   }
 
-  // 메달 단상 (1~3위)
-  .top-podium {
-    @include card;
+  // ── TOP 3: 1위 왼쪽 절반(큰 카드) · 2·3위 오른쪽 절반 위아래 분할 ──
+  .podium {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: $spacing-lg;
-    padding: $spacing-xl;
-    margin-bottom: $spacing-xl;
-    background: linear-gradient(
-      135deg,
-      rgba($primary-color, 0.04),
-      rgba($secondary-color, 0.04)
-    );
-    border: 1px solid rgba($primary-color, 0.15);
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: $spacing-sm;
 
-    @include respond-to(sm) {
-      align-items: flex-end;
-    }
-
-    .podium-column {
+    .podium-card {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       text-align: center;
-      gap: $spacing-sm;
+      gap: 4px;
+      padding: $spacing-md;
+      border-radius: $radius-lg;
+      background: #fff;
+      border: 1px solid $border-light;
+      box-shadow: 0 2px 8px $shadow-sm;
+      overflow: hidden;
 
-      .podium-medal {
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
+      .podium-rank {
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        font-family: $font-display;
+        font-size: $font-sm;
+        color: #0b1020;
+      }
+
+      .podium-avatar img {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid $border-color;
+        background: $background-gray;
+        display: block;
+      }
+
+      .podium-name {
+        font-size: $font-sm;
         font-weight: 800;
-        font-size: $font-sm;
-        color: #fff;
-        box-shadow: 0 2px 6px $shadow-sm;
-      }
-
-      .podium-figure {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: $spacing-sm;
-      }
-
-      .podium-player-head {
-        position: relative;
-        z-index: 2;
-
-        img {
-          width: 72px;
-          height: 72px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 3px solid $border-color;
-          background: $background-gray;
-          box-shadow: 0 3px 8px $shadow-md;
-        }
-      }
-
-      .podium-player-body {
-        position: relative;
-        z-index: 1;
-        margin-top: -$spacing-xs;
-        width: 60px;
-        height: 70px;
-        border-radius: $radius-sm $radius-sm 0 0;
-        background: linear-gradient(180deg, $primary-color, darken($primary-color, 8%));
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-
-        &::before,
-        &::after {
-          content: '';
-          position: absolute;
-          top: 18px;
-          width: 16px;
-          height: 30px;
-          border-radius: 16px;
-          background: linear-gradient(180deg, lighten($primary-color, 5%), $primary-color);
-        }
-
-        &::before {
-          left: -10px;
-        }
-
-        &::after {
-          right: -10px;
-        }
-      }
-
-      .podium-player-name {
-        font-size: $font-sm;
-        font-weight: 600;
         color: $text-primary;
       }
 
-      .podium-main-stat {
-        margin-top: $spacing-xs;
+      .podium-value {
         display: flex;
-        flex-direction: column;
-        gap: $spacing-xs;
+        align-items: baseline;
+        gap: 2px;
 
-        .stat-label {
-          font-size: $font-xs;
-          color: $text-secondary;
-          font-weight: 500;
-        }
-
-        .stat-value {
+        .pv-num {
+          font-family: $font-display;
           font-size: $font-xl;
-          font-weight: 800;
           color: $primary-color;
         }
+        .pv-unit {
+          font-size: $font-xs;
+          font-weight: 700;
+          color: $text-light;
+        }
       }
     }
 
-    .podium-silver {
-      .podium-medal {
-        background: linear-gradient(135deg, #c0c0c0, #e0e0e0);
-      }
-    }
+    // 1위: 왼쪽 절반 전체 높이 · 다크 히어로 카드
+    .rank-1 {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      gap: $spacing-sm;
+      background: $gradient-hero;
+      border: none;
+      box-shadow: 0 12px 30px rgba(11, 16, 32, 0.35);
 
-    .podium-gold {
-      .podium-medal {
-        background: linear-gradient(135deg, #ffd700, #ffed4a);
+      &::after {
+        content: '';
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, rgba(255, 90, 31, 0.35), transparent 70%);
+        pointer-events: none;
       }
 
-      .podium-player-head img {
+      > * { position: relative; z-index: 1; }
+
+      .podium-rank {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #ffe14a, #ffb800);
+      }
+
+      .podium-avatar img {
         width: 84px;
         height: 84px;
-        border-color: rgba(255, 215, 0, 0.7);
-        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+        border-color: rgba(198, 255, 58, 0.8);
+        box-shadow: 0 4px 18px rgba(198, 255, 58, 0.3);
+      }
+
+      .podium-name {
+        font-size: $font-base;
+        color: #fff;
+      }
+
+      .podium-value .pv-num {
+        font-size: $font-3xl;
+        color: $accent-color;
+      }
+      .podium-value .pv-unit { color: rgba(255, 255, 255, 0.65); }
+
+      .podium-record {
+        font-size: $font-xs;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.6);
       }
     }
 
-    .podium-bronze {
-      .podium-medal {
-        background: linear-gradient(135deg, #cd7f32, #e0a766);
-      }
+    .rank-2 {
+      grid-column: 2;
+      grid-row: 1;
+      .podium-rank { background: linear-gradient(135deg, #e0e0e0, #b8b8b8); }
+    }
+
+    .rank-3 {
+      grid-column: 2;
+      grid-row: 2;
+      .podium-rank { background: linear-gradient(135deg, #e0a766, #cd7f32); }
     }
   }
 
+  // ── 랭킹 리스트 (화이트 카드) ──
   .rankings-list {
     display: flex;
     flex-direction: column;
-    gap: $spacing-md;
-
-    .duo-item {
-      .duo-players {
-        display: flex;
-        align-items: center;
-        gap: $spacing-lg;
-        flex: 1;
-
-        .duo-player {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: $spacing-sm;
-
-          .ranking-player-image {
-            width: 60px;
-            height: 60px;
-
-            img {
-              width: 100%;
-              height: 100%;
-            }
-          }
-
-          .ranking-player-name {
-            font-size: $font-sm;
-            font-weight: 500;
-          }
-        }
-
-        .duo-vs {
-          font-size: $font-lg;
-          font-weight: 600;
-          color: $text-secondary;
-          padding: 0 $spacing-md;
-        }
-      }
-    }
+    gap: $spacing-sm;
   }
 
   .ranking-item {
-    @include card;
     display: flex;
     align-items: center;
-    gap: $spacing-lg;
-    padding: $spacing-lg;
-    transition: transform $transition-base, box-shadow $transition-base;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    background: #fff;
+    border: 1px solid $border-light;
+    box-shadow: 0 2px 8px $shadow-sm;
+    transition: all $transition-base;
     position: relative;
     overflow: hidden;
 
     &:hover {
-      transform: translateX(4px);
-      box-shadow: 0 4px 12px $shadow-md;
-    }
-
-    // 금메달 (1위)
-    &.rank-gold {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.1));
-      border: 2px solid rgba(255, 215, 0, 0.4);
-      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(
-          45deg,
-          transparent,
-          rgba(255, 255, 255, 0.3),
-          transparent
-        );
-        animation: shine 3s infinite;
-      }
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
-      }
-
-      .ranking-number {
-        color: #ffd700;
-        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-      }
-    }
-
-    // 은메달 (2위)
-    &.rank-silver {
-      background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(211, 211, 211, 0.1));
-      border: 2px solid rgba(192, 192, 192, 0.4);
-      box-shadow: 0 2px 8px rgba(192, 192, 192, 0.2);
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(192, 192, 192, 0.4);
-      }
-
-      .ranking-number {
-        color: #c0c0c0;
-        text-shadow: 0 0 8px rgba(192, 192, 192, 0.4);
-      }
-    }
-
-    // 동메달 (3위)
-    &.rank-bronze {
-      background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(184, 115, 51, 0.1));
-      border: 2px solid rgba(205, 127, 50, 0.4);
-      box-shadow: 0 2px 8px rgba(205, 127, 50, 0.2);
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(205, 127, 50, 0.4);
-      }
-
-      .ranking-number {
-        color: #cd7f32;
-        text-shadow: 0 0 8px rgba(205, 127, 50, 0.4);
-      }
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px $shadow-md;
     }
 
     .ranking-number {
-      font-size: $font-2xl;
-      font-weight: 800;
-      color: $text-light;
-      min-width: 50px;
+      font-family: $font-display;
+      font-size: $font-xl;
+      color: $text-lighter;
+      min-width: 32px;
       text-align: center;
-      transition: color 0.3s ease;
     }
 
-    .ranking-player-image {
-      img {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid $border-color;
-        display: block;
-        background: $background-gray;
-      }
-    }
-
-    // 1위 항목의 이미지 크기 조정
-    &.rank-gold {
-      .ranking-player-image {
-        img {
-          width: 80px;
-          height: 80px;
-          border: 3px solid rgba(255, 215, 0, 0.6);
-          box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-        }
-      }
+    .ranking-player-image img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid $border-color;
+      display: block;
+      background: $background-gray;
     }
 
     .ranking-player-info {
       flex: 1;
+      min-width: 0;
 
       .ranking-player-name {
-        font-size: $font-lg;
-        font-weight: 600;
+        font-size: $font-base;
+        font-weight: 800;
         color: $text-primary;
-        margin-bottom: $spacing-xs;
+        margin-bottom: 2px;
       }
 
       .ranking-player-stats {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-xs;
-        font-size: $font-sm;
-        color: $text-secondary;
-
-        @include respond-to(md) {
-          flex-direction: row;
-          gap: $spacing-md;
-          align-items: center;
-        }
-
-        .ranking-value {
-          font-weight: 700;
-          color: $primary-color;
-          font-size: $font-base;
-        }
+        font-size: $font-xs;
 
         .ranking-games {
           color: $text-light;
-          font-size: $font-sm;
+          font-weight: 600;
         }
+      }
+    }
+
+    // 우측 수치
+    .ranking-value {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      margin-left: auto;
+
+      .rv-num {
+        font-family: $font-display;
+        font-size: $font-xl;
+        color: $primary-color;
+      }
+      .rv-unit {
+        font-size: $font-xs;
+        font-weight: 700;
+        color: $text-light;
+      }
+    }
+  }
+
+  // ── 듀오 랭킹 ──
+  .duo-item {
+    .duo-players {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      flex: 1;
+
+      .duo-player {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: $spacing-xs;
+
+        .ranking-player-image img {
+          width: 48px;
+          height: 48px;
+        }
+
+        .ranking-player-name {
+          font-size: $font-sm;
+          font-weight: 700;
+        }
+      }
+
+      .duo-vs {
+        font-family: $font-display;
+        font-size: $font-base;
+        color: $primary-color;
       }
     }
   }
@@ -476,19 +341,22 @@
   }
 
   .empty-state {
-    @extend %empty-state;
-  }
-}
+    padding: $spacing-xxl $spacing-lg;
+    text-align: center;
+    border-radius: $radius-xl;
+    background: #fff;
+    border: 1px solid $border-light;
+    box-shadow: 0 2px 8px $shadow-sm;
 
-// 반짝임 애니메이션
-@keyframes shine {
-  0% {
-    transform: translateX(-100%) translateY(-100%) rotate(45deg);
-  }
-  50% {
-    transform: translateX(100%) translateY(100%) rotate(45deg);
-  }
-  100% {
-    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: $spacing-sm;
+    }
+
+    .empty-message {
+      color: $text-light;
+      font-size: $font-sm;
+      font-weight: 600;
+    }
   }
 }

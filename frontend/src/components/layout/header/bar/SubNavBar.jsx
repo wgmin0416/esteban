@@ -46,9 +46,9 @@ const SubNavBar = ({ language }) => {
   const t = {
     rankings: language === 'KR' ? '랭킹' : 'Rankings',
     records: language === 'KR' ? '기록' : 'Records',
-    schedule: language === 'KR' ? '일정' : 'Schedule',
+    matches: language === 'KR' ? '경기' : 'Matches',
     teamBoard: language === 'KR' ? '게시판' : 'Team Board',
-    teamManagement: language === 'KR' ? '팀 관리' : 'Team Management',
+    teamManagement: language === 'KR' ? '회원 관리' : 'Members',
   };
 
   return (
@@ -61,39 +61,42 @@ const SubNavBar = ({ language }) => {
         >
           홈
         </NavLink>
-        <NavLink 
+        <NavLink
+          to="/locker-room/matches"
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          {t.matches}
+        </NavLink>
+        <NavLink
           to="/locker-room/rankings"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
           {t.rankings}
         </NavLink>
-        <NavLink 
+        <NavLink
           to="/locker-room/records"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
           {t.records}
         </NavLink>
-        <NavLink 
-          to="/locker-room/schedule"
-          className={({ isActive }) => isActive ? 'active' : ''}
-        >
-          {t.schedule}
-        </NavLink>
-        <NavLink 
+        <NavLink
           to="/locker-room/team-board"
           className={({ isActive }) => isActive ? 'active' : ''}
         >
           {t.teamBoard}
         </NavLink>
-        {canManageTeam && (
-          <NavLink 
-            to="/locker-room/management"
-            className={({ isActive }) => isActive ? 'active' : ''}
-          >
-            {t.teamManagement}
-          </NavLink>
-        )}
       </div>
+
+      {/* 관리자 전용: 회원 관리 (탭이 아닌 별도 버튼) */}
+      {canManageTeam && (
+        <NavLink
+          to="/locker-room/management"
+          className={({ isActive }) => `sub-nav-admin${isActive ? ' active' : ''}`}
+        >
+          <span className="sna-icon" aria-hidden="true">⚙</span>
+          {t.teamManagement}
+        </NavLink>
+      )}
     </nav>
   );
 };

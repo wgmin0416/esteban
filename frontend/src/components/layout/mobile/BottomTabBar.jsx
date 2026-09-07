@@ -4,12 +4,6 @@ import './BottomTabBar.scss';
 
 // 24x24 라인 아이콘 (currentColor)
 const icons = {
-  home: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 10.5 12 3l9 7.5" />
-      <path d="M5 9.5V21h14V9.5" />
-    </svg>
-  ),
   lockerRoom: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -37,17 +31,22 @@ const icons = {
       <circle cx="12" cy="10" r="3" />
     </svg>
   ),
+  profile: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+    </svg>
+  ),
 };
 
 const BottomTabBar = () => {
   const language = useLanguageStore((state) => state.language);
 
   const tabs = [
-    { to: '/', end: true, key: 'home', label: language === 'KR' ? '홈' : 'Home' },
-    { to: '/locker-room', key: 'lockerRoom', label: language === 'KR' ? '라커룸' : 'Locker' },
-    { to: '/recruit', key: 'recruit', label: language === 'KR' ? '팀원모집' : 'Recruit' },
-    { to: '/match-board', key: 'matchBoard', label: language === 'KR' ? '경기모집' : 'Matches' },
-    { to: '/court-board', key: 'courtBoard', label: language === 'KR' ? '코트대관' : 'Courts' },
+    { to: '/locker-room', key: 'lockerRoom', label: language === 'KR' ? '우리 팀' : 'Team' },
+    { to: '/match-board', key: 'matchBoard', label: language === 'KR' ? '매치' : 'Matches' },
+    { to: '/court-board', key: 'courtBoard', label: language === 'KR' ? '코트' : 'Courts' },
+    { to: '/profile', key: 'profile', label: language === 'KR' ? '내 정보' : 'Profile' },
   ];
 
   return (

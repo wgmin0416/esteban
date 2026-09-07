@@ -1,29 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useTeamStore from '../store/useTeamStore';
 import './HomePage.scss';
 
 const HomePage = () => {
   const isLogin = useAuthStore((state) => state.isLogin);
   const myInfo = useAuthStore((state) => state.myInfo);
+  const myTeams = useTeamStore((state) => state.myTeams);
+  const getMyTeams = useTeamStore((state) => state.getMyTeams);
 
-  // ── 비로그인 히어로 배너 ─────────────────────────
-  const slides = [
-    { id: 1, sub: '동호회 농구의 모든 것', title: '팀을 만들고 코트를 지배하라', bg: 'linear-gradient(135deg, #0b1020 0%, #1e2745 55%, #3a1c10 100%)' },
-    { id: 2, sub: '매치 모집 · 코트 대관', title: '경기를 잡고 승부하라', bg: 'linear-gradient(135deg, #0b1020 0%, #161d3a 55%, #0f2a5a 100%)' },
-    { id: 3, sub: '랭킹 · 스탯 · 히스토리', title: '기록으로 증명하라', bg: 'linear-gradient(135deg, #1a0a1e 0%, #2a0f2f 55%, #3a1220 100%)' },
-  ];
-  const [currentSlide, setCurrentSlide] = useState(0);
+  // ── 내가 속한 팀 (활성 팀은 헤더 Select로 전환 = 서버의 기본 팀) ──
   useEffect(() => {
-    if (isLogin) return;
-    const interval = setInterval(() => setCurrentSlide((p) => (p + 1) % slides.length), 3000);
-    return () => clearInterval(interval);
-  }, [isLogin, slides.length]);
-
-  // ── 내가 속한 팀 (TODO: 리더팀+멤버팀 통합 API로 대체) ──
-  const teams = myInfo?.teams || [];
-  const [activeTeamId, setActiveTeamId] = useState(null);
-  const activeTeam = teams.find((t) => t.id === activeTeamId) || teams[0] || null;
+    if (isLogin && myTeams === null) getMyTeams();
+  }, [isLogin, myTeams, getMyTeams]);
+  const teams = myTeams || myInfo?.teams || [];
+  const activeTeam = teams.find((t) => t.is_default === 1) || teams[0] || null;
 
   // ── 대시보드 더미 데이터 (TODO: API 연동) ──
   const nextGame = {
@@ -47,53 +39,11 @@ const HomePage = () => {
   // ─────────────────────────────────────────────
   // 1) 비로그인: 에너지 히어로 + 로그인 유도
   // ─────────────────────────────────────────────
-  if (!isLogin) {
-    return (
-      <div className="home-page">
-        <section className="home-slider">
-          <div className="slider-container">
-            <div className="slider-wrapper" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-              {slides.map((slide) => (
-                <div key={slide.id} className="slide">
-                  <div className="slide-bg" style={{ background: slide.bg }}>
-                    <span className="slide-emoji">🏀</span>
-                  </div>
-                  <div className="slide-overlay">
-                    <p className="slide-sub">{slide.sub}</p>
-                    <h2 className="slide-title">{slide.title}</h2>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="slider-indicators">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  className={`indicator ${i === currentSlide ? 'active' : ''}`}
-                  onClick={() => setCurrentSlide(i)}
-                  aria-label={`슬라이드 ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="home-content">
-          <div className="container">
-            <div className="hero-cta">
-              <p className="hero-kicker">BASKETBALL · TEAM · COURT</p>
-              <h2 className="hero-title">코트를 지배하라</h2>
-              <p className="hero-desc">팀을 만들고, 경기를 잡고, 기록으로 증명하세요.</p>
-              <Link to="/login" className="btn btn-primary">지금 시작하기</Link>
-            </div>
-          </div>
-        </section>
-      </div>
-    );
-  }
+  // 홈은 로그인 필수(ProtectedRoute). 방어적으로 비로그인 시 렌더 안 함.
+  if (!isLogin) return null;
 
   // ─────────────────────────────────────────────
-  // 2) 로그인 · 팀 없음: 활성화 (팀 만들기 / 찾기)
+  // 로그인 · 팀 없음: 활성화 (팀 만들기 / 찾기)
   // ─────────────────────────────────────────────
   if (teams.length === 0) {
     return (
@@ -124,21 +74,7 @@ const HomePage = () => {
       <div className="container">
         <p className="dash-greeting">{myInfo?.name || '선수'}님, 반가워요 👋</p>
 
-        {/* 팀 전환 */}
-        {teams.length > 1 && (
-          <div className="team-switcher">
-            {teams.map((t) => (
-              <button
-                key={t.id}
-                className={`ts-chip ${activeTeam?.id === t.id ? 'active' : ''}`}
-                onClick={() => setActiveTeamId(t.id)}
-              >
-                {t.logo_url ? <img src={t.logo_url} alt="" /> : <span className="ts-emoji">🏀</span>}
-                {t.name}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* 팀 전환은 상단 헤더의 Select로 통합 */}
 
         {/* 센터피스: 다음 경기 참석 투표 */}
         <section className="next-game">

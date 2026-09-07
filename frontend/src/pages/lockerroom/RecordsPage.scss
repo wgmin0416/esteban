@@ -38,6 +38,21 @@
         transform: translateY(-2px);
       }
     }
+
+    .page-header-actions {
+      display: flex;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+    }
+
+    .btn-live {
+      background: $ink !important;
+      color: #fff;
+
+      &:hover {
+        background: $ink-2 !important;
+      }
+    }
   }
 
   .records-tabs {

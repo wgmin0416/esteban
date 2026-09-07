@@ -51,12 +51,7 @@ $tab-height: 56px;
 }
 
 // body로 감싸 우선순위를 높인다 (NavBar.scss의 .nav-bar{display:flex} 등을 확실히 덮어쓰기 위함)
-@media (max-width: $breakpoint-md) {
-  body {
-    @include mobile-layout;
-  }
-}
-
-body.is-native {
+// 앱은 모바일 전용 → 화면 크기와 무관하게 항상 모바일 레이아웃
+body {
   @include mobile-layout;
 }

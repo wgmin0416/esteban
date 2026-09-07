@@ -46,7 +46,7 @@ const DuesHistoryPage = () => {
         <div className="page-header">
           <div className="header-left">
             <button type="button" className="btn btn-back" onClick={() => navigate('/locker-room/management')}>
-              {language === 'KR' ? '← 팀 관리' : '← Management'}
+              {language === 'KR' ? '← 회원 관리' : '← Members'}
             </button>
             <h1 className="page-title">{title}</h1>
           </div>

@@ -156,3 +156,23 @@
     }
   }
 }
+
+// 팀 만들기 진입 링크 (기본 팀 아래)
+.create-team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: $spacing-sm;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px dashed $primary-color;
+  color: $primary-color;
+  font-weight: 700;
+  font-size: $font-sm;
+  text-decoration: none;
+  transition: all $transition-base;
+
+  &:hover {
+    background: rgba($primary-color, 0.08);
+  }
+}

@@ -158,10 +158,10 @@ const CreateTeamPage = () => {
 
           <div className="form-group">
             <label>
-              {language === 'KR' ? '창단 일시' : 'Established Date'}
+              {language === 'KR' ? '창단 (연·월)' : 'Established (Year·Month)'}
             </label>
             <input
-              type="datetime-local"
+              type="month"
               name="established_at"
               value={formData.established_at}
               onChange={handleChange}

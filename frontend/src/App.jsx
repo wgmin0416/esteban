@@ -13,6 +13,7 @@ import useAuthStore from './store/useAuthStore';
 import { isNative } from './lib/auth/platform';
 function App() {
   const { getMyInfo, myInfo } = useAuthStore();
+  const isLogin = useAuthStore((state) => state.isLogin);
 
   // 앱 로딩 시 한 번만 로그인 상태 체크
   useEffect(() => {
@@ -30,10 +31,11 @@ function App() {
 
   return (
     <Router>
-      <Header />
+      {/* 로그인 필수 앱: 로그인 상태에서만 헤더/푸터/하단탭 노출 (로그인 화면은 크롬 없이) */}
+      {isLogin && <Header />}
       <AppRoutes />
-      <Footer />
-      <BottomTabBar />
+      {isLogin && <Footer />}
+      {isLogin && <BottomTabBar />}
       <Toast />
       <AlertModal />
       <ConfirmModal />

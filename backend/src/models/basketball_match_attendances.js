@@ -27,6 +27,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: '유저 ID',
       },
+      status: {
+        type: DataTypes.ENUM('attend', 'absent', 'pending'),
+        allowNull: false,
+        defaultValue: 'pending',
+        comment: '참석 상태(참석/불참/미정)',
+      },
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,

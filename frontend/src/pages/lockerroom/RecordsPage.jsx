@@ -171,7 +171,7 @@ const RecordsPage = () => {
   }
 
   const handleCreateRecord = () => {
-    navigate('/locker-room/records/create');
+    navigate('/locker-room/matches');
   };
 
   return (
@@ -179,8 +179,8 @@ const RecordsPage = () => {
       <div className="container">
         <div className="page-header">
           <h1 className="page-title">{language === 'KR' ? '기록' : 'Records'}</h1>
-          <button className="btn btn-primary btn-create-record" onClick={handleCreateRecord}>
-            {language === 'KR' ? '기록 작성' : 'Create Record'}
+          <button className="btn btn-primary btn-create-record" onClick={() => navigate('/locker-room/matches')}>
+            {language === 'KR' ? '경기 보러가기' : 'Go to Matches'}
           </button>
         </div>
 
@@ -345,7 +345,7 @@ const RecordsPage = () => {
                   {language === 'KR' ? '경기 기록이 없습니다.' : 'No match records available.'}
                 </div>
                 <button className="btn btn-primary" onClick={handleCreateRecord}>
-                  {language === 'KR' ? '첫 경기 기록 작성하기' : 'Create First Match Record'}
+                  {language === 'KR' ? '경기 보러가기' : 'Go to Matches'}
                 </button>
               </div>
             )}

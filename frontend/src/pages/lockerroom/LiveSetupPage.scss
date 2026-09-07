@@ -1,0 +1,246 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.live-setup-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $background-gray, #ffffff);
+  padding: $spacing-lg $spacing-md $spacing-xxl;
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .ls-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .page-title {
+      margin: 0;
+      font-family: $font-display;
+      font-size: $font-2xl;
+      color: $text-primary;
+    }
+    .btn-ghost {
+      border: 1px solid $border-color;
+      background: #fff;
+      color: $text-secondary;
+      border-radius: 999px;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  }
+
+  .ls-desc { margin: 0; font-size: $font-sm; color: $text-secondary; }
+
+  .setup-card {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+
+    .field-row { display: flex; flex-wrap: wrap; gap: $spacing-md; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 130px;
+      > span { font-size: $font-xs; font-weight: 800; text-transform: uppercase; color: $text-light; }
+      input {
+        padding: $spacing-sm $spacing-md;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        font-size: $font-base;
+        font-weight: 600;
+        color: $text-primary;
+        &:focus { outline: none; border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.12); }
+      }
+    }
+    .setup-hint {
+      margin: $spacing-sm 0 0;
+      font-size: $font-xs;
+      color: $text-light;
+    }
+
+    .seg-control {
+      display: flex;
+      gap: 4px;
+      background: $background-alt;
+      padding: 4px;
+      border-radius: $radius-md;
+      button {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: $spacing-sm;
+        border-radius: $radius-sm;
+        font-weight: 800;
+        font-size: $font-sm;
+        color: $text-secondary;
+        cursor: pointer;
+        white-space: nowrap;
+        &.on { background: $gradient-primary; color: #fff; box-shadow: 0 2px 8px rgba(255, 90, 31, 0.3); }
+      }
+    }
+  }
+
+  // ── 존 공통 ──
+  .zone-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
+
+    > span { font-size: $font-xs; font-weight: 800; text-transform: uppercase; color: $text-light; }
+
+    .guest-add {
+      border: 1px dashed $primary-color;
+      background: rgba($primary-color, 0.06);
+      color: $primary-color;
+      border-radius: $radius-md;
+      padding: 4px 10px;
+      font-weight: 800;
+      font-size: $font-xs;
+      cursor: pointer;
+    }
+    .team-name {
+      flex: 1;
+      min-width: 0;
+      font-family: $font-display;
+      font-size: $font-lg;
+      color: $text-primary;
+      border: none;
+      border-bottom: 2px solid $border-color;
+      padding: 2px 0;
+      background: transparent;
+      &:focus { outline: none; border-bottom-color: $primary-color; }
+    }
+    .team-count {
+      font-size: $font-xs;
+      font-weight: 700;
+      color: $text-light;
+      background: $background-alt;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+  }
+
+  .chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    min-height: 56px;
+    align-content: flex-start;
+
+    .zone-empty { font-size: $font-xs; color: $text-lighter; align-self: center; }
+  }
+
+  // 참가자 칩 (드래그 대상)
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid $border-color;
+    border-radius: 999px;
+    background: #fff;
+    cursor: grab;
+    touch-action: none; // 터치 드래그 시 스크롤 방지
+    user-select: none;
+    box-shadow: 0 1px 3px $shadow-sm;
+
+    img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; pointer-events: none; }
+    .chip-name { font-size: $font-sm; font-weight: 700; color: $text-primary; }
+    .chip-name-input {
+      width: 70px;
+      font-size: $font-sm;
+      font-weight: 700;
+      color: $text-primary;
+      border: none;
+      border-bottom: 1px dashed $border-color;
+      background: transparent;
+      &:focus { outline: none; border-bottom-color: $primary-color; }
+    }
+
+    &.guest { border-color: rgba($secondary-color, 0.5); background: rgba($secondary-color, 0.06); }
+    &.selected { border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.15); }
+    &.dragging { opacity: 0.35; }
+  }
+
+  .pool-zone {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-md;
+    transition: box-shadow $transition-fast, border-color $transition-fast;
+
+    &.hover { border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.15); }
+  }
+
+  .teams-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+
+    @include respond-to(sm) { grid-template-columns: repeat(2, 1fr); }
+    @include respond-to(lg) { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  }
+
+  .team-zone {
+    background: #fff;
+    border: 2px dashed $border-color;
+    border-radius: $radius-lg;
+    padding: $spacing-md;
+    min-height: 120px;
+    transition: all $transition-fast;
+
+    &.hover { border-color: $primary-color; border-style: solid; background: rgba($primary-color, 0.04); box-shadow: 0 0 0 3px rgba($primary-color, 0.15); }
+  }
+
+  .start-btn {
+    align-self: stretch;
+    border: none;
+    border-radius: 999px;
+    padding: $spacing-md;
+    background: $gradient-primary;
+    color: #fff;
+    font-family: $font-display;
+    font-size: $font-lg;
+    cursor: pointer;
+    box-shadow: $glow-primary;
+    &:disabled { opacity: 0.6; cursor: default; }
+    @include respond-to(sm) { align-self: center; min-width: 280px; }
+  }
+
+  .ls-notfound {
+    text-align: center;
+    padding: $spacing-xxl $spacing-lg;
+    p { color: $text-secondary; margin-bottom: $spacing-md; }
+    button { border: none; background: $gradient-primary; color: #fff; border-radius: 999px; padding: $spacing-sm $spacing-xl; font-weight: 800; cursor: pointer; }
+  }
+}
+
+// 드래그 고스트 (포인터 따라다님)
+.drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+  pointer-events: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: $gradient-primary;
+  color: #fff;
+  font-weight: 800;
+  font-size: $font-sm;
+  box-shadow: 0 8px 20px rgba(255, 90, 31, 0.4);
+}
