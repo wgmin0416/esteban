@@ -8,6 +8,9 @@ import './RankingsPage.scss';
 const MIN_GAMES = 20; // 랭킹 자격: 누적 경기 수 이상
 const MIN_3PA = 20; // 3점 성공률 랭킹 자격: (선택 기간) 3점 시도 수 이상
 const MIN_FTA = 10; // 자유투 성공률 랭킹 자격: (선택 기간) 자유투 시도 수 이상
+// 종합 점수 = PIE(개인 임팩트) + 승률(승 기여) 정규화 가중합 (지분 조절용, 합 100%)
+const PIE_WEIGHT = 70;
+const WIN_WEIGHT = 30;
 
 const RankingsPage = () => {
   const teamInfo = useTeamStore((state) => state.teamInfo);
@@ -99,16 +102,6 @@ const RankingsPage = () => {
           return toNumber(r.gameScore);
         case 'EFF':
           return toNumber(r.eff);
-        case 'TOTAL': {
-          // 간단한 종합 점수(임시): 득점/리바/어시/스틸/블락 가중치 + 턴오버 패널티
-          const pts = toNumber(r.pts);
-          const reb = toNumber(r.reb);
-          const ast = toNumber(r.ast);
-          const stl = toNumber(r.stl);
-          const blk = toNumber(r.blk);
-          const to = toNumber(r.turnover);
-          return pts * 10 + reb * 7 + ast * 7 + stl * 10 + blk * 10 - to * 5;
-        }
         default:
           return 0;
       }
@@ -116,20 +109,44 @@ const RankingsPage = () => {
 
     const isLowerBetter = category === 'TURNOVERS' || category === 'FOULS';
 
-    const mapped = records
+    // 자격 충족 선수만
+    const qualified = records
       .filter((r) => toNumber(r.gp) >= MIN_GAMES) // 경기 수 자격
       // 슈팅 성공률은 (선택 기간) 최소 시도 수 충족만 — 소량 시도 100% 배제
       .filter((r) => category !== 'THREE_POINTER_PCT' || toNumber(r.threepa) >= MIN_3PA)
-      .filter((r) => category !== 'FREE_THROW_PCT' || toNumber(r.fta) >= MIN_FTA)
-      .map((r) => ({
-        userId: r.userId,
-        userName: r.userName,
-        userImage: r.userImage,
-        gamesPlayed: toNumber(r.gp),
-        wins: toNumber(r.w),
-        losses: toNumber(r.l),
-        value: getValue(r),
-      }));
+      .filter((r) => category !== 'FREE_THROW_PCT' || toNumber(r.fta) >= MIN_FTA);
+
+    // 종합(TOTAL): PIE·승률을 자격자 내에서 0~100 정규화 후 가중합
+    const winRateOf = (r) => (toNumber(r.gp) > 0 ? (toNumber(r.w) / toNumber(r.gp)) * 100 : 0);
+    let pieRange = [0, 0];
+    let winRange = [0, 0];
+    if (category === 'TOTAL' && qualified.length) {
+      const pies = qualified.map((r) => toNumber(r.pie));
+      const wins = qualified.map(winRateOf);
+      pieRange = [Math.min(...pies), Math.max(...pies)];
+      winRange = [Math.min(...wins), Math.max(...wins)];
+    }
+    const norm = (x, [mn, mx]) => (mx > mn ? ((x - mn) / (mx - mn)) * 100 : 50);
+    const valueOf = (r) => {
+      if (category === 'TOTAL') {
+        return (
+          (PIE_WEIGHT * norm(toNumber(r.pie), pieRange) +
+            WIN_WEIGHT * norm(winRateOf(r), winRange)) /
+          100
+        );
+      }
+      return getValue(r);
+    };
+
+    const mapped = qualified.map((r) => ({
+      userId: r.userId,
+      userName: r.userName,
+      userImage: r.userImage,
+      gamesPlayed: toNumber(r.gp),
+      wins: toNumber(r.w),
+      losses: toNumber(r.l),
+      value: valueOf(r),
+    }));
 
     mapped.sort((a, b) => (isLowerBetter ? a.value - b.value : b.value - a.value));
 
@@ -218,8 +235,9 @@ const RankingsPage = () => {
   const getCategoryInfo = (category) => {
     const categoryMap = {
       TOTAL: {
-        label: language === 'KR' ? '종합 점수' : 'Overall Score',
-        unit: language === 'KR' ? '점' : 'pts',
+        label: language === 'KR' ? '종합 점수' : 'Overall',
+        unit: language === 'KR' ? '점' : '',
+        decimals: 1,
       },
       GP: {
         label: language === 'KR' ? '경기수' : 'GP',
@@ -416,6 +434,13 @@ const RankingsPage = () => {
           </div>
         </div>
 
+        {selectedCategory === 'TOTAL' && (
+          <p className="rankings-note">
+            {language === 'KR'
+              ? `※ 종합 = PIE(임팩트) ${PIE_WEIGHT}% + 승률 ${WIN_WEIGHT}% (자격자 내 정규화)`
+              : `※ Overall = PIE ${PIE_WEIGHT}% + Win% ${WIN_WEIGHT}% (normalized)`}
+          </p>
+        )}
         {selectedCategory === 'THREE_POINTER_PCT' && (
           <p className="rankings-note">
             {language === 'KR'

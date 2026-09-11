@@ -905,6 +905,32 @@ const getRecords = async (req, res) => {
     const marginCtx = await loadMarginContext(teamId, dateFilter);
     const pmMap = playerPlusMinus(marginCtx);
 
+    // PIE(Player Impact Estimate): 경기 전체 기여 합 중 내 몫 — 경기 단위로 계산
+    const pieRecs = await BasketballMemberMatchRecord.findAll({
+      where: { team_id: teamId, ...dateFilter },
+      attributes: ['user_id', 'match_id', 'pts', 'fgm', 'fga', 'ftm', 'fta', 'oreb', 'dreb', 'ast', 'stl', 'blk', 'pf', 'turnover'],
+      raw: true,
+    });
+    const contrib = (r) =>
+      toInt(r.pts) + toInt(r.fgm) + toInt(r.ftm) - toInt(r.fga) - toInt(r.fta) +
+      toInt(r.dreb) + 0.5 * toInt(r.oreb) + toInt(r.ast) + toInt(r.stl) + 0.5 * toInt(r.blk) -
+      toInt(r.pf) - toInt(r.turnover);
+    const gameTotal = {}; // match_id → 경기 전체 기여 합(게스트 포함)
+    const playerContrib = {}; // user_id → { num, matches:[] }
+    for (const r of pieRecs) {
+      const c = contrib(r);
+      gameTotal[r.match_id] = (gameTotal[r.match_id] || 0) + c;
+      if (r.user_id == null) continue;
+      const p = (playerContrib[r.user_id] = playerContrib[r.user_id] || { num: 0, matches: [] });
+      p.num += c;
+      p.matches.push(r.match_id);
+    }
+    const pieMap = new Map();
+    for (const [uid, v] of Object.entries(playerContrib)) {
+      const den = v.matches.reduce((s, m) => s + (gameTotal[m] || 0), 0);
+      pieMap.set(Number(uid), den > 0 ? (v.num / den) * 100 : 0);
+    }
+
     const num = (v) => parseFloat(v || 0);
     // 결과 포맷팅
     const formattedRecords = aggregatedData.map((row, index) => {
@@ -966,6 +992,7 @@ const getRecords = async (req, res) => {
         eff: eff.toFixed(1),
         plusMinus: pm, // 총 득실 마진
         pmPerGame: gp > 0 ? pm / gp : 0, // 경기당 +/-
+        pie: pieMap.get(row.user_id) || 0, // 종합 임팩트(%)
       };
     });
 
