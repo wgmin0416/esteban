@@ -21,6 +21,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'squad_id',
         as: 'squad',
       });
+
+      // 기록 담당자(이 쿼터 저장을 누른 사람)
+      BasketballMemberQuarterRecord.belongsTo(models.User, {
+        foreignKey: 'recorded_by',
+        as: 'recorder',
+      });
     }
   }
 
@@ -57,6 +63,17 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
         comment: '스쿼드 ID',
+      },
+      recorded_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: '이 쿼터 기록을 저장한 담당자(user_id)',
+      },
+      on_court: {
+        type: DataTypes.TINYINT(1),
+        allowNull: false,
+        defaultValue: 1,
+        comment: '이 쿼터 코트 출전 여부(+/- 산출용)',
       },
       quarter: {
         type: DataTypes.TINYINT.UNSIGNED,

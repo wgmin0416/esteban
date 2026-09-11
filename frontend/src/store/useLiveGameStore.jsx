@@ -95,7 +95,11 @@ const useLiveGameStore = create((set, get) => ({
   matchId: null,
   meta: null, // { title, quarterCount, squads:[{squadId,label,members:[]}] }
   quarterMinutes: [], // 쿼터별 시간(분) 배열
-  savedQuarters: [], // DB에 확정 저장된 쿼터 번호 목록
+  savedQuarters: [], // 내 스쿼드가 확정 저장한 쿼터 번호 목록
+  quarterMatchups: null, // 3파전+ : { [quarter]: [squadIdA, squadIdB] }
+  squadSaved: {}, // { [squadId]: [저장된 쿼터...] } (스쿼드별)
+  squadRecorders: {}, // { [squadId]: { [quarter]: { userId, name } } }
+  allSquadsSaved: false, // 전 스쿼드가 전 쿼터 저장 완료 → 경기 종료 가능
   allStats: {}, // { [squadId]: squadStats }  (스코어보드용, 마지막 GET 기준)
   mySquadId: null,
   currentQuarter: 1,
@@ -123,7 +127,13 @@ const useLiveGameStore = create((set, get) => ({
     }
 
     const allStats = {};
-    for (const s of data.squads) allStats[s.squadId] = s.stats || {};
+    const squadSaved = {};
+    const squadRecorders = {};
+    for (const s of data.squads) {
+      allStats[s.squadId] = s.stats || {};
+      squadSaved[s.squadId] = Array.isArray(s.savedQuarters) ? s.savedQuarters : [];
+      squadRecorders[s.squadId] = s.recorders || {};
+    }
 
     let mySquadId = ctx.mySquadId ?? null;
     if (mySquadId != null && !data.squads.some((s) => String(s.squadId) === String(mySquadId))) {
@@ -152,7 +162,11 @@ const useLiveGameStore = create((set, get) => ({
         squads: data.squads.map((s) => ({ squadId: s.squadId, label: s.label, members: s.members })),
       },
       quarterMinutes: qm,
-      savedQuarters: Array.isArray(data.savedQuarters) ? data.savedQuarters : [],
+      savedQuarters: mySquadId != null ? squadSaved[mySquadId] || [] : [],
+      quarterMatchups: data.quarterMatchups || null,
+      squadSaved,
+      squadRecorders,
+      allSquadsSaved: !!data.allSquadsSaved,
       allStats,
       mySquadId,
       currentQuarter,
@@ -163,7 +177,7 @@ const useLiveGameStore = create((set, get) => ({
     return true;
   },
 
-  // 스코어보드 갱신 (타 스쿼드 점수)
+  // 스코어보드 + 스쿼드별 저장상태/기록담당자 갱신 (타 담당자 진행 반영)
   refreshScoreboard: async () => {
     const { matchId, mySquadId, squadStats } = get();
     if (!matchId) return;
@@ -172,29 +186,55 @@ const useLiveGameStore = create((set, get) => ({
       const data = res?.data;
       if (!data) return;
       const allStats = {};
-      for (const s of data.squads) allStats[s.squadId] = s.stats || {};
-      // 내 스쿼드는 로컬 편집본이 최신이므로 유지
+      const squadSaved = {};
+      const squadRecorders = {};
+      for (const s of data.squads) {
+        allStats[s.squadId] = s.stats || {};
+        squadSaved[s.squadId] = Array.isArray(s.savedQuarters) ? s.savedQuarters : [];
+        squadRecorders[s.squadId] = s.recorders || {};
+      }
+      // 내 스쿼드 스탯은 로컬 편집본이 최신이므로 유지
       if (mySquadId != null) allStats[mySquadId] = squadStats;
-      set({ allStats });
+      set({
+        allStats,
+        squadSaved,
+        squadRecorders,
+        allSquadsSaved: !!data.allSquadsSaved,
+        quarterMatchups: data.quarterMatchups || null,
+        savedQuarters: mySquadId != null ? squadSaved[mySquadId] || [] : [],
+      });
     } catch {
       /* 무시 */
     }
   },
 
+  // 쿼터별 대진 지정 (3파전+) — 붙는 두 스쿼드
+  setQuarterMatchup: async (quarter, squadIds) => {
+    const { matchId, quarterMatchups } = get();
+    if (matchId == null) return;
+    // 낙관적 업데이트
+    set({ quarterMatchups: { ...(quarterMatchups || {}), [quarter]: squadIds.map(Number) } });
+    try {
+      await apiRequest('put', `/team/live/${matchId}/quarter/${quarter}/matchup`, { squadIds });
+    } catch {
+      /* 실패 시 다음 폴링에서 보정 */
+    }
+  },
+
   setMySquad: (squadId) => {
-    const { matchId, allStats } = get();
+    const { matchId, allStats, squadSaved } = get();
     const server = allStats[squadId] || {};
     const hasServer = Object.values(server).some((q) => q && Object.keys(q).length);
     const squadStats = hasServer ? server : readLS(statsKey(matchId, squadId)) || {};
     writeLS(ctxKey(matchId), { mySquadId: squadId, currentQuarter: get().currentQuarter });
-    set({ mySquadId: squadId, squadStats });
+    set({ mySquadId: squadId, squadStats, savedQuarters: squadSaved[squadId] || [] });
   },
 
   // 담당 스쿼드 선택 해제 → 스쿼드 선택 화면으로 (다른 스쿼드 기록 수정용)
   clearMySquad: () => {
     const { matchId, currentQuarter } = get();
     if (matchId != null) writeLS(ctxKey(matchId), { mySquadId: null, currentQuarter });
-    set({ mySquadId: null, squadStats: {} });
+    set({ mySquadId: null, squadStats: {}, savedQuarters: [] });
   },
 
   setQuarter: (q) => {
@@ -303,15 +343,28 @@ const useLiveGameStore = create((set, get) => ({
     }
   },
 
-  // 현재(또는 지정) 쿼터만 DB에 확정 저장. 경기 종료는 사용자가 명시적으로(finish)
-  saveQuarter: async (quarter) => {
-    const { matchId, currentQuarter } = get();
-    if (matchId == null) return null;
+  // 내 스쿼드의 현재(또는 지정) 쿼터만 DB에 확정 저장. onCourt: 이 쿼터 출전 pid 배열(+/- 산출용)
+  saveQuarter: async (quarter, onCourt) => {
+    const { matchId, mySquadId, currentQuarter, squadSaved, meta } = get();
+    if (matchId == null || mySquadId == null) return null;
     const q = quarter || currentQuarter;
     await get().flushSave();
-    const res = await apiRequest('post', `/team/live/${matchId}/quarter/${q}/save`, {});
+    const body = Array.isArray(onCourt) ? { onCourt } : {};
+    const res = await apiRequest('post', `/team/live/${matchId}/squad/${mySquadId}/quarter/${q}/save`, body);
     const data = res?.data || null;
-    if (data?.savedQuarters) set({ savedQuarters: data.savedQuarters });
+    if (data?.savedQuarters) {
+      const nextSaved = { ...squadSaved, [mySquadId]: data.savedQuarters };
+      // 로컬 기준으로 전 스쿼드 저장 완료 여부 재계산(서버가 최종 검증)
+      const qc = meta?.quarterCount || 0;
+      const allQ = Array.from({ length: qc }, (_, i) => i + 1);
+      const allSquadsSaved =
+        qc > 0 &&
+        (meta?.squads || []).every((s) => {
+          const sv = nextSaved[s.squadId] || [];
+          return allQ.every((n) => sv.includes(n));
+        });
+      set({ savedQuarters: data.savedQuarters, squadSaved: nextSaved, allSquadsSaved });
+    }
     return data;
   },
 
@@ -345,6 +398,10 @@ const useLiveGameStore = create((set, get) => ({
       meta: null,
       quarterMinutes: [],
       savedQuarters: [],
+      quarterMatchups: null,
+      squadSaved: {},
+      squadRecorders: {},
+      allSquadsSaved: false,
       allStats: {},
       mySquadId: null,
       currentQuarter: 1,

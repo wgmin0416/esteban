@@ -37,9 +37,89 @@
   }
 
   // 필터 (항목 · 시즌)
+  // ── 듀오 하이라이트 (최고/최악 순환) ──
+  .duo-highlight {
+    background: #fff;
+    border: 1px solid $border-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 10px $shadow-sm;
+    padding: $spacing-md;
+
+    .dh-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-sm;
+    }
+
+    .dh-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border: none;
+      background: $background-alt;
+      border-radius: $radius-md;
+      padding: $spacing-sm;
+      cursor: pointer;
+      text-align: center;
+
+      &.best { box-shadow: inset 0 0 0 2px rgba($primary-color, 0.25); }
+      &.worst { box-shadow: inset 0 0 0 2px rgba($secondary-color, 0.25); }
+      &.empty { opacity: 0.6; cursor: default; }
+
+      .dh-cap { font-size: $font-xs; font-weight: 800; color: $text-secondary; }
+
+      .dh-faces {
+        display: flex;
+        img {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #fff;
+          background: $background-gray;
+          &:last-child { margin-left: -12px; }
+        }
+      }
+
+      .dh-names { font-size: $font-sm; font-weight: 700; color: $text-primary; }
+      .dh-stat {
+        font-family: $font-display;
+        font-size: $font-base;
+        color: $primary-color;
+        em { font-style: normal; font-size: $font-xs; font-weight: 700; color: $text-light; }
+      }
+      &.worst .dh-stat { color: $secondary-color; }
+      .dh-none { color: $text-light; font-weight: 800; }
+    }
+
+    .dh-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: $spacing-sm;
+      span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: $border-color;
+        cursor: pointer;
+        transition: all $transition-fast;
+        &.on { background: $primary-color; transform: scale(1.2); }
+      }
+    }
+  }
+
+  .rankings-note {
+    margin: $spacing-sm 0 0;
+    font-size: $font-xs;
+    color: $text-light;
+  }
+
   .rankings-filters {
     display: flex;
     gap: $spacing-sm;
+    margin-top: $spacing-md;
 
     .filter-group {
       display: flex;

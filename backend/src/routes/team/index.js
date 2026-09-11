@@ -56,8 +56,10 @@ router.get('/live/:matchId', authMiddleware, teamController.getLiveMatch);
 router.put('/live/:matchId/squad/:squadId', authMiddleware, teamController.saveLiveSquad);
 // 쿼터별 시간(분) 갱신
 router.put('/live/:matchId/quarter-minutes', authMiddleware, teamController.updateLiveQuarterMinutes);
-// 쿼터별 누적 저장 → 해당 쿼터 record 확정 (전 쿼터 저장 시 자동 종료)
-router.post('/live/:matchId/quarter/:quarter/save', authMiddleware, teamController.saveLiveQuarter);
+// 쿼터별 대진 지정 (3파전 이상)
+router.put('/live/:matchId/quarter/:quarter/matchup', authMiddleware, teamController.setQuarterMatchup);
+// 쿼터별 누적 저장 (스쿼드 단위) → 해당 스쿼드의 그 쿼터 record 확정 + 기록 담당자 저장
+router.post('/live/:matchId/squad/:squadId/quarter/:quarter/save', authMiddleware, teamController.saveLiveQuarter);
 // 경기 종료 → DB 저장
 router.post('/live/:matchId/finish', authMiddleware, teamController.finishLiveMatch);
 // 종료된 경기 기록 수정 → DB 기록을 드래프트로 복원 후 다시 live 전환

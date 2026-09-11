@@ -91,6 +91,42 @@
       }
     }
 
+    // 라운드로빈 순위표
+    .standings {
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: $font-sm;
+        th, td {
+          padding: $spacing-xs $spacing-sm;
+          text-align: center;
+          border-bottom: 1px solid $border-light;
+        }
+        th { color: $text-light; font-weight: 700; font-size: $font-xs; }
+        td { color: $text-secondary; font-weight: 700; }
+        .st-team { text-align: left; font-weight: 800; color: $text-primary; }
+        tr.lead td { color: $primary-color; }
+      }
+    }
+
+    // 쿼터별 대진 결과
+    .quarter-results {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .qr-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: $spacing-sm;
+        font-size: $font-sm;
+        .qrr-q { font-family: $font-display; font-size: $font-xs; color: $text-light; min-width: 24px; }
+        .qrr-team { font-weight: 700; color: $text-secondary; &.win { color: $primary-color; font-weight: 800; } }
+        .qrr-sep { color: $text-light; }
+      }
+    }
+
     .quarter-filter {
       display: flex;
       gap: 4px;
@@ -112,6 +148,16 @@
         cursor: pointer;
         &.on { background: $gradient-primary; color: #fff; }
       }
+    }
+
+    .quarter-recorders {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+      font-size: $font-xs;
+      color: $text-light;
+
+      .qr-item b { color: $text-secondary; }
     }
 
     .box-score {

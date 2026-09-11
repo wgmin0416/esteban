@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useLiveGameStore, {
   EVENT_DEFS,
@@ -36,6 +36,10 @@ const LiveTrackingPage = () => {
     meta,
     quarterMinutes,
     savedQuarters,
+    squadRecorders,
+    allSquadsSaved,
+    quarterMatchups,
+    setQuarterMatchup,
     allStats,
     mySquadId,
     currentQuarter,
@@ -59,6 +63,15 @@ const LiveTrackingPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [minusMode, setMinusMode] = useState(false); // 잘못 누른 기록 빼기 모드
+  const [lineupEdit, setLineupEdit] = useState(false); // 출전 라인업 편집 모드
+  // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — 미설정 시 전원 출전
+  const [lineup, setLineup] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`live:${matchId}:lineup`)) || {};
+    } catch {
+      return {};
+    }
+  });
   const [showSave, setShowSave] = useState(false);
   const [savingQuarter, setSavingQuarter] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
@@ -94,17 +107,62 @@ const LiveTrackingPage = () => {
 
   const mySquad = meta?.squads?.find((s) => String(s.squadId) === String(mySquadId));
 
-  // 모든 쿼터가 저장되어야 경기 종료 가능
+  // 경기 종료는 전 스쿼드가 전 쿼터를 저장했을 때만 (서버가 최종 검증)
   const quarterCount = meta?.quarterCount || 0;
-  const allQuartersSaved =
-    quarterCount > 0 &&
-    Array.from({ length: quarterCount }, (_, i) => i + 1).every((n) => savedQuarters.includes(n));
+  const allQuartersSaved = allSquadsSaved;
+  // 현재 쿼터의 내 스쿼드 기록 담당자
+  const myRecorder = squadRecorders?.[mySquadId]?.[currentQuarter]?.name || null;
+
+  // ── 출전 라인업(쿼터별) ──
+  const onCourtList = lineup?.[mySquadId]?.[currentQuarter]; // 배열 or undefined(=전원)
+  const onCourtSet = onCourtList ? new Set(onCourtList) : null; // null = 전원 출전
+  const isOnCourt = (pid) => !onCourtSet || onCourtSet.has(pid);
+  const onCourtCount = onCourtSet ? onCourtSet.size : (mySquad?.members?.length || 0);
+
+  const persistLineup = (next) => {
+    setLineup(next);
+    try {
+      localStorage.setItem(`live:${matchId}:lineup`, JSON.stringify(next));
+    } catch {
+      /* quota 무시 */
+    }
+  };
+  const toggleOnCourt = (pid) => {
+    // 미설정이면 전원에서 시작 → 벤치로 뺄 사람만 해제
+    const base = onCourtList || (mySquad?.members || []).map((m) => m.pid);
+    const cur = new Set(base);
+    if (cur.has(pid)) cur.delete(pid);
+    else cur.add(pid);
+    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...cur] } });
+  };
+  const copyPrevLineup = () => {
+    const prev = lineup?.[mySquadId]?.[currentQuarter - 1];
+    if (!prev) return;
+    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...prev] } });
+  };
+  // 출전 선수 앞으로 정렬(원래 순서 유지)
+  const sortedMembers = mySquad
+    ? [...mySquad.members].sort((a, b) => (isOnCourt(a.pid) ? 0 : 1) - (isOnCourt(b.pid) ? 0 : 1))
+    : [];
+
+  // 같은 버튼(선수+이벤트+방향) 0.3초 쿨다운(쓰로틀) — 실수로 두 번 눌러 오기입 방지
+  const EVENT_COOLDOWN_MS = 300;
+  const lastFireRef = useRef({});
+  const guardedApply = (pid, ev, sign) => {
+    const key = `${pid}:${ev}:${sign}`;
+    const now = Date.now();
+    if (now - (lastFireRef.current[key] || 0) < EVENT_COOLDOWN_MS) return; // 쿨다운 중이면 무시
+    lastFireRef.current[key] = now;
+    applyEvent(pid, ev, sign);
+  };
 
   const handleSaveQuarter = async () => {
     const q = currentQuarter;
     setSavingQuarter(true);
     try {
-      await saveQuarter(q);
+      // 이 쿼터 출전 라인업(미설정이면 전원 → onCourt 미전송)
+      const onCourt = lineup?.[mySquadId]?.[q] || null;
+      await saveQuarter(q, onCourt);
       toastSuccess(t(`Q${q} 기록이 저장되었습니다.`, `Q${q} record saved.`));
       setShowSave(false);
     } catch {
@@ -151,32 +209,109 @@ const LiveTrackingPage = () => {
   }
 
   // 스코어보드 데이터
-  const scoreboard = meta.squads.map((s) => {
-    const stats = String(s.squadId) === String(mySquadId) ? squadStats : allStats[s.squadId] || {};
-    return { squadId: s.squadId, label: s.label, points: squadPoints(stats), mine: String(s.squadId) === String(mySquadId) };
-  });
+  const is3way = meta.squads.length >= 3;
+  const statsOf = (sid) => (String(sid) === String(mySquadId) ? squadStats : allStats[sid] || {});
+  const squadOf = (sid) => meta.squads.find((s) => String(s.squadId) === String(sid));
+  // 전 쿼터 누적(2파전) / 현재 쿼터(3파전 대진)
+  const quarterPts = (sid, q) =>
+    Object.values(statsOf(sid)?.[q] || {}).reduce((sum, st) => sum + statPoints(st), 0);
+  const scoreboard = meta.squads.map((s) => ({
+    squadId: s.squadId,
+    label: s.label,
+    points: squadPoints(statsOf(s.squadId)),
+    mine: String(s.squadId) === String(mySquadId),
+  }));
+  // 현재 쿼터 대진(3파전)
+  const curPair = is3way ? quarterMatchups?.[currentQuarter] : null;
 
   return (
     <div className="live-track-page">
       <div className="container">
         {/* 스코어보드 */}
-        <div className="scoreboard">
-          {scoreboard.map((s, i) => (
-            <div key={s.squadId} className={`sb-squad ${s.mine ? 'mine' : ''}`}>
-              {i > 0 && <span className="sb-sep">:</span>}
-              <span className="sb-label">{s.label}</span>
-              <span className="sb-pts">{s.points}</span>
-            </div>
-          ))}
-          <span className={`sb-save ${saving ? 'on' : ''}`}>{saving ? t('저장 중', 'Saving') : t('저장됨', 'Saved')}</span>
-        </div>
+        {is3way ? (
+          <div className="scoreboard matchup">
+            <span className="sb-q">Q{currentQuarter}</span>
+            {Array.isArray(curPair) && curPair.length === 2 ? (
+              curPair.map((sid, i) => (
+                <div
+                  key={sid}
+                  className={`sb-squad ${String(sid) === String(mySquadId) ? 'mine' : ''}`}
+                >
+                  {i > 0 && <span className="sb-sep">:</span>}
+                  <span className="sb-label">{squadOf(sid)?.label || '?'}</span>
+                  <span className="sb-pts">{quarterPts(sid, currentQuarter)}</span>
+                </div>
+              ))
+            ) : (
+              <span className="sb-nomatch">{t('이 쿼터 대진을 선택하세요', 'Pick this quarter’s matchup')}</span>
+            )}
+            <span className={`sb-save ${saving ? 'on' : ''}`}>{saving ? t('저장 중', 'Saving') : t('저장됨', 'Saved')}</span>
+          </div>
+        ) : (
+          <div className="scoreboard">
+            {scoreboard.map((s, i) => (
+              <div key={s.squadId} className={`sb-squad ${s.mine ? 'mine' : ''}`}>
+                {i > 0 && <span className="sb-sep">:</span>}
+                <span className="sb-label">{s.label}</span>
+                <span className="sb-pts">{s.points}</span>
+              </div>
+            ))}
+            <span className={`sb-save ${saving ? 'on' : ''}`}>{saving ? t('저장 중', 'Saving') : t('저장됨', 'Saved')}</span>
+          </div>
+        )}
+
+        {/* 쿼터 대진 선택 (3파전+) */}
+        {is3way && mySquad && (
+          <div className="matchup-picker">
+            <span className="mp-label">Q{currentQuarter} {t('대진', 'Matchup')}</span>
+            <select
+              className="mp-select"
+              value={curPair?.[0] ?? ''}
+              onChange={(e) => setQuarterMatchup(currentQuarter, [Number(e.target.value), curPair?.[1] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId])}
+            >
+              <option value="" disabled>{t('팀', 'Team')}</option>
+              {meta.squads.map((s) => (
+                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[1])}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <span className="mp-vs">vs</span>
+            <select
+              className="mp-select"
+              value={curPair?.[1] ?? ''}
+              onChange={(e) => setQuarterMatchup(currentQuarter, [curPair?.[0] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId, Number(e.target.value)])}
+            >
+              <option value="" disabled>{t('팀', 'Team')}</option>
+              {meta.squads.map((s) => (
+                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[0])}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* 담당 스쿼드 선택 */}
         {!mySquad ? (
           <div className="squad-pick">
+            <button
+              className="sp-back"
+              onClick={() => navigate(`/locker-room/matches/${matchId}/live-setup`)}
+            >
+              ← {t('팀 배정 다시하기', 'Back to team setup')}
+            </button>
             <h2>{t('담당 스쿼드를 선택하세요', 'Pick your squad to score')}</h2>
+            {is3way && Array.isArray(curPair) && curPair.length === 2 && (
+              <p className="sp-matchup">
+                Q{currentQuarter} {t('대진', 'Matchup')}: <b>{squadOf(curPair[0])?.label} vs {squadOf(curPair[1])?.label}</b>
+              </p>
+            )}
             <div className="squad-pick-grid">
-              {meta.squads.map((s) => (
+              {(is3way && Array.isArray(curPair) && curPair.length === 2
+                ? meta.squads.filter((s) => curPair.map(String).includes(String(s.squadId)))
+                : meta.squads
+              ).map((s) => (
                 <button
                   key={s.squadId}
                   className="squad-pick-btn"
@@ -233,20 +368,57 @@ const LiveTrackingPage = () => {
               </button>
             </div>
 
+            {/* 현재 쿼터 기록 담당자 */}
+            {savedQuarters.includes(currentQuarter) && myRecorder && (
+              <div className="qb-recorder">
+                Q{currentQuarter} {t('기록 담당', 'Recorded by')}: <b>{myRecorder}</b>
+              </div>
+            )}
+
+            {/* 출전 라인업 바 */}
+            <div className="lineup-bar">
+              <span className="lb-label">
+                {t('라인업', 'Lineup')} <b>{onCourtCount}</b>{t('명', '')}
+                {onCourtSet == null && <em>{t(' (전원)', ' (all)')}</em>}
+              </span>
+              <div className="lb-actions">
+                {lineupEdit && (
+                  <button
+                    className="lb-copy"
+                    disabled={!lineup?.[mySquadId]?.[currentQuarter - 1]}
+                    onClick={copyPrevLineup}
+                  >
+                    {t('이전 쿼터 복사', 'Copy prev Q')}
+                  </button>
+                )}
+                <button
+                  className={`lb-edit ${lineupEdit ? 'on' : ''}`}
+                  onClick={() => setLineupEdit((v) => !v)}
+                >
+                  {lineupEdit ? t('완료', 'Done') : t('라인업 편집', 'Edit lineup')}
+                </button>
+              </div>
+            </div>
+
             {/* 선수 아바타 스트립 (가로 스크롤 선택) */}
-            <div className="player-strip">
-              {mySquad.members.map((m) => {
+            <div className={`player-strip ${lineupEdit ? 'editing' : ''}`}>
+              {sortedMembers.map((m) => {
                 const total = playerTotal(squadStats, m.pid);
                 const sel = selectedPlayer === m.pid;
+                const bench = !isOnCourt(m.pid);
                 return (
                   <button
                     key={m.pid}
-                    className={`ps-player ${sel ? 'sel' : ''}`}
-                    onClick={() => setSelectedPlayer(m.pid)}
+                    className={`ps-player ${sel ? 'sel' : ''} ${bench ? 'bench' : 'active'}`}
+                    onClick={() => (lineupEdit ? toggleOnCourt(m.pid) : setSelectedPlayer(m.pid))}
                   >
                     <span className="ps-avatar">
                       <img src={avatar(m.name, m.image_url)} alt={m.name} />
-                      <span className="ps-pts">{statPoints(total)}</span>
+                      {lineupEdit ? (
+                        !bench && <span className="ps-check">✓</span>
+                      ) : (
+                        <span className="ps-pts">{statPoints(total)}</span>
+                      )}
                     </span>
                     <span className="ps-name">{m.name}{m.isGuest ? ' (G)' : ''}</span>
                   </button>
@@ -338,7 +510,7 @@ const LiveTrackingPage = () => {
                         key={ev}
                         className={`ev-btn tone-${def.tone}`}
                         disabled={!selectedPlayer}
-                        onClick={() => selectedPlayer && applyEvent(selectedPlayer, ev, minusMode ? -1 : 1)}
+                        onClick={() => selectedPlayer && guardedApply(selectedPlayer, ev, minusMode ? -1 : 1)}
                       >
                         {minusMode ? '−' : ''}{t(def.label, def.labelEn).replace(' ', '\n')}
                       </button>
@@ -363,7 +535,7 @@ const LiveTrackingPage = () => {
               </button>
             </div>
 
-            {/* 경기 종료 (모든 쿼터 저장 시 활성화) */}
+            {/* 경기 종료 (전 스쿼드가 전 쿼터 저장 시 활성화) */}
             <button
               className="end-game-btn"
               disabled={!allQuartersSaved}
@@ -372,7 +544,7 @@ const LiveTrackingPage = () => {
               {t('경기 종료', 'Finish Game')}
               {!allQuartersSaved && (
                 <span className="egb-hint">
-                  {t(`쿼터 저장 ${savedQuarters.length}/${quarterCount}`, `Saved ${savedQuarters.length}/${quarterCount}`)}
+                  {t('모든 팀이 전 쿼터를 저장해야 종료 가능', 'All teams must save every quarter')}
                 </span>
               )}
             </button>

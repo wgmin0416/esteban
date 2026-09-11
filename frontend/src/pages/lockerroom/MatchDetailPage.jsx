@@ -198,14 +198,58 @@ const MatchDetailPage = () => {
         {/* 결과 (완료 또는 쿼터별 누적 저장으로 기록 존재 시) */}
         {result && (
           <section className="md-result">
-            <div className="result-scores">
-              {result.squads.map((s) => (
-                <div key={s.squadId} className={`rs-squad ${s.isWin ? 'win' : ''}`}>
-                  <span className="rs-label">{s.label}{s.isWin && ' 🏆'}</span>
-                  <span className="rs-pts">{s.points}</span>
+            {result.mode === 'roundrobin' ? (
+              <>
+                {/* 라운드로빈 순위표(승패) */}
+                <div className="standings">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('팀', 'Team')}</th>
+                        <th>{t('승', 'W')}</th>
+                        <th>{t('패', 'L')}</th>
+                        <th>{t('무', 'D')}</th>
+                        <th>{t('득실', '+/-')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.standings.map((s, i) => (
+                        <tr key={s.squadId} className={i === 0 && s.games > 0 ? 'lead' : ''}>
+                          <td className="st-team">{i === 0 && s.games > 0 && '🏆 '}{s.label}</td>
+                          <td>{s.wins}</td>
+                          <td>{s.losses}</td>
+                          <td>{s.draws}</td>
+                          <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+
+                {/* 쿼터별 대진 결과 */}
+                {result.quarterResults?.length > 0 && (
+                  <div className="quarter-results">
+                    {result.quarterResults.map((r) => (
+                      <div key={r.quarter} className="qr-row">
+                        <span className="qrr-q">Q{r.quarter}</span>
+                        <span className={`qrr-team ${r.winner === r.a ? 'win' : ''}`}>{r.aLabel} {r.ptsA}</span>
+                        <span className="qrr-sep">:</span>
+                        <span className={`qrr-team ${r.winner === r.b ? 'win' : ''}`}>{r.ptsB} {r.bLabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="result-scores">
+                {result.squads.map((s) => (
+                  <div key={s.squadId} className={`rs-squad ${s.isWin ? 'win' : ''}`}>
+                    <span className="rs-label">{s.label}{s.isWin && ' 🏆'}</span>
+                    <span className="rs-pts">{s.points}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="quarter-filter">
               <button className={quarterView === 0 ? 'on' : ''} onClick={() => setQuarterView(0)}>
@@ -220,6 +264,20 @@ const MatchDetailPage = () => {
                 </button>
               ))}
             </div>
+
+            {/* 쿼터별 기록 담당자 */}
+            {quarterView > 0 && result.recorders && (
+              <div className="quarter-recorders">
+                {result.squads.map((s) => {
+                  const rec = result.recorders?.[s.squadId]?.[quarterView];
+                  return rec ? (
+                    <span key={s.squadId} className="qr-item">
+                      {s.label} {t('기록', 'by')}: <b>{rec.name}</b>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
 
             <div className="box-score">
               <table>

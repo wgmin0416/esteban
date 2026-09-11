@@ -41,12 +41,45 @@ const LiveSetupPage = () => {
         const res = await apiRequest('get', `/team/match/${matchId}`);
         const d = res?.data;
         setMatch(d);
-        if (d) {
-          const attend = d.attendance.list.filter((a) => a.status === 'attend');
-          const src = attend.length > 0 ? attend : d.attendance.list;
-          setPool(
-            src.map((a) => ({ uid: `u${a.user_id}`, userId: a.user_id, name: a.name, image: a.image_url, isGuest: false }))
-          );
+        if (!d) return;
+
+        const attend = d.attendance.list.filter((a) => a.status === 'attend');
+        const src = attend.length > 0 ? attend : d.attendance.list;
+        const attendees = src.map((a) => ({
+          uid: `u${a.user_id}`, userId: a.user_id, name: a.name, image: a.image_url, isGuest: false,
+        }));
+
+        // 이미 라이브 진행 중이면 기존 배정을 그대로 복원(초기화 X)
+        let draft = null;
+        if (d.status === 'live') {
+          try {
+            const lres = await apiRequest('get', `/team/live/${matchId}`);
+            draft = lres?.data || null;
+          } catch {
+            draft = null;
+          }
+        }
+
+        if (draft?.squads?.length) {
+          const assigned = new Set();
+          let maxGuest = 0;
+          const nextTeams = draft.squads.map((s) => ({
+            label: s.label,
+            members: (s.members || []).map((m) => {
+              if (m.userId != null) {
+                assigned.add(m.userId);
+                return { uid: `u${m.userId}`, userId: m.userId, name: m.name, image: m.image_url, isGuest: false };
+              }
+              const seq = parseInt(String(m.pid).replace(/^g/, '')) || 0;
+              if (seq > maxGuest) maxGuest = seq;
+              return { uid: m.pid, userId: null, name: m.name, image: null, isGuest: true };
+            }),
+          }));
+          setTeams(nextTeams);
+          setPool(attendees.filter((a) => !assigned.has(a.userId))); // 배정 안 된 참석자만 풀에
+          setGuestSeq(maxGuest);
+        } else {
+          setPool(attendees);
         }
       } catch {
         setMatch(null);

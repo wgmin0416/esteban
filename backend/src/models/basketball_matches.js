@@ -80,6 +80,11 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 10,
         comment: '쿼터당 경기 시간(분)',
       },
+      quarter_matchups: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: '쿼터별 대진 { quarter: [squadIdA, squadIdB] } (2파전은 미사용)',
+      },
       status: {
         type: DataTypes.ENUM('scheduled', 'live', 'completed'),
         allowNull: false,

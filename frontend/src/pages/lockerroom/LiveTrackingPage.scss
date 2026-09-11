@@ -51,6 +51,40 @@
       color: rgba(255, 255, 255, 0.5);
       &.on { color: $accent-color; }
     }
+
+    // 3파전 현재 쿼터 대진 모드
+    .sb-q {
+      font-family: $font-display;
+      font-size: $font-sm;
+      color: $accent-color;
+      align-self: center;
+    }
+    .sb-nomatch {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: $font-sm;
+      font-weight: 700;
+    }
+  }
+
+  // ── 쿼터 대진 선택 (3파전+) ──
+  .matchup-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .mp-label { font-size: $font-xs; font-weight: 700; color: $text-secondary; }
+    .mp-vs { font-family: $font-display; font-size: $font-sm; color: $text-light; }
+    .mp-select {
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      padding: $spacing-xs $spacing-sm;
+      font-weight: 800;
+      font-size: $font-sm;
+      color: $text-primary;
+      background: #fff;
+    }
   }
 
   // ── 담당 스쿼드 선택 ──
@@ -58,7 +92,29 @@
     text-align: center;
     padding: $spacing-lg 0;
 
-    h2 { font-family: $font-display; font-size: $font-xl; color: $text-primary; margin: 0 0 $spacing-md; }
+    .sp-back {
+      display: inline-block;
+      margin-bottom: $spacing-md;
+      border: 1px solid $border-color;
+      background: #fff;
+      border-radius: $radius-md;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 700;
+      color: $text-secondary;
+      cursor: pointer;
+
+      &:hover { border-color: $primary-color; color: $primary-color; }
+    }
+
+    h2 { font-family: $font-display; font-size: $font-xl; color: $text-primary; margin: 0 0 $spacing-sm; }
+
+    .sp-matchup {
+      margin: 0 0 $spacing-md;
+      font-size: $font-sm;
+      color: $text-secondary;
+      b { color: $primary-color; }
+    }
 
     .squad-pick-grid {
       display: grid;
@@ -185,6 +241,45 @@
     }
   }
 
+  // ── 현재 쿼터 기록 담당자 ──
+  .qb-recorder {
+    margin-top: $spacing-xs;
+    font-size: $font-xs;
+    color: $text-light;
+    text-align: right;
+    b { color: $text-secondary; }
+  }
+
+  // ── 출전 라인업 바 ──
+  .lineup-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+
+    .lb-label {
+      font-size: $font-sm;
+      font-weight: 700;
+      color: $text-secondary;
+      b { color: $primary-color; }
+      em { font-style: normal; color: $text-light; font-size: $font-xs; }
+    }
+    .lb-actions { display: flex; gap: 6px; }
+    .lb-copy, .lb-edit {
+      border: 1px solid $border-color;
+      background: #fff;
+      border-radius: $radius-md;
+      padding: $spacing-xs $spacing-sm;
+      font-size: $font-xs;
+      font-weight: 700;
+      color: $text-secondary;
+      cursor: pointer;
+      &:disabled { opacity: 0.4; cursor: default; }
+    }
+    .lb-edit.on { border-color: $secondary-color; background: $secondary-color; color: #fff; }
+  }
+
   // ── 선수 아바타 스트립 (가로 스크롤) ──
   .player-strip {
     display: flex;
@@ -260,7 +355,37 @@
           padding: 1px 8px;
         }
       }
+
+      // 출전 선수: 활성 링(초록)
+      &.active .ps-avatar img { border-color: $success-color; }
+
+      // 벤치: 흐리게
+      &.bench {
+        .ps-avatar img { opacity: 0.4; filter: grayscale(0.8); border-color: $border-light; }
+        .ps-name { color: $text-light; }
+      }
+
+      // 편집 모드 체크 배지
+      .ps-check {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: $success-color;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #fff;
+      }
     }
+
+    // 편집 중엔 벤치도 또렷하게 보이도록(선택 대상)
+    &.editing .ps-player.bench .ps-avatar img { opacity: 0.6; filter: grayscale(0.5); }
   }
 
   // ── 선택 선수 포커스 카드 ──
