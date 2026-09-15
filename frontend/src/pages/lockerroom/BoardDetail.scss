@@ -1,0 +1,570 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.board-detail-page {
+  @extend %page-container;
+  padding-top: $spacing-md;
+
+  @include respond-to(md) {
+    padding-top: $spacing-lg;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-btn {
+    margin-bottom: $spacing-md;
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-sm;
+    font-weight: 600;
+    color: $text-secondary;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  // 역할 뱃지 (공통)
+  .role-badge {
+    padding: 1px 6px;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 700;
+    color: #fff;
+
+    &.leader {
+      background: $primary-color;
+    }
+
+    &.manager {
+      background: $secondary-color;
+    }
+  }
+
+  .cat-badge {
+    display: inline-block;
+    padding: 2px $spacing-sm;
+    color: #fff;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 700;
+  }
+
+  .post {
+    background: $background-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+
+    .post-head {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+
+      .post-title {
+        margin: 0;
+        font-size: $font-xl;
+        font-weight: 800;
+        color: $text-primary;
+      }
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+      margin: $spacing-sm 0 $spacing-lg;
+      padding-bottom: $spacing-md;
+      border-bottom: 1px solid $border-color;
+
+      .pm-author {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+
+        .pm-avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .pm-name {
+          font-weight: 700;
+          color: $text-primary;
+        }
+      }
+
+      .pm-sub {
+        display: flex;
+        gap: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+
+        .edited {
+          color: $secondary-color;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .match-link {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      width: 100%;
+      margin-bottom: $spacing-md;
+      padding: $spacing-sm $spacing-md;
+      background: rgba($primary-color, 0.06);
+      border: 1px solid rgba($primary-color, 0.2);
+      border-radius: $radius-md;
+      cursor: pointer;
+      font-size: $font-sm;
+      color: $text-primary;
+
+      span {
+        color: $text-light;
+      }
+
+      .ml-go {
+        margin-left: auto;
+        color: $primary-color;
+        font-weight: 600;
+      }
+    }
+
+    .post-content {
+      font-size: $font-base;
+      line-height: 1.7;
+      color: $text-primary;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .post-images {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      margin-top: $spacing-md;
+
+      img {
+        width: 100%;
+        border-radius: $radius-md;
+      }
+    }
+
+    .post-files {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+      margin-top: $spacing-md;
+
+      .file-chip {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        padding: $spacing-xs $spacing-sm;
+        background: $background-gray;
+        border-radius: $radius-sm;
+        font-size: $font-sm;
+        color: $text-primary;
+        text-decoration: none;
+
+        span {
+          color: $text-light;
+          font-size: $font-xs;
+        }
+
+        &:hover {
+          background: mix($primary-color, #fff, 8%);
+        }
+      }
+    }
+
+    .post-links {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      margin-top: $spacing-md;
+
+      .embed-video {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%;
+        border-radius: $radius-md;
+        overflow: hidden;
+
+        iframe {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
+      }
+
+      .link-chip {
+        padding: $spacing-xs $spacing-sm;
+        background: $background-gray;
+        border-radius: $radius-sm;
+        font-size: $font-sm;
+        color: $primary-color;
+        text-decoration: none;
+        word-break: break-all;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    // 내용 안 @선수 언급 강조 (음영 표시)
+    .post-content .mention {
+      padding: 1px 5px;
+      border-radius: $radius-sm;
+      font-weight: 700;
+      color: $primary-color;
+      background: rgba($primary-color, 0.12);
+    }
+
+    // 언급된 선수 칩
+    .mentioned-players {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+      margin-top: $spacing-md;
+
+      .mp-label {
+        font-size: $font-xs;
+        font-weight: 700;
+        color: $text-light;
+        margin-right: 2px;
+      }
+
+      .mp-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px $spacing-sm;
+        font-size: $font-xs;
+        font-weight: 600;
+        color: $primary-color;
+        background: rgba($primary-color, 0.1);
+        border-radius: 999px;
+
+        em {
+          font-style: normal;
+          font-weight: 700;
+          color: $secondary-color;
+        }
+      }
+    }
+
+    // 투표
+    .post-poll {
+      margin-top: $spacing-lg;
+      padding: $spacing-md;
+      background: $background-gray;
+      border-radius: $radius-md;
+
+      .poll-q {
+        font-weight: 700;
+        margin-bottom: $spacing-sm;
+        color: $text-primary;
+      }
+
+      .poll-option {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: $spacing-xs;
+        padding: $spacing-sm $spacing-md;
+        background: $background-light;
+        border: 1px solid $border-color;
+        border-radius: $radius-sm;
+        cursor: pointer;
+        overflow: hidden;
+        font-size: $font-sm;
+
+        .po-fill {
+          position: absolute;
+          inset: 0 auto 0 0;
+          background: rgba($primary-color, 0.14);
+          transition: width $transition-base;
+          z-index: 0;
+        }
+
+        .po-text,
+        .po-count {
+          position: relative;
+          z-index: 1;
+        }
+
+        .po-text {
+          font-weight: 600;
+          color: $text-primary;
+        }
+
+        .po-count {
+          color: $text-light;
+          font-size: $font-xs;
+        }
+
+        &.mine {
+          border-color: $primary-color;
+
+          .po-text {
+            color: $primary-color;
+          }
+        }
+      }
+
+      .poll-total {
+        margin-top: $spacing-xs;
+        font-size: $font-xs;
+        color: $text-light;
+      }
+    }
+
+    // 반응 바
+    .reaction-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+      margin-top: $spacing-lg;
+
+      .reaction {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: $spacing-xs $spacing-sm;
+        background: $background-gray;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        .re-emoji {
+          font-size: $font-base;
+        }
+
+        .re-count {
+          font-size: $font-xs;
+          font-weight: 700;
+          color: $text-secondary;
+        }
+
+        &:hover {
+          background: mix($primary-color, #fff, 10%);
+        }
+
+        &.mine {
+          background: rgba($primary-color, 0.12);
+          border-color: $primary-color;
+
+          .re-count {
+            color: $primary-color;
+          }
+        }
+      }
+    }
+
+    .home-pin {
+      display: block;
+      margin: $spacing-lg 0 0 auto;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 700;
+      border: 1px solid $primary-color;
+      border-radius: $radius-sm;
+      background: transparent;
+      color: $primary-color;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &:hover {
+        background: rgba($primary-color, 0.08);
+      }
+
+      &.on {
+        background: $primary-color;
+        color: #fff;
+      }
+    }
+
+    .post-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-sm;
+      margin-top: $spacing-sm;
+
+      button {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+        font-weight: 600;
+        border: none;
+        border-radius: $radius-sm;
+        cursor: pointer;
+      }
+
+      .btn-edit {
+        background: $background-gray;
+        color: $text-primary;
+
+        &:hover {
+          background: $primary-color;
+          color: #fff;
+        }
+      }
+
+      .btn-delete {
+        background: $background-gray;
+        color: $danger-color;
+
+        &:hover {
+          background: $danger-color;
+          color: #fff;
+        }
+      }
+    }
+  }
+
+  // 댓글
+  .comments {
+    background: $background-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-lg;
+
+    .comments-title {
+      margin: 0 0 $spacing-md;
+      font-size: $font-lg;
+      font-weight: 700;
+      color: $text-primary;
+    }
+
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+      margin-bottom: $spacing-lg;
+
+      .c-empty {
+        color: $text-light;
+        font-size: $font-sm;
+        text-align: center;
+        padding: $spacing-lg 0;
+      }
+    }
+
+    .comment {
+      display: flex;
+      gap: $spacing-sm;
+
+      .c-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+
+        &.placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: $secondary-color;
+          color: #fff;
+          font-weight: 700;
+          font-size: $font-sm;
+        }
+      }
+
+      .c-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .c-head {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+        flex-wrap: wrap;
+
+        .c-name {
+          font-weight: 700;
+          font-size: $font-sm;
+          color: $text-primary;
+        }
+
+        .c-date {
+          font-size: $font-xs;
+          color: $text-light;
+        }
+
+        .c-del {
+          margin-left: auto;
+          border: none;
+          background: transparent;
+          color: $danger-color;
+          font-size: $font-xs;
+          cursor: pointer;
+        }
+      }
+
+      .c-content {
+        margin-top: 2px;
+        font-size: $font-sm;
+        line-height: 1.5;
+        color: $text-primary;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    }
+
+    .comment-form {
+      display: flex;
+      gap: $spacing-sm;
+
+      input {
+        @include input-base;
+        flex: 1;
+        padding: $spacing-sm $spacing-md;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+        }
+      }
+
+      button {
+        padding: $spacing-sm $spacing-lg;
+        font-weight: 600;
+        color: #fff;
+        background: linear-gradient(135deg, $primary-color, $primary-light);
+        border: none;
+        border-radius: $radius-md;
+        cursor: pointer;
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}

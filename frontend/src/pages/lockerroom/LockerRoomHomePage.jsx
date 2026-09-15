@@ -28,6 +28,8 @@ const LockerRoomHomePage = () => {
 
   // ── 다음 경기 (현재 시각 기준 가장 가까운 예정 경기) ──
   const [nextGame, setNextGame] = useState(null);
+  // ── 홈 노출 공지 (게시판에서 지정, 없으면 최신 공지) ──
+  const [homeNotice, setHomeNotice] = useState(null);
 
   const loadNextGame = useCallback(async () => {
     if (!teamInfo?.id) return;
@@ -58,10 +60,16 @@ const LockerRoomHomePage = () => {
     loadNextGame();
   }, [loadNextGame]);
 
+  useEffect(() => {
+    if (!teamInfo?.id) return;
+    apiRequest('get', '/team/boards/home-notice')
+      .then((res) => setHomeNotice(res?.data || null))
+      .catch(() => setHomeNotice(null));
+  }, [teamInfo?.id]);
+
   // ── 대시보드 더미 데이터 (TODO: API 연동) ──
   const lastResult = { result: 'W', score: '62 : 58', opponent: '강남 불스' };
   const dues = { unpaid: true, month: 8 };
-  const notice = { title: '이번 주 훈련 장소 변경 안내', date: '8/5' };
   // 내 능력치 (더미 — TODO: 로그인 유저의 실제 스탯 → 축별 0~10 환산)
   const myStats = [
     { axis: '득점', score: 7.5, raw: '22.0' },
@@ -199,17 +207,13 @@ const LockerRoomHomePage = () => {
             </div>
           )}
         </section>
-        ) : (
+        ) : canManage ? (
           <section className="next-game next-game--empty">
             <span className="ng-tag">다음 경기</span>
             <p className="ng-empty-msg">📅 예정된 경기가 없어요</p>
-            {canManage ? (
-              <Link to="/locker-room/matches" className="ng-empty-cta">＋ 경기 만들기</Link>
-            ) : (
-              <p className="ng-empty-sub">일정이 등록되면 여기에서 참석 투표를 할 수 있어요</p>
-            )}
+            <Link to="/locker-room/matches" className="ng-empty-cta">＋ 경기 만들기</Link>
           </section>
-        )}
+        ) : null}
 
         {/* 내 능력치 (컴팩트 육각 그래프) */}
         <section className="my-stat">
@@ -244,11 +248,21 @@ const LockerRoomHomePage = () => {
             <span className="sc-sub">눌러서 확인</span>
           </Link>
 
-          <Link to="/locker-room/team-board" className="stat-card notice">
-            <span className="sc-label">📢 팀 공지</span>
-            <span className="sc-main notice-title">{notice.title}</span>
-            <span className="sc-sub">{notice.date}</span>
-          </Link>
+          {homeNotice ? (
+            <Link to={`/locker-room/team-board/${homeNotice.id}`} className="stat-card notice">
+              <span className="sc-label">📢 팀 공지</span>
+              <span className="sc-main notice-title">{homeNotice.title}</span>
+              <span className="sc-sub">
+                {new Date(homeNotice.created_at).getMonth() + 1}/{new Date(homeNotice.created_at).getDate()}
+              </span>
+            </Link>
+          ) : (
+            <Link to="/locker-room/team-board" className="stat-card notice">
+              <span className="sc-label">📢 팀 공지</span>
+              <span className="sc-main notice-title">{'등록된 공지가 없어요'}</span>
+              <span className="sc-sub">게시판 보기</span>
+            </Link>
+          )}
         </section>
       </div>
     </div>
