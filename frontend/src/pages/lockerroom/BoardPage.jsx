@@ -4,8 +4,23 @@ import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
 import apiRequest from '../../lib/apiRequest';
 import EmptyState from '../../components/common/EmptyState';
-import { BOARD_CATEGORIES, categoryColor } from './boardConstants';
+import { BOARD_CATEGORIES, categoryColor, roleBadge } from './boardConstants';
 import './BoardPage.scss';
+
+const pad = (n) => String(n).padStart(2, '0');
+// 목록 날짜: 09. 15.
+const fmtListDate = (d) => {
+  const x = new Date(d);
+  return `${pad(x.getMonth() + 1)}. ${pad(x.getDate())}.`;
+};
+
+// 오늘(로컬 기준) 작성된 글인지
+const isToday = (d) => {
+  if (!d) return false;
+  const x = new Date(d);
+  const n = new Date();
+  return x.getFullYear() === n.getFullYear() && x.getMonth() === n.getMonth() && x.getDate() === n.getDate();
+};
 
 const BoardPage = () => {
   const teamInfo = useTeamStore((state) => state.teamInfo);
@@ -128,43 +143,39 @@ const BoardPage = () => {
         ) : boards.length > 0 ? (
           <div className="board-table-container">
             <table className="board-table">
-              <thead>
-                <tr>
-                  <th className="col-cat">{t('말머리', 'Category')}</th>
-                  <th className="col-title">{t('제목', 'Title')}</th>
-                  <th className="col-author">{t('작성자', 'Author')}</th>
-                  <th className="col-date">{t('작성일', 'Date')}</th>
-                </tr>
-              </thead>
               <tbody>
-                {sortedBoards.map((board) => (
-                  <tr
-                    key={board.id}
-                    className={board.is_notice ? 'notice' : ''}
-                    onClick={() => navigate(`/locker-room/team-board/${board.id}`)}
-                  >
-                    <td className="col-cat">
-                      <span className="cat-badge" style={{ background: categoryColor(board.category) }}>
-                        {board.category}
-                      </span>
-                    </td>
-                    <td className="col-title">
-                      <div className="title-cell">
-                        <span className="board-title">{board.title}</span>
-                        {!!board.pinned_home && <span className="cnt home">🏠 {t('홈', 'Home')}</span>}
-                        {board.commentCount > 0 && <span className="cnt cmt">💬 {board.commentCount}</span>}
-                        {board.reactionCount > 0 && <span className="cnt rct">👍 {board.reactionCount}</span>}
-                        {board.attachmentCount > 0 && <span className="cnt att">📎 {board.attachmentCount}</span>}
-                        {board.hasPoll && <span className="cnt poll">🗳</span>}
-                        {!!board.is_edited && <span className="cnt edited">{t('수정됨', 'edited')}</span>}
-                      </div>
-                    </td>
-                    <td className="col-author">{board.author?.name}</td>
-                    <td className="col-date">
-                      {new Date(board.created_at).toLocaleDateString(language === 'KR' ? 'ko-KR' : 'en-US')}
-                    </td>
-                  </tr>
-                ))}
+                {sortedBoards.map((board) => {
+                  const badge = roleBadge(board.authorRole);
+                  return (
+                    <tr
+                      key={board.id}
+                      className={board.is_notice ? 'notice' : ''}
+                      onClick={() => navigate(`/locker-room/team-board/${board.id}`)}
+                    >
+                      <td className="col-cat">
+                        <span className="cat-badge" style={{ background: categoryColor(board.category) }}>
+                          {board.category}
+                        </span>
+                      </td>
+                      <td className="col-title">
+                        <div className="title-cell">
+                          <span className="board-title">{board.title}</span>
+                          {isToday(board.created_at) && <span className="cnt new">NEW</span>}
+                          {!!board.pinned_home && <span className="cnt home">🏠 {t('홈', 'Home')}</span>}
+                          {board.commentCount > 0 && <span className="cnt cmt">💬 {board.commentCount}</span>}
+                        </div>
+                        <div className="title-sub">
+                          <span className="ts-item">{fmtListDate(board.created_at)}</span>
+                          <span className="ts-item">{t('조회', 'views')} {board.view_count}</span>
+                        </div>
+                      </td>
+                      <td className="col-author">
+                        <span className="ca-name">{board.author?.name}</span>
+                        {badge && <span className={`role-badge ${badge.cls}`}>{badge.label}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

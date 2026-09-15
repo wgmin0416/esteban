@@ -134,6 +134,17 @@ const LockerRoomHomePage = () => {
   return (
     <div className="locker-room-page lr-dashboard">
       <div className="container">
+        {/* 홈 공지 (지정된 경우에만, 최상단) */}
+        {homeNotice && (
+          <Link to={`/locker-room/team-board/${homeNotice.id}`} className="home-notice">
+            <span className="hn-tag">📢 공지</span>
+            <span className="hn-title">{homeNotice.title}</span>
+            <span className="hn-date">
+              {new Date(homeNotice.created_at).getMonth() + 1}/{new Date(homeNotice.created_at).getDate()}
+            </span>
+          </Link>
+        )}
+
         {/* 다음 경기 — 있으면 투표 카드, 없으면 빈 상태 */}
         {nextGame ? (
         <section className="next-game">
@@ -247,22 +258,6 @@ const LockerRoomHomePage = () => {
             <span className="sc-main">{dues.unpaid ? '미납' : '완납'}</span>
             <span className="sc-sub">눌러서 확인</span>
           </Link>
-
-          {homeNotice ? (
-            <Link to={`/locker-room/team-board/${homeNotice.id}`} className="stat-card notice">
-              <span className="sc-label">📢 팀 공지</span>
-              <span className="sc-main notice-title">{homeNotice.title}</span>
-              <span className="sc-sub">
-                {new Date(homeNotice.created_at).getMonth() + 1}/{new Date(homeNotice.created_at).getDate()}
-              </span>
-            </Link>
-          ) : (
-            <Link to="/locker-room/team-board" className="stat-card notice">
-              <span className="sc-label">📢 팀 공지</span>
-              <span className="sc-main notice-title">{'등록된 공지가 없어요'}</span>
-              <span className="sc-sub">게시판 보기</span>
-            </Link>
-          )}
         </section>
       </div>
     </div>

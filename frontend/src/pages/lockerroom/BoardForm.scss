@@ -109,6 +109,22 @@
         color: $text-secondary;
       }
 
+      .label-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+
+        .char-count {
+          font-size: $font-xs;
+          font-weight: 500;
+          color: $text-light;
+
+          &.max {
+            color: $danger-color;
+          }
+        }
+      }
+
       .form-input,
       .form-textarea {
         @include input-base;

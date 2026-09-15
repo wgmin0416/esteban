@@ -61,7 +61,7 @@ const BoardForm = () => {
   });
   const [attachments, setAttachments] = useState([]); // {type,url,name,size}
   const [links, setLinks] = useState(['']);
-  const [poll, setPoll] = useState({ enabled: false, question: '', allowMulti: false, options: [{ id: genId(), text: '' }, { id: genId(), text: '' }] });
+  const [poll, setPoll] = useState({ enabled: false, question: '', allowMulti: false, anonymous: false, options: [{ id: genId(), text: '' }, { id: genId(), text: '' }] });
 
   const [matches, setMatches] = useState([]);
   const [participants, setParticipants] = useState([]); // 후기: 경기 참석자 (스쿼드별)
@@ -143,6 +143,7 @@ const BoardForm = () => {
               enabled: true,
               question: d.poll.question || '',
               allowMulti: !!d.poll.allowMulti,
+              anonymous: !!d.poll.anonymous,
               options: d.poll.options.map((o) => ({ id: o.id || genId(), text: o.text })),
             });
           }
@@ -326,6 +327,10 @@ const BoardForm = () => {
       toastError(t('제목과 내용을 입력해주세요.', 'Please enter title and content.'));
       return;
     }
+    if (form.title.trim().length > 100) {
+      toastError(t('제목은 100자 이하로 입력해주세요.', 'Title must be 100 characters or fewer.'));
+      return;
+    }
 
     const cleanLinks = links.map((l) => l.trim()).filter(Boolean);
     let pollPayload = null;
@@ -335,7 +340,7 @@ const BoardForm = () => {
         toastError(t('투표는 항목이 2개 이상이어야 해요.', 'A poll needs at least 2 options.'));
         return;
       }
-      pollPayload = { question: poll.question.trim(), allowMulti: poll.allowMulti, options: opts };
+      pollPayload = { question: poll.question.trim(), allowMulti: poll.allowMulti, anonymous: poll.anonymous, options: opts };
     }
 
     // 후기: 내용에서 @언급된 선수를 태그로 추출
@@ -440,7 +445,7 @@ const BoardForm = () => {
         <form onSubmit={handleSubmit} className="board-form">
           {/* 말머리 */}
           <div className="form-group">
-            <label>{t('말머리', 'Category')}</label>
+            <label>{t('분류', 'Category')}</label>
             <div className="category-chips">
               {categoryOptions.map((c) => (
                 <button
@@ -493,12 +498,18 @@ const BoardForm = () => {
           )}
 
           <div className="form-group">
-            <label>{t('제목', 'Title')}</label>
+            <label className="label-row">
+              <span>{t('제목', 'Title')}</span>
+              <span className={`char-count${form.title.length >= 100 ? ' max' : ''}`}>
+                {form.title.length}/100
+              </span>
+            </label>
             <input
               type="text"
               name="title"
               value={form.title}
               onChange={handleChange}
+              maxLength={100}
               placeholder={t('제목을 입력하세요', 'Enter title')}
               className="form-input"
             />
@@ -652,6 +663,17 @@ const BoardForm = () => {
                     }}
                   />
                   <span>{t('복수 선택 허용', 'Allow multiple choices')}</span>
+                </label>
+                <label className="checkbox-label small">
+                  <input
+                    type="checkbox"
+                    checked={poll.anonymous}
+                    onChange={(e) => {
+                      markDirty();
+                      setPoll((prev) => ({ ...prev, anonymous: e.target.checked }));
+                    }}
+                  />
+                  <span>{t('익명 투표 (투표자 공개 안 함)', 'Anonymous (hide voters)')}</span>
                 </label>
               </div>
             )}

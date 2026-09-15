@@ -224,7 +224,9 @@ const BoardDetail = () => {
             </div>
             <div className="pm-sub">
               <span>{fmtDateTime(board.created_at)}</span>
-              {!!board.is_edited && <span className="edited">· {t('수정됨', 'edited')}</span>}
+              {!!board.is_edited && (
+                <span className="edited">· {t('수정됨', 'edited')} {fmtDateTime(board.updated_at)}</span>
+              )}
               <span>· 👁 {board.view_count}</span>
             </div>
           </div>
@@ -310,25 +312,40 @@ const BoardDetail = () => {
             <div className="post-poll">
               {pollSummary.question && <div className="poll-q">🗳 {pollSummary.question}</div>}
               {pollSummary.options.map((o) => {
-                const pct = pollSummary.totalVotes
-                  ? Math.round((o.count / pollSummary.totalVotes) * 100)
-                  : 0;
+                const pct =
+                  pollSummary.canViewResults && pollSummary.totalVotes
+                    ? Math.round((o.count / pollSummary.totalVotes) * 100)
+                    : 0;
                 const mine = pollSummary.myVotes.includes(o.id);
                 return (
-                  <button
-                    key={o.id}
-                    className={`poll-option ${mine ? 'mine' : ''}`}
-                    onClick={() => handleVote(o.id)}
-                  >
-                    <span className="po-fill" style={{ width: `${pct}%` }} />
-                    <span className="po-text">{mine ? '✓ ' : ''}{o.text}</span>
-                    <span className="po-count">{pct}% ({o.count})</span>
-                  </button>
+                  <div key={o.id} className="poll-option-wrap">
+                    <button
+                      className={`poll-option ${mine ? 'mine' : ''} ${pollSummary.canViewResults ? '' : 'hidden-result'}`}
+                      onClick={() => handleVote(o.id)}
+                    >
+                      {pollSummary.canViewResults && <span className="po-fill" style={{ width: `${pct}%` }} />}
+                      <span className="po-text">{mine ? '✓ ' : ''}{o.text}</span>
+                      {pollSummary.canViewResults && <span className="po-count">{pct}% ({o.count})</span>}
+                    </button>
+                    {/* 익명이 아니고 결과 열람 가능할 때 투표자 표시 */}
+                    {pollSummary.canViewResults && !pollSummary.anonymous && o.voters?.length > 0 && (
+                      <div className="po-voters">
+                        {o.voters.map((v) => (
+                          <span key={v.id} className="po-voter">{v.name}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
               <div className="poll-total">
-                {t(`${pollSummary.voterCount}명 참여`, `${pollSummary.voterCount} voted`)}
-                {pollSummary.allowMulti ? ` · ${t('복수 선택', 'multiple')}` : ''}
+                {pollSummary.anonymous && <span className="poll-flag">🕶 {t('익명', 'Anonymous')}</span>}
+                {pollSummary.allowMulti && <span className="poll-flag">{t('복수 선택', 'Multiple')}</span>}
+                {pollSummary.canViewResults ? (
+                  <span>{t(`${pollSummary.voterCount}명 참여`, `${pollSummary.voterCount} voted`)}</span>
+                ) : (
+                  <span className="poll-locked">{t('투표하면 결과를 볼 수 있어요', 'Vote to see results')}</span>
+                )}
               </div>
             </div>
           )}

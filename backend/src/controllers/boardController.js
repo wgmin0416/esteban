@@ -17,6 +17,7 @@ const {
 
 const CATEGORIES = ['공지', '자유', '후기', '질문', '건의'];
 const ADMIN_ROLES = ['manager', 'leader'];
+const TITLE_MAX = 100;
 
 // 작성자의 팀 내 역할 뱃지 조회 (leader/manager만 의미)
 const getRoleMap = async (teamId, userIds) => {
@@ -41,24 +42,61 @@ const summarizeReactions = (reactions, userId) => {
 };
 
 // 투표 집계 (옵션별 표수 + 내 선택)
-const summarizePoll = (poll, userId) => {
+// 결과는 투표한 사람 · 운영진 · 리더만 볼 수 있음. 익명이 아니면 옵션별 투표자 이름 포함.
+const buildPollSummary = async (poll, userId, viewerIsAdmin) => {
   if (!poll || !Array.isArray(poll.options)) return null;
   const votes = poll.votes || {};
+  const myVotes = votes[userId] || [];
+  const hasVoted = myVotes.length > 0;
+  const canViewResults = !!viewerIsAdmin || hasVoted;
+  const anonymous = !!poll.anonymous;
+
+  const base = {
+    question: poll.question || '',
+    allowMulti: !!poll.allowMulti,
+    anonymous,
+    myVotes,
+    canViewResults,
+  };
+
+  // 결과 열람 권한 없으면 옵션 텍스트만 반환 (표수/참여자 숨김)
+  if (!canViewResults) {
+    return { ...base, options: poll.options.map((o) => ({ id: o.id, text: o.text })) };
+  }
+
   const counts = {};
+  const votersByOpt = {};
   let total = 0;
   for (const uid of Object.keys(votes)) {
     for (const optId of votes[uid] || []) {
       counts[optId] = (counts[optId] || 0) + 1;
       total += 1;
+      (votersByOpt[optId] = votersByOpt[optId] || []).push(Number(uid));
     }
   }
+
+  // 익명이 아니면 투표자 이름 조회
+  let nameMap = {};
+  if (!anonymous) {
+    const ids = Object.keys(votes).map(Number);
+    if (ids.length) {
+      const users = await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] });
+      for (const u of users) nameMap[u.id] = u.name;
+    }
+  }
+
   return {
-    question: poll.question || '',
-    allowMulti: !!poll.allowMulti,
+    ...base,
     totalVotes: total,
     voterCount: Object.keys(votes).length,
-    myVotes: votes[userId] || [],
-    options: poll.options.map((o) => ({ id: o.id, text: o.text, count: counts[o.id] || 0 })),
+    options: poll.options.map((o) => ({
+      id: o.id,
+      text: o.text,
+      count: counts[o.id] || 0,
+      ...(anonymous
+        ? {}
+        : { voters: (votersByOpt[o.id] || []).map((uid) => ({ id: uid, name: nameMap[uid] || `#${uid}` })) }),
+    })),
   };
 };
 
@@ -187,9 +225,10 @@ const getBoard = async (req, res) => {
     await board.increment('view_count');
     const j = board.toJSON();
 
-    // 작성자 + 댓글 작성자 역할/이미지
-    const memberIds = [j.user_id, ...(j.comments || []).map((c) => c.user_id)];
+    // 작성자 + 댓글 작성자 + 조회자 본인 역할/이미지
+    const memberIds = [j.user_id, userId, ...(j.comments || []).map((c) => c.user_id)];
     const roleMap = await getRoleMap(j.team_id, [...new Set(memberIds)]);
+    const viewerIsAdmin = ADMIN_ROLES.includes(roleMap[userId]?.role);
 
     const comments = (j.comments || []).map((c) => ({
       id: c.id,
@@ -201,6 +240,8 @@ const getBoard = async (req, res) => {
       isMine: c.user_id === userId,
     }));
 
+    const pollSummary = await buildPollSummary(j.poll, userId, viewerIsAdmin);
+
     return sendSuccessResponse(res, 200, {
       ...j,
       view_count: board.view_count + 1,
@@ -208,7 +249,7 @@ const getBoard = async (req, res) => {
       authorImage: roleMap[j.user_id]?.image || null,
       isMine: j.user_id === userId,
       reactionSummary: summarizeReactions(j.reactions, userId),
-      pollSummary: summarizePoll(j.poll, userId),
+      pollSummary,
       comments,
     });
   } catch (err) {
@@ -243,6 +284,7 @@ const createBoard = async (req, res) => {
     } = req.body;
 
     if (!title || !content) throw new BadRequestError('제목과 내용은 필수입니다.');
+    if (title.length > TITLE_MAX) throw new BadRequestError(`제목은 ${TITLE_MAX}자 이하로 입력해주세요.`);
 
     const teamMember = await getDefaultTeamMember(userId);
     if (!teamMember) throw new BadRequestError('가입된 팀이 없습니다.');
@@ -309,6 +351,10 @@ const updateBoard = async (req, res) => {
     const { id } = req.params;
     const { title, content, category, attachments, links, poll, match_id, send_push, player_notes } = req.body;
 
+    if (title !== undefined && title && title.length > TITLE_MAX) {
+      throw new BadRequestError(`제목은 ${TITLE_MAX}자 이하로 입력해주세요.`);
+    }
+
     const board = await TeamBoard.findOne({ where: { id } });
     if (!board) throw new BadRequestError('게시글을 찾을 수 없습니다.');
 
@@ -323,6 +369,23 @@ const updateBoard = async (req, res) => {
       throw new UnauthorizedError('공지사항 설정은 관리자만 가능합니다.');
     }
 
+    // 투표 수정 시 기존 표는 유지(남아있는 옵션 기준)
+    let nextPoll = board.poll;
+    if (poll !== undefined) {
+      if (poll && Array.isArray(poll.options) && poll.options.length) {
+        const prevVotes = (board.poll && board.poll.votes) || {};
+        const validIds = new Set(poll.options.map((o) => o.id));
+        const carried = {};
+        for (const uid of Object.keys(prevVotes)) {
+          const filtered = (prevVotes[uid] || []).filter((oid) => validIds.has(oid));
+          if (filtered.length) carried[uid] = filtered;
+        }
+        nextPoll = { ...poll, votes: carried };
+      } else {
+        nextPoll = null;
+      }
+    }
+
     await board.update({
       title: title || board.title,
       content: content || board.content,
@@ -330,7 +393,7 @@ const updateBoard = async (req, res) => {
       is_notice: willBeNotice ? 1 : 0,
       attachments: attachments !== undefined ? attachments : board.attachments,
       links: links !== undefined ? links : board.links,
-      poll: poll !== undefined ? (poll && Array.isArray(poll.options) && poll.options.length ? poll : null) : board.poll,
+      poll: nextPoll,
       match_id: willBeReview ? (match_id !== undefined ? match_id || null : board.match_id) : null,
       player_notes: willBeReview
         ? (player_notes !== undefined ? (Array.isArray(player_notes) ? player_notes : []) : board.player_notes)
@@ -501,7 +564,8 @@ const votePoll = async (req, res) => {
 
     const board = await TeamBoard.findOne({ where: { id } });
     if (!board) throw new BadRequestError('게시글을 찾을 수 없습니다.');
-    await assertTeamMemberOfBoard(userId, board);
+    const member = await assertTeamMemberOfBoard(userId, board);
+    const viewerIsAdmin = ADMIN_ROLES.includes(member.role);
 
     const poll = board.poll;
     if (!poll || !Array.isArray(poll.options) || !poll.options.length) {
@@ -519,7 +583,8 @@ const votePoll = async (req, res) => {
     const nextPoll = { ...poll, votes };
     await board.update({ poll: nextPoll });
 
-    return sendSuccessResponse(res, 200, summarizePoll(nextPoll, userId), null);
+    const summary = await buildPollSummary(nextPoll, userId, viewerIsAdmin);
+    return sendSuccessResponse(res, 200, summary, null);
   } catch (err) {
     logger.error('투표 에러:', err);
     if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
@@ -541,18 +606,11 @@ const getHomeNotice = async (req, res) => {
     if (!teamMember) return sendSuccessResponse(res, 200, null);
     const teamId = teamMember.team.id;
 
-    // 명시적으로 지정된 홈 공지 우선, 없으면 최신 공지로 폴백
-    let board = await TeamBoard.findOne({
+    // 명시적으로 지정된 홈 공지만 노출 (없으면 표시 안 함)
+    const board = await TeamBoard.findOne({
       where: { team_id: teamId, pinned_home: 1 },
       attributes: ['id', 'title', 'category', 'created_at'],
     });
-    if (!board) {
-      board = await TeamBoard.findOne({
-        where: { team_id: teamId, is_notice: 1 },
-        attributes: ['id', 'title', 'category', 'created_at'],
-        order: [['created_at', 'DESC']],
-      });
-    }
 
     return sendSuccessResponse(res, 200, board || null);
   } catch (err) {
@@ -584,7 +642,7 @@ const toggleHomeNotice = async (req, res) => {
       throw new UnauthorizedError('홈 공지 설정은 관리자만 가능합니다.');
     }
     if (board.category !== '공지') {
-      throw new BadRequestError('공지 말머리 글만 홈에 노출할 수 있습니다.');
+      throw new BadRequestError('공지 분류 글만 홈에 노출할 수 있습니다.');
     }
 
     if (board.pinned_home) {

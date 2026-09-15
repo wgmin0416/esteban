@@ -56,6 +56,46 @@
   }
 }
 
+// 홈 공지 배너 (최상단)
+.home-notice {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-lg;
+  background: rgba($primary-color, 0.08);
+  border: 1px solid rgba($primary-color, 0.2);
+  text-decoration: none;
+
+  .hn-tag {
+    flex-shrink: 0;
+    font-size: $font-xs;
+    font-weight: 800;
+    color: $primary-color;
+  }
+
+  .hn-title {
+    flex: 1;
+    min-width: 0;
+    font-size: $font-sm;
+    font-weight: 700;
+    color: $text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hn-date {
+    flex-shrink: 0;
+    font-size: $font-xs;
+    color: $text-light;
+  }
+
+  &:active {
+    background: rgba($primary-color, 0.14);
+  }
+}
+
 // 다음 경기 참석 투표 (컴팩트)
 .next-game {
   position: relative;

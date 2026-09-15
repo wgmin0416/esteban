@@ -332,10 +332,45 @@
         }
       }
 
+      // 결과 열람 불가: 막대/수치 없이 선택 버튼만
+      .poll-option.hidden-result {
+        justify-content: flex-start;
+      }
+
+      // 옵션별 투표자 (익명 아닐 때)
+      .po-voters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: -2px 0 $spacing-sm 2px;
+
+        .po-voter {
+          font-size: $font-xs;
+          color: $text-secondary;
+          background: rgba($primary-color, 0.08);
+          padding: 1px 6px;
+          border-radius: 999px;
+        }
+      }
+
       .poll-total {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: $spacing-xs;
         margin-top: $spacing-xs;
         font-size: $font-xs;
         color: $text-light;
+
+        .poll-flag {
+          font-weight: 700;
+          color: $secondary-color;
+        }
+
+        .poll-locked {
+          font-weight: 600;
+          color: $primary-color;
+        }
       }
     }
 

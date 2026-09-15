@@ -190,10 +190,10 @@
     }
   }
 
-  // 말머리 뱃지 (목록/상세 공통 톤)
+  // 분류 뱃지 (목록/상세 공통 톤)
   .cat-badge {
     display: inline-block;
-    padding: 2px $spacing-sm;
+    padding: 1px 5px;
     color: #fff;
     border-radius: $radius-sm;
     font-size: $font-xs;
@@ -214,22 +214,21 @@
     border-collapse: collapse;
     font-size: $font-sm;
 
-    thead th {
-      padding: $spacing-sm $spacing-md;
-      text-align: left;
-      font-weight: 600;
+    // 역할 뱃지 (목록 공통)
+    .role-badge {
+      padding: 0 5px;
+      border-radius: $radius-sm;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
       white-space: nowrap;
-      color: $text-secondary;
-      background: $background-gray;
-      border-bottom: 1px solid $border-color;
 
-      &.col-cat {
-        text-align: center;
+      &.leader {
+        background: $primary-color;
       }
 
-      &.col-author,
-      &.col-date {
-        text-align: center;
+      &.manager {
+        background: $secondary-color;
       }
     }
 
@@ -256,9 +255,13 @@
       vertical-align: middle;
     }
 
+    // 분류 열: 폭 최소화
     .col-cat {
+      width: 1%;
       text-align: center;
       white-space: nowrap;
+      padding-left: $spacing-sm;
+      padding-right: $spacing-xs;
     }
 
     .col-title {
@@ -266,16 +269,18 @@
 
       .title-cell {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: $spacing-sm;
         min-width: 0;
-        flex-wrap: wrap;
       }
 
       .board-title {
+        flex: 1;
+        min-width: 0;
         font-weight: 600;
         color: $text-primary;
-        @include text-ellipsis(1);
+        line-height: 1.35;
+        @include text-ellipsis(2); // 2줄 초과 시 …
       }
 
       .cnt {
@@ -284,32 +289,49 @@
         font-weight: 600;
         color: $text-light;
 
-        &.edited {
-          color: $secondary-color;
-        }
-
         &.home {
           color: $primary-color;
           font-weight: 700;
         }
+
+        &.new {
+          padding: 1px 5px;
+          border-radius: $radius-sm;
+          background: $danger-color;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+        }
+      }
+
+      // 제목 아래 서브라인 (날짜 · 조회)
+      .title-sub {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 3px;
+        font-size: $font-xs;
+        color: $text-light;
+
+        .ts-item + .ts-item::before {
+          content: '·';
+          margin-right: 4px;
+          color: $text-lighter;
+        }
       }
     }
 
-    .col-author,
-    .col-date {
+    // 작성자 열
+    .col-author {
       text-align: center;
       white-space: nowrap;
-      color: $text-light;
-    }
 
-    // 모바일에선 작성자 열 숨겨 공간 확보
-    .col-author {
-      display: none;
-    }
-
-    @include respond-to(md) {
-      .col-author {
-        display: table-cell;
+      .ca-name {
+        font-weight: 600;
+        color: $text-secondary;
+        margin-right: 4px;
       }
     }
   }
