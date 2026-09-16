@@ -1077,12 +1077,19 @@ const getDuoRankings = async (req, res) => {
       attributes: ['match_id', 'game_no', 'quarter', 'squad_id', 'user_id', 'minutes'],
       raw: true,
     });
+    // 경기별 쿼터 길이(분) — minutes 미기록(0)이면 이 값으로 폴백
+    const dMatchIds = [...new Set(qRows.map((r) => r.match_id))];
+    const matchMinRows = dMatchIds.length
+      ? await BasketballMatch.findAll({ where: { id: { [Op.in]: dMatchIds } }, attributes: ['id', 'quarter_minutes'], raw: true })
+      : [];
+    const minById = {};
+    for (const m of matchMinRows) minById[m.id] = m.quarter_minutes || 10;
 
     // (경기·게임·쿼터·스쿼드) 셀별 코트 위 선수(+출전분) → 2인 조합의 함께 뛴 분·게임 집계
     const cell = {};
     for (const r of qRows) {
       const k = `${r.match_id}|${r.game_no || 1}|${r.quarter}|${r.squad_id}`;
-      (cell[k] = cell[k] || []).push({ u: r.user_id, m: r.minutes || 0 });
+      (cell[k] = cell[k] || []).push({ u: r.user_id, m: r.minutes || minById[r.match_id] || 10 });
     }
     const duoMap = {};
     const ensureDuo = (a, b) => {
