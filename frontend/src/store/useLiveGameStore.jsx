@@ -70,7 +70,7 @@ export const playerMakes = (squadStats, userId) => {
 };
 
 // ── localStorage helpers (오프라인/새로고침 대비 즉시 저장) ──
-const statsKey = (matchId, squadId) => `live:${matchId}:squad:${squadId}`;
+const statsKey = (matchId, squadId, game = 1) => `live:${matchId}:squad:${squadId}:g${game}`;
 const ctxKey = (matchId) => `live:${matchId}:ctx`;
 const readLS = (key) => {
   try {
@@ -96,7 +96,9 @@ const useLiveGameStore = create((set, get) => ({
   meta: null, // { title, quarterCount, squads:[{squadId,label,members:[]}] }
   quarterMinutes: [], // 쿼터별 시간(분) 배열
   savedQuarters: [], // 내 스쿼드가 확정 저장한 쿼터 번호 목록
-  quarterMatchups: null, // 3파전+ : { [quarter]: [squadIdA, squadIdB] }
+  quarterMatchups: null, // 레거시(쿼터별)
+  gameMatchups: null, // 게임별 대진 { [gameNo]: [squadIdA, squadIdB] }
+  currentGame: 1, // 현재 기록 중인 게임
   squadSaved: {}, // { [squadId]: [저장된 쿼터...] } (스쿼드별)
   squadRecorders: {}, // { [squadId]: { [quarter]: { userId, name } } }
   allSquadsSaved: false, // 전 스쿼드가 전 쿼터 저장 완료 → 경기 종료 가능
@@ -110,16 +112,17 @@ const useLiveGameStore = create((set, get) => ({
 
   // 드래프트 로드 (서버 우선, 실패 시 localStorage 폴백)
   loadDraft: async (matchId) => {
-    set({ loading: true, matchId });
+    const ctx = readLS(ctxKey(matchId)) || {};
+    const game = toInt(ctx.currentGame) || 1;
+    set({ loading: true, matchId, currentGame: game });
     let data = null;
     try {
-      const res = await apiRequest('get', `/team/live/${matchId}`);
+      const res = await apiRequest('get', `/team/live/${matchId}`, { game });
       data = res?.data || null;
     } catch {
       data = null;
     }
 
-    const ctx = readLS(ctxKey(matchId)) || {};
     if (!data) {
       // 오프라인 폴백: meta는 없지만 저장된 스탯이라도 복구
       set({ loading: false });
@@ -151,7 +154,7 @@ const useLiveGameStore = create((set, get) => ({
     if (mySquadId != null) {
       const server = allStats[mySquadId];
       const hasServer = server && Object.values(server).some((q) => q && Object.keys(q).length);
-      squadStats = hasServer ? server : readLS(statsKey(matchId, mySquadId)) || server || {};
+      squadStats = hasServer ? server : readLS(statsKey(matchId, mySquadId, game)) || server || {};
     }
 
     set({
@@ -164,6 +167,8 @@ const useLiveGameStore = create((set, get) => ({
       quarterMinutes: qm,
       savedQuarters: mySquadId != null ? squadSaved[mySquadId] || [] : [],
       quarterMatchups: data.quarterMatchups || null,
+      gameMatchups: data.gameMatchups || null,
+      currentGame: game,
       squadSaved,
       squadRecorders,
       allSquadsSaved: !!data.allSquadsSaved,
@@ -177,12 +182,21 @@ const useLiveGameStore = create((set, get) => ({
     return true;
   },
 
+  // 게임 전환 → 해당 게임 드래프트 로드
+  setGame: async (game) => {
+    const { matchId, mySquadId, currentQuarter } = get();
+    if (matchId == null) return;
+    writeLS(ctxKey(matchId), { mySquadId, currentQuarter, currentGame: game });
+    set({ currentGame: game });
+    await get().loadDraft(matchId);
+  },
+
   // 스코어보드 + 스쿼드별 저장상태/기록담당자 갱신 (타 담당자 진행 반영)
   refreshScoreboard: async () => {
-    const { matchId, mySquadId, squadStats } = get();
+    const { matchId, mySquadId, squadStats, currentGame } = get();
     if (!matchId) return;
     try {
-      const res = await apiRequest('get', `/team/live/${matchId}`);
+      const res = await apiRequest('get', `/team/live/${matchId}`, { game: currentGame });
       const data = res?.data;
       if (!data) return;
       const allStats = {};
@@ -208,38 +222,25 @@ const useLiveGameStore = create((set, get) => ({
     }
   },
 
-  // 쿼터별 대진 지정 (3파전+) — 붙는 두 스쿼드
-  setQuarterMatchup: async (quarter, squadIds) => {
-    const { matchId, quarterMatchups } = get();
-    if (matchId == null) return;
-    // 낙관적 업데이트
-    set({ quarterMatchups: { ...(quarterMatchups || {}), [quarter]: squadIds.map(Number) } });
-    try {
-      await apiRequest('put', `/team/live/${matchId}/quarter/${quarter}/matchup`, { squadIds });
-    } catch {
-      /* 실패 시 다음 폴링에서 보정 */
-    }
-  },
-
   setMySquad: (squadId) => {
-    const { matchId, allStats, squadSaved } = get();
+    const { matchId, allStats, squadSaved, currentGame, currentQuarter } = get();
     const server = allStats[squadId] || {};
     const hasServer = Object.values(server).some((q) => q && Object.keys(q).length);
-    const squadStats = hasServer ? server : readLS(statsKey(matchId, squadId)) || {};
-    writeLS(ctxKey(matchId), { mySquadId: squadId, currentQuarter: get().currentQuarter });
+    const squadStats = hasServer ? server : readLS(statsKey(matchId, squadId, currentGame)) || {};
+    writeLS(ctxKey(matchId), { mySquadId: squadId, currentQuarter, currentGame });
     set({ mySquadId: squadId, squadStats, savedQuarters: squadSaved[squadId] || [] });
   },
 
   // 담당 스쿼드 선택 해제 → 스쿼드 선택 화면으로 (다른 스쿼드 기록 수정용)
   clearMySquad: () => {
-    const { matchId, currentQuarter } = get();
-    if (matchId != null) writeLS(ctxKey(matchId), { mySquadId: null, currentQuarter });
+    const { matchId, currentQuarter, currentGame } = get();
+    if (matchId != null) writeLS(ctxKey(matchId), { mySquadId: null, currentQuarter, currentGame });
     set({ mySquadId: null, squadStats: {}, savedQuarters: [] });
   },
 
   setQuarter: (q) => {
-    const { matchId, mySquadId } = get();
-    if (matchId != null) writeLS(ctxKey(matchId), { mySquadId, currentQuarter: q });
+    const { matchId, mySquadId, currentGame } = get();
+    if (matchId != null) writeLS(ctxKey(matchId), { mySquadId, currentQuarter: q, currentGame });
     set({ currentQuarter: q });
   },
 
@@ -262,7 +263,7 @@ const useLiveGameStore = create((set, get) => ({
   },
 
   // 선수에게 이벤트 적용 (현재 쿼터). sign: +1 추가 / -1 빼기(잘못 누른 기록 취소)
-  applyEvent: (userId, eventType, sign = 1) => {
+  applyEvent: (userId, eventType, sign = 1, targetId = null) => {
     const def = EVENT_DEFS[eventType];
     if (!def) return;
     const dir = sign < 0 ? -1 : 1;
@@ -282,10 +283,17 @@ const useLiveGameStore = create((set, get) => ({
       }
       cur.makes = makes;
     }
+    // 어시스트 대상(득점자 pid) 기록 { [scorerPid]: count }
+    if (eventType === 'ast' && targetId != null) {
+      const at = { ...(cur.at || {}) };
+      at[targetId] = Math.max((toInt(at[targetId]) || 0) + dir, 0);
+      if (!at[targetId]) delete at[targetId];
+      cur.at = at;
+    }
     next[q][userId] = cur;
     set({
       squadStats: next,
-      eventLog: [...eventLog, { userId, quarter: q, eventType, deltas: def.deltas, made: def.made, dir }],
+      eventLog: [...eventLog, { userId, quarter: q, eventType, deltas: def.deltas, made: def.made, dir, targetId }],
     });
     get()._persist();
   },
@@ -311,6 +319,13 @@ const useLiveGameStore = create((set, get) => ({
       }
       cur.makes = makes;
     }
+    // 어시스트 대상 되돌리기
+    if (last.eventType === 'ast' && last.targetId != null) {
+      const at = { ...(cur.at || {}) };
+      at[last.targetId] = Math.max((toInt(at[last.targetId]) || 0) - dir, 0);
+      if (!at[last.targetId]) delete at[last.targetId];
+      cur.at = at;
+    }
     next[q][last.userId] = cur;
     set({ squadStats: next, eventLog: eventLog.slice(0, -1) });
     get()._persist();
@@ -318,16 +333,16 @@ const useLiveGameStore = create((set, get) => ({
 
   // localStorage 즉시 + Redis 디바운스 저장
   _persist: () => {
-    const { matchId, mySquadId, squadStats } = get();
+    const { matchId, mySquadId, squadStats, currentGame } = get();
     if (matchId == null || mySquadId == null) return;
-    writeLS(statsKey(matchId, mySquadId), squadStats);
+    writeLS(statsKey(matchId, mySquadId, currentGame), squadStats);
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => get().flushSave(), 800);
   },
 
   // Redis 강제 저장 (디바운스 대기 없이)
   flushSave: async () => {
-    const { matchId, mySquadId, squadStats } = get();
+    const { matchId, mySquadId, squadStats, currentGame } = get();
     if (matchId == null || mySquadId == null) return;
     if (saveTimer) {
       clearTimeout(saveTimer);
@@ -335,7 +350,7 @@ const useLiveGameStore = create((set, get) => ({
     }
     set({ saving: true });
     try {
-      await apiRequest('put', `/team/live/${matchId}/squad/${mySquadId}`, { stats: squadStats });
+      await apiRequest('put', `/team/live/${matchId}/squad/${mySquadId}`, { stats: squadStats }, { params: { game: currentGame } });
     } catch {
       /* 오프라인이어도 localStorage에 보존됨 */
     } finally {
@@ -348,9 +363,10 @@ const useLiveGameStore = create((set, get) => ({
     const { matchId, mySquadId, currentQuarter, squadSaved, meta } = get();
     if (matchId == null || mySquadId == null) return null;
     const q = quarter || currentQuarter;
+    const game = get().currentGame;
     await get().flushSave();
     const body = Array.isArray(onCourt) ? { onCourt } : {};
-    const res = await apiRequest('post', `/team/live/${matchId}/squad/${mySquadId}/quarter/${q}/save`, body);
+    const res = await apiRequest('post', `/team/live/${matchId}/squad/${mySquadId}/quarter/${q}/save`, body, { params: { game } });
     const data = res?.data || null;
     if (data?.savedQuarters) {
       const nextSaved = { ...squadSaved, [mySquadId]: data.savedQuarters };
@@ -399,6 +415,8 @@ const useLiveGameStore = create((set, get) => ({
       quarterMinutes: [],
       savedQuarters: [],
       quarterMatchups: null,
+      gameMatchups: null,
+      currentGame: 1,
       squadSaved: {},
       squadRecorders: {},
       allSquadsSaved: false,

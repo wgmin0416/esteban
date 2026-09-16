@@ -1103,9 +1103,33 @@ const getDuoRankings = async (req, res) => {
     const marginCtx = await loadMarginContext(teamId, dateFilter);
     const duoPm = duoPlusMinus(marginCtx);
 
-    // 승률 계산 및 정렬 (함께 뛴 경기 최소 기준 충족만)
+    // 어시스트 케미: 쿼터 기록의 assist_targets 집계 → 두 선수 간 서로 어시스트 총합
+    const assistRows = await BasketballMemberQuarterRecord.findAll({
+      where: { team_id: teamId, user_id: { [Op.ne]: null }, ...dateFilter },
+      attributes: ['user_id', 'assist_targets'],
+    });
+    const duoAssist = {}; // `${min}-${max}` → 서로 어시 횟수
+    for (const r of assistRows) {
+      const targets = r.assist_targets; // getter가 JSON 파싱 { scorerUserId: count }
+      if (!targets) continue;
+      const passer = r.user_id;
+      for (const [scorer, cnt] of Object.entries(targets)) {
+        const s = parseInt(scorer);
+        if (!s || s === passer) continue;
+        const key = passer < s ? `${passer}-${s}` : `${s}-${passer}`;
+        duoAssist[key] = (duoAssist[key] || 0) + (parseInt(cnt) || 0);
+      }
+    }
+
+    // 자격: 함께 뛴 경기 최소 기준 충족만
     const MIN_DUO_GAMES = 5;
-    const duos = Object.values(duoMap)
+    // 듀오 점수 = 승률 + 마진 + 어시스트 케미 (자격자 내 0~100 정규화 후 가중합)
+    // → 경기는 졌어도 함께 뛴 쿼터 마진/서로 연결(어시)이 좋으면 가점
+    const WIN_WEIGHT = 50; // 승률 지분
+    const MARGIN_WEIGHT = 30; // 경기당 마진 지분
+    const ASSIST_WEIGHT = 20; // 어시스트 케미 지분
+
+    const qualified = Object.values(duoMap)
       .map((duo) => {
         const pm = duoPm.get(`${duo.user1Id}-${duo.user2Id}`) || 0;
         return {
@@ -1113,13 +1137,36 @@ const getDuoRankings = async (req, res) => {
           winRate: duo.games > 0 ? (duo.wins / duo.games) * 100 : 0,
           plusMinus: pm,
           pmPerGame: duo.games > 0 ? pm / duo.games : 0,
+          assists: duoAssist[`${duo.user1Id}-${duo.user2Id}`] || 0,
+          assistsPerGame: duo.games > 0 ? (duoAssist[`${duo.user1Id}-${duo.user2Id}`] || 0) / duo.games : 0,
         };
       })
-      .filter((duo) => duo.games >= MIN_DUO_GAMES)
+      .filter((duo) => duo.games >= MIN_DUO_GAMES);
+
+    // 자격자 내 정규화 (min~max → 0~100, 전부 같으면 50)
+    const norm = (x, arr) => {
+      const mn = Math.min(...arr);
+      const mx = Math.max(...arr);
+      return mx > mn ? ((x - mn) / (mx - mn)) * 100 : 50;
+    };
+    if (qualified.length) {
+      const winRates = qualified.map((d) => d.winRate);
+      const margins = qualified.map((d) => d.pmPerGame);
+      const assists = qualified.map((d) => d.assistsPerGame);
+      for (const d of qualified) {
+        d.score =
+          (WIN_WEIGHT * norm(d.winRate, winRates) +
+            MARGIN_WEIGHT * norm(d.pmPerGame, margins) +
+            ASSIST_WEIGHT * norm(d.assistsPerGame, assists)) /
+          100;
+      }
+    }
+
+    const duos = qualified
       .sort((a, b) =>
         type === 'best'
-          ? b.winRate - a.winRate || b.games - a.games
-          : a.winRate - b.winRate || b.games - a.games
+          ? b.score - a.score || b.games - a.games
+          : a.score - b.score || b.games - a.games
       )
       .slice(0, 10);
 
@@ -1174,6 +1221,8 @@ const getDuoRankings = async (req, res) => {
         winRate: duo.winRate.toFixed(1),
         plusMinus: duo.plusMinus, // 함께 뛸 때 총 득실 마진
         pmPerGame: Number(duo.pmPerGame.toFixed(1)),
+        assists: duo.assists, // 서로 연결한 어시스트 총합
+        score: Number((duo.score ?? 0).toFixed(1)), // 승률+마진+어시케미 가중 점수(정렬 기준)
       };
     });
 
@@ -2143,7 +2192,24 @@ const createMatchRecord = async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 const LIVE_TTL = 60 * 60 * 24; // 24시간
 const liveMetaKey = (matchId) => `live:${matchId}:meta`;
-const liveSquadKey = (matchId, squadId) => `live:${matchId}:squad:${squadId}`;
+// 게임별 스탯 키 (하루 내 여러 게임). game 미지정 시 1게임.
+const liveSquadKey = (matchId, squadId, game = 1) => `live:${matchId}:squad:${squadId}:g${game}`;
+
+// 스쿼드 수에 따른 기본 게임 대진 생성
+// 2파전: A-B ×3게임 / 3파전: A-B,B-C,A-C / 4파전 이상: 모든 페어 1게임씩
+const defaultGameMatchups = (squadIds) => {
+  const out = {};
+  if (!Array.isArray(squadIds) || squadIds.length < 2) return out;
+  if (squadIds.length === 2) {
+    for (let g = 1; g <= 3; g++) out[g] = [squadIds[0], squadIds[1]];
+    return out;
+  }
+  const pairs = [];
+  for (let i = 0; i < squadIds.length; i++)
+    for (let j = i + 1; j < squadIds.length; j++) pairs.push([squadIds[i], squadIds[j]]);
+  pairs.forEach((p, idx) => (out[idx + 1] = p));
+  return out;
+};
 const liveActiveKey = (teamId) => `live:team:${teamId}:active`;
 
 const STAT_FIELDS = [
@@ -2203,21 +2269,6 @@ const squadTotalPoints = (squadStats) => {
 };
 
 // 3파전 이상: 쿼터별 기본 대진(라운드로빈 페어를 순환) → { [quarter]: [sqA, sqB] }
-const defaultQuarterMatchups = (squadIds, quarterCount) => {
-  const out = {};
-  if (!Array.isArray(squadIds) || squadIds.length < 2) return out;
-  if (squadIds.length === 2) {
-    for (let q = 1; q <= quarterCount; q++) out[q] = [squadIds[0], squadIds[1]];
-    return out;
-  }
-  const pairs = [];
-  for (let i = 0; i < squadIds.length; i++) {
-    for (let j = i + 1; j < squadIds.length; j++) pairs.push([squadIds[i], squadIds[j]]);
-  }
-  for (let q = 1; q <= quarterCount; q++) out[q] = pairs[(q - 1) % pairs.length];
-  return out;
-};
-
 // 쿼터별 대진 기준 순위(승패)·쿼터 결과 계산 (라운드로빈)
 // qrecs: 쿼터 레코드(squad_id, quarter, pts), matchups: { [quarter]: [a,b] }, squads: [{id}]
 const buildStandings = (qrecs, matchups, squads) => {
@@ -2423,20 +2474,23 @@ const rebuildLiveDraft = async (match) => {
     startedAt: new Date().toISOString(),
     quarterCount: qCount,
     quarterMinutes: Array.from({ length: qCount }, () => match.quarter_minutes || 10),
-    quarterMatchups: match.quarter_matchups || (metaSquads.length >= 3
-      ? defaultQuarterMatchups(metaSquads.map((s) => s.squadId), qCount)
-      : null),
+    quarterMatchups: match.quarter_matchups || null, // 레거시(쿼터별)
+    gameMatchups: match.game_matchups || defaultGameMatchups(metaSquads.map((s) => s.squadId)),
     savedQuarters,
     squads: metaSquads,
   };
   await redisClient.set(liveMetaKey(match.id), JSON.stringify(meta), { EX: LIVE_TTL });
+  const gameNos = Object.keys(meta.gameMatchups || {}).map(Number);
+  const gamesToInit = gameNos.length ? gameNos : [1];
   for (const s of metaSquads) {
     const init = {};
     for (let q = 1; q <= qCount; q++) {
       init[q] = {};
       for (const m of s.members) init[q][m.pid] = blankStat();
     }
-    await redisClient.set(liveSquadKey(match.id, s.squadId), JSON.stringify(init), { EX: LIVE_TTL });
+    for (const g of gamesToInit) {
+      await redisClient.set(liveSquadKey(match.id, s.squadId, g), JSON.stringify(init), { EX: LIVE_TTL });
+    }
   }
   await redisClient.sAdd(liveActiveKey(teamId), String(match.id));
   await redisClient.expire(liveActiveKey(teamId), LIVE_TTL);
@@ -2447,7 +2501,9 @@ const cleanupLive = async (matchId, teamId) => {
   const metaRaw = await redisClient.get(liveMetaKey(matchId));
   if (metaRaw) {
     const meta = JSON.parse(metaRaw);
-    for (const s of meta.squads) await redisClient.del(liveSquadKey(matchId, s.squadId));
+    const gnos = Object.keys(meta.gameMatchups || {}).map(Number);
+    const games = gnos.length ? gnos : [1];
+    for (const s of meta.squads) for (const g of games) await redisClient.del(liveSquadKey(matchId, s.squadId, g));
   }
   await redisClient.del(liveMetaKey(matchId));
   if (teamId != null) await redisClient.sRem(liveActiveKey(teamId), String(matchId));
@@ -2539,14 +2595,13 @@ const startLiveOnMatch = async (req, res) => {
       squadMeta.push({ squadId: squad.id, label, members });
     }
 
-    // 3파전 이상: 쿼터별 기본 대진 생성 (라이브 보드에서 수정 가능)
-    const quarterMatchups =
-      squadMeta.length >= 3
-        ? defaultQuarterMatchups(squadMeta.map((s) => s.squadId), qCount)
-        : null;
+    // 대진은 쿼터마다 기록 화면에서 직접 선택 (자동 지정 안 함)
+    const quarterMatchups = null;
+    // 게임별 기본 대진 (2파전 A-B×3, 3파전 A-B/B-C/A-C ...) — 라이브에서 수정 가능
+    const gameMatchups = defaultGameMatchups(squadMeta.map((s) => s.squadId));
 
     await match.update(
-      { status: 'live', quarter_minutes: qMinutes, quarter_matchups: quarterMatchups },
+      { status: 'live', quarter_minutes: qMinutes, quarter_matchups: quarterMatchups, game_matchups: gameMatchups },
       { transaction: t }
     );
 
@@ -2564,8 +2619,10 @@ const startLiveOnMatch = async (req, res) => {
       quarterCount: qCount,
       // 쿼터별 시간(분) 배열 — 라이브 보드에서 쿼터마다 조절
       quarterMinutes: Array.from({ length: qCount }, () => qMinutes),
-      // 쿼터별 대진 { [quarter]: [sqA, sqB] } (3파전 이상)
+      // 쿼터별 대진 { [quarter]: [sqA, sqB] } (레거시)
       quarterMatchups,
+      // 게임별 대진 { [gameNo]: [sqA, sqB] }
+      gameMatchups,
       // 이미 DB에 저장(확정)된 쿼터 번호 목록 — 쿼터별 누적 저장
       savedQuarters: [],
       squads: squadMeta.map((s) => ({
@@ -2575,13 +2632,17 @@ const startLiveOnMatch = async (req, res) => {
       })),
     };
     await redisClient.set(liveMetaKey(match.id), JSON.stringify(meta), { EX: LIVE_TTL });
+    const gameNos = Object.keys(gameMatchups || {}).map(Number);
+    const gamesToInit = gameNos.length ? gameNos : [1];
     for (const s of squadMeta) {
       const init = {};
       for (let q = 1; q <= qCount; q++) {
         init[q] = {};
         for (const m of s.members) init[q][m.pid] = blankStat();
       }
-      await redisClient.set(liveSquadKey(match.id, s.squadId), JSON.stringify(init), { EX: LIVE_TTL });
+      for (const g of gamesToInit) {
+        await redisClient.set(liveSquadKey(match.id, s.squadId, g), JSON.stringify(init), { EX: LIVE_TTL });
+      }
     }
     await redisClient.sAdd(liveActiveKey(parseInt(team_id)), String(match.id));
     await redisClient.expire(liveActiveKey(parseInt(team_id)), LIVE_TTL);
@@ -2663,20 +2724,23 @@ const getLiveMatch = async (req, res) => {
       if (!meta) throw new BadRequestError('진행 중인 경기가 아닙니다.');
     }
     await assertTeamMember(userId, meta.teamId);
+    const game = parseInt(req.query.game) || 1; // 조회 대상 게임(기본 1)
 
-    // 저장 상태/기록 담당자 (DB 기준, 스쿼드×쿼터 단위)
+    // 저장 상태/기록 담당자 (DB 기준, 게임×스쿼드×쿼터 단위)
     const savedRows = await BasketballMemberQuarterRecord.findAll({
       where: { match_id: parseInt(matchId) },
-      attributes: ['squad_id', 'quarter', 'recorded_by'],
-      group: ['squad_id', 'quarter', 'recorded_by'],
+      attributes: ['game_no', 'squad_id', 'quarter', 'recorded_by'],
+      group: ['game_no', 'squad_id', 'quarter', 'recorded_by'],
     });
-    const savedBySquad = {}; // { [squadId]: { saved:Set, recorders:{ [q]: userId } } }
+    const savedByGameSquad = {}; // { [game]: { [squadId]: { saved:Set, recorders:{} } } }
     for (const r of savedRows) {
-      const sid = r.squad_id;
-      if (!savedBySquad[sid]) savedBySquad[sid] = { saved: new Set(), recorders: {} };
-      savedBySquad[sid].saved.add(r.quarter);
-      if (r.recorded_by != null) savedBySquad[sid].recorders[r.quarter] = r.recorded_by;
+      const g = r.game_no || 1;
+      (savedByGameSquad[g] = savedByGameSquad[g] || {});
+      if (!savedByGameSquad[g][r.squad_id]) savedByGameSquad[g][r.squad_id] = { saved: new Set(), recorders: {} };
+      savedByGameSquad[g][r.squad_id].saved.add(r.quarter);
+      if (r.recorded_by != null) savedByGameSquad[g][r.squad_id].recorders[r.quarter] = r.recorded_by;
     }
+    const savedBySquad = savedByGameSquad[game] || {};
 
     const memberMap = await buildMemberMap(meta.teamId, [
       ...meta.squads.flatMap((s) => (s.members || []).filter((m) => m.userId != null).map((m) => m.userId)),
@@ -2685,7 +2749,7 @@ const getLiveMatch = async (req, res) => {
 
     const squads = [];
     for (const s of meta.squads) {
-      const statRaw = await redisClient.get(liveSquadKey(matchId, s.squadId));
+      const statRaw = await redisClient.get(liveSquadKey(matchId, s.squadId, game));
       const sv = savedBySquad[s.squadId] || { saved: new Set(), recorders: {} };
       const recorders = {};
       for (const [q, uid] of Object.entries(sv.recorders)) {
@@ -2707,14 +2771,28 @@ const getLiveMatch = async (req, res) => {
       });
     }
 
-    // 전 스쿼드가 전 쿼터를 저장했는지(경기 종료 가능 여부)
+    // 이 게임의 전 스쿼드 전 쿼터 저장 여부
     const allQuarters = Array.from({ length: meta.quarterCount }, (_, i) => i + 1);
-    const allSquadsSaved =
+    const gameSquadsSaved =
       meta.squads.length > 0 &&
       meta.squads.every((s) => {
         const saved = savedBySquad[s.squadId]?.saved || new Set();
         return allQuarters.every((n) => saved.has(n));
       });
+
+    // 경기 종료 가능: 게임별 대진이 있으면 모든 게임의 대진 두 팀이 전 쿼터 저장 완료
+    const gameMatchups = meta.gameMatchups || null;
+    let allSquadsSaved;
+    if (gameMatchups && Object.keys(gameMatchups).length) {
+      allSquadsSaved = Object.entries(gameMatchups).every(([g, pair]) =>
+        (pair || []).every((sid) => {
+          const saved = savedByGameSquad[g]?.[sid]?.saved || new Set();
+          return allQuarters.every((n) => saved.has(n));
+        })
+      );
+    } else {
+      allSquadsSaved = gameSquadsSaved;
+    }
 
     return res.status(200).json({
       success: true,
@@ -2724,6 +2802,9 @@ const getLiveMatch = async (req, res) => {
         quarterCount: meta.quarterCount,
         quarterMinutes: meta.quarterMinutes,
         quarterMatchups: meta.quarterMatchups || null,
+        gameMatchups,
+        game,
+        gameSquadsSaved,
         allSquadsSaved,
         startedAt: meta.startedAt,
         squads,
@@ -2777,6 +2858,7 @@ const saveLiveSquad = async (req, res) => {
     const userId = req.user?.id;
     const { matchId, squadId } = req.params;
     const { stats } = req.body;
+    const game = parseInt(req.query.game) || 1;
     if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
     if (typeof stats !== 'object' || stats === null) throw new BadRequestError('stats가 필요합니다.');
 
@@ -2788,7 +2870,7 @@ const saveLiveSquad = async (req, res) => {
       throw new BadRequestError('스쿼드를 찾을 수 없습니다.');
     }
 
-    await redisClient.set(liveSquadKey(matchId, squadId), JSON.stringify(stats), { EX: LIVE_TTL });
+    await redisClient.set(liveSquadKey(matchId, squadId, game), JSON.stringify(stats), { EX: LIVE_TTL });
     await redisClient.expire(liveMetaKey(matchId), LIVE_TTL);
     return res.status(200).json({ success: true });
   } catch (err) {
@@ -2874,9 +2956,9 @@ const recomputeMatchRecords = async (matchId, teamId, t) => {
 
 // 특정 스쿼드의 합산(경기) 레코드만 재계산 (동시 저장 안전: 자기 스쿼드 행만 건드림)
 // is_win 은 경기 종료 시 전 스쿼드 기준으로 확정하므로 여기선 0
-const recomputeSquadMatchRecord = async (matchId, squadId, teamId, t) => {
+const recomputeSquadMatchRecord = async (matchId, squadId, teamId, t, game = 1) => {
   const qrecs = await BasketballMemberQuarterRecord.findAll({
-    where: { match_id: parseInt(matchId), squad_id: parseInt(squadId) },
+    where: { match_id: parseInt(matchId), squad_id: parseInt(squadId), game_no: game },
     transaction: t,
   });
   const groups = new Map();
@@ -2890,7 +2972,7 @@ const recomputeSquadMatchRecord = async (matchId, squadId, teamId, t) => {
     g.stats.push(r);
   }
   await BasketballMemberMatchRecord.destroy({
-    where: { match_id: parseInt(matchId), squad_id: parseInt(squadId) },
+    where: { match_id: parseInt(matchId), squad_id: parseInt(squadId), game_no: game },
     transaction: t,
   });
   for (const g of groups.values()) {
@@ -2899,6 +2981,7 @@ const recomputeSquadMatchRecord = async (matchId, squadId, teamId, t) => {
         team_id: teamId,
         match_id: parseInt(matchId),
         squad_id: parseInt(squadId),
+        game_no: game,
         user_id: g.user_id,
         guest_name: g.guest_name,
         is_win: 0,
@@ -2919,6 +3002,7 @@ const saveLiveQuarter = async (req, res) => {
     const userId = req.user?.id;
     const { matchId, squadId, quarter } = req.params;
     const q = parseInt(quarter);
+    const game = parseInt(req.query.game) || 1; // 게임 미지정 시 1게임
     if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
 
     const metaRaw = await redisClient.get(liveMetaKey(matchId));
@@ -2939,44 +3023,60 @@ const saveLiveQuarter = async (req, res) => {
     const squad = meta.squads.find((s) => String(s.squadId) === String(squadId));
     if (!squad) throw new BadRequestError('스쿼드를 찾을 수 없습니다.');
 
-    const statRaw = await redisClient.get(liveSquadKey(matchId, squad.squadId));
+    const statRaw = await redisClient.get(liveSquadKey(matchId, squad.squadId, game));
     const stats = statRaw ? JSON.parse(statRaw) : {};
 
     // 이 쿼터 코트 출전 라인업(pid 배열). 미지정이면 전원 출전으로 간주 → on_court=1
     const onCourt = Array.isArray(req.body?.onCourt) ? new Set(req.body.onCourt.map(String)) : null;
 
-    // 이 스쿼드의 해당 쿼터 레코드만 재작성 (다른 스쿼드/쿼터는 미변경 → 동시 저장 안전)
+    // pid → userId 매핑 (어시스트 대상을 userId 기준으로 저장)
+    const pidToUser = {};
+    for (const mm of squad.members || []) if (mm.userId != null) pidToUser[String(mm.pid)] = mm.userId;
+
+    // 이 스쿼드의 해당 게임·쿼터 레코드만 재작성 (다른 스쿼드/게임/쿼터는 미변경)
     await BasketballMemberQuarterRecord.destroy({
-      where: { match_id: parseInt(matchId), squad_id: squad.squadId, quarter: q },
+      where: { match_id: parseInt(matchId), squad_id: squad.squadId, game_no: game, quarter: q },
       transaction: t,
     });
     for (const m of squad.members || []) {
       const stat = stats?.[q]?.[m.pid] || blankStat();
+      // 어시스트 대상(at): 스토어는 pid 기준 → 득점자 userId 기준으로 변환
+      let assistTargets = null;
+      if (stat.at && typeof stat.at === 'object') {
+        const converted = {};
+        for (const [scorerPid, cnt] of Object.entries(stat.at)) {
+          const uid = pidToUser[String(scorerPid)];
+          if (uid != null && cnt > 0) converted[uid] = (converted[uid] || 0) + cnt;
+        }
+        if (Object.keys(converted).length) assistTargets = converted;
+      }
       await BasketballMemberQuarterRecord.create(
         {
           team_id: meta.teamId,
           match_id: parseInt(matchId),
           squad_id: squad.squadId,
+          game_no: game,
           user_id: m.userId ?? null,
           guest_name: m.isGuest ? m.name : null,
           quarter: q,
           is_win: 0,
           recorded_by: userId, // 저장 누른 사람 = 기록 담당자
           on_court: onCourt ? (onCourt.has(String(m.pid)) ? 1 : 0) : 1,
+          assist_targets: assistTargets,
           ...buildRecordFields(stat),
         },
         { transaction: t }
       );
     }
 
-    // 이 스쿼드의 합산 레코드만 재계산
-    await recomputeSquadMatchRecord(matchId, squad.squadId, meta.teamId, t);
+    // 이 스쿼드·게임의 합산 레코드만 재계산
+    await recomputeSquadMatchRecord(matchId, squad.squadId, meta.teamId, t, game);
     await t.commit();
     committed = true;
 
-    // 이 스쿼드의 저장된 쿼터 목록(DB 기준)
+    // 이 스쿼드·게임의 저장된 쿼터 목록(DB 기준)
     const savedRows = await BasketballMemberQuarterRecord.findAll({
-      where: { match_id: parseInt(matchId), squad_id: squad.squadId },
+      where: { match_id: parseInt(matchId), squad_id: squad.squadId, game_no: game },
       attributes: ['quarter'],
       group: ['quarter'],
     });
@@ -2984,7 +3084,7 @@ const saveLiveQuarter = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: { matchId: Number(matchId), squadId: Number(squad.squadId), quarter: q, savedQuarters },
+      data: { matchId: Number(matchId), squadId: Number(squad.squadId), game_no: game, quarter: q, savedQuarters },
     });
   } catch (err) {
     if (!committed) await t.rollback();
@@ -3008,51 +3108,92 @@ const finishLiveMatch = async (req, res) => {
     if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
     await assertTeamMember(userId, match.team_id);
 
-    // 모든 스쿼드가 모든 쿼터를 저장해야 종료 가능
     const squads = await BasketballMatchSquad.findAll({
       where: { match_id: match.id },
       transaction: t,
     });
     if (!squads.length) throw new BadRequestError('스쿼드 구성이 없습니다.');
-    const qrows = await BasketballMemberQuarterRecord.findAll({
-      where: { match_id: match.id },
-      attributes: ['squad_id', 'quarter'],
-      group: ['squad_id', 'quarter'],
-      transaction: t,
-    });
-    const savedBySquad = {};
-    for (const r of qrows) (savedBySquad[r.squad_id] = savedBySquad[r.squad_id] || new Set()).add(r.quarter);
     const allQuarters = Array.from({ length: match.quarter_count }, (_, i) => i + 1);
-    const everySaved = squads.every((s) => {
-      const saved = savedBySquad[s.id] || new Set();
-      return allQuarters.every((n) => saved.has(n));
-    });
-    if (!everySaved) {
-      throw new BadRequestError('모든 팀이 모든 쿼터를 저장해야 경기를 종료할 수 있습니다.');
-    }
+    const gameMatchups = match.game_matchups || null;
 
-    // 승패 확정: 전 스쿼드 합산 레코드 재계산(2파전은 총득점 기준 is_win)
-    const totalPlayers = await recomputeMatchRecords(matchId, match.team_id, t);
-
-    // 3파전 이상: 쿼터별 대진 순위표 1위를 승리로 확정(총득점 기준 is_win 덮어씀)
-    if (squads.length >= 3) {
-      const qrecs = await BasketballMemberQuarterRecord.findAll({
+    let totalPlayers;
+    if (gameMatchups && Object.keys(gameMatchups).length) {
+      // ── 게임 모델: 게임별 대진의 두 팀이 전 쿼터 저장됐는지 확인 후 게임별 승패 확정 ──
+      const qrows = await BasketballMemberQuarterRecord.findAll({
         where: { match_id: match.id },
+        attributes: ['game_no', 'squad_id', 'quarter'],
+        group: ['game_no', 'squad_id', 'quarter'],
         transaction: t,
       });
-      const { standings } = buildStandings(qrecs, match.quarter_matchups, squads);
-      const arr = Object.values(standings).sort(
-        (a, b) => b.wins - a.wins || (b.pf - b.pa) - (a.pf - a.pa) || b.pf - a.pf
+      const savedByGameSquad = {};
+      for (const r of qrows) {
+        const g = r.game_no || 1;
+        ((savedByGameSquad[g] = savedByGameSquad[g] || {})[r.squad_id] =
+          savedByGameSquad[g][r.squad_id] || new Set()).add(r.quarter);
+      }
+      const everySaved = Object.entries(gameMatchups).every(([g, pair]) =>
+        (pair || []).every((sid) => {
+          const saved = savedByGameSquad[g]?.[sid] || new Set();
+          return allQuarters.every((n) => saved.has(n));
+        })
       );
-      await BasketballMemberMatchRecord.update(
-        { is_win: 0 },
-        { where: { match_id: match.id }, transaction: t }
-      );
-      if (arr.length && arr[0].games > 0) {
-        await BasketballMemberMatchRecord.update(
-          { is_win: 1 },
-          { where: { match_id: match.id, squad_id: arr[0].squadId }, transaction: t }
+      if (!everySaved) {
+        throw new BadRequestError('모든 게임의 두 팀이 모든 쿼터를 저장해야 경기를 종료할 수 있습니다.');
+      }
+      // 게임별 승패: 그 게임 두 팀 중 총득점 높은 팀 승(동점 공동승)
+      for (const [g, pair] of Object.entries(gameMatchups)) {
+        const recs = await BasketballMemberMatchRecord.findAll({
+          where: { match_id: match.id, game_no: g },
+          transaction: t,
+        });
+        const pts = {};
+        for (const r of recs) if (r.squad_id != null) pts[r.squad_id] = (pts[r.squad_id] || 0) + r.pts;
+        const maxPts = Math.max(0, ...(pair || []).map((sid) => pts[sid] || 0));
+        for (const r of recs) {
+          const win = maxPts > 0 && pts[r.squad_id] === maxPts ? 1 : 0;
+          if ((r.is_win ? 1 : 0) !== win) await r.update({ is_win: win }, { transaction: t });
+        }
+      }
+      const owners = await BasketballMemberMatchRecord.findAll({
+        where: { match_id: match.id },
+        attributes: ['user_id', 'guest_name'],
+        transaction: t,
+      });
+      totalPlayers = new Set(owners.map((r) => (r.user_id != null ? `u${r.user_id}` : `g${r.guest_name}`))).size;
+    } else {
+      // ── 레거시(게임 없음): 기존 로직 ──
+      const qrows = await BasketballMemberQuarterRecord.findAll({
+        where: { match_id: match.id },
+        attributes: ['squad_id', 'quarter'],
+        group: ['squad_id', 'quarter'],
+        transaction: t,
+      });
+      const savedBySquad = {};
+      for (const r of qrows) (savedBySquad[r.squad_id] = savedBySquad[r.squad_id] || new Set()).add(r.quarter);
+      const everySaved = squads.every((s) => {
+        const saved = savedBySquad[s.id] || new Set();
+        return allQuarters.every((n) => saved.has(n));
+      });
+      if (!everySaved) {
+        throw new BadRequestError('모든 팀이 모든 쿼터를 저장해야 경기를 종료할 수 있습니다.');
+      }
+      totalPlayers = await recomputeMatchRecords(matchId, match.team_id, t);
+      if (squads.length >= 3) {
+        const qrecs = await BasketballMemberQuarterRecord.findAll({
+          where: { match_id: match.id },
+          transaction: t,
+        });
+        const { standings } = buildStandings(qrecs, match.quarter_matchups, squads);
+        const arr = Object.values(standings).sort(
+          (a, b) => b.wins - a.wins || (b.pf - b.pa) - (a.pf - a.pa) || b.pf - a.pf
         );
+        await BasketballMemberMatchRecord.update({ is_win: 0 }, { where: { match_id: match.id }, transaction: t });
+        if (arr.length && arr[0].games > 0) {
+          await BasketballMemberMatchRecord.update(
+            { is_win: 1 },
+            { where: { match_id: match.id, squad_id: arr[0].squadId }, transaction: t }
+          );
+        }
       }
     }
 
@@ -3612,6 +3753,204 @@ const deleteMatch = async (req, res) => {
   }
 };
 
+// ───────────────────────────────────────────────
+// 팀 추천 (자동 밸런싱): 실력(랭킹 종합점수) + 포지션 분산 + 최근 2주 같은 팀 회피
+// ───────────────────────────────────────────────
+const SUGGEST_W_SKILL = 1.0; // 팀 실력합 표준편차 가중(주요)
+const SUGGEST_W_RECENT = 2.0; // 최근 2주 같은 팀 재구성 페널티(쌍당)
+const SUGGEST_W_POS = 0.5; // 포지션 편중 페널티
+
+const suggestTeams = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { matchId } = req.params;
+    const count = Math.min(Math.max(parseInt(req.query.count) || 2, 2), 4);
+    if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
+
+    const match = await BasketballMatch.findByPk(parseInt(matchId));
+    if (!match) throw new BadRequestError('경기를 찾을 수 없습니다.');
+    const teamId = match.team_id;
+    await assertTeamMember(userId, teamId);
+
+    // 참석자(attend) → 없으면 전체 투표자
+    const atts = await BasketballMatchAttendance.findAll({ where: { match_id: match.id } });
+    let attendeeIds = [...new Set(atts.filter((a) => a.status === 'attend').map((a) => a.user_id))];
+    if (attendeeIds.length === 0) attendeeIds = [...new Set(atts.map((a) => a.user_id))];
+    if (attendeeIds.length === 0) return res.status(200).json({ success: true, data: { squads: [] } });
+
+    // 멤버 정보(이름/이미지/포지션)
+    const members = await BasketballTeamMember.findAll({
+      where: { team_id: teamId, user_id: { [Op.in]: attendeeIds }, is_active: 1 },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+    });
+    const info = new Map();
+    for (const m of members) {
+      info.set(m.user_id, {
+        userId: m.user_id,
+        name: m.user?.name || `선수${m.user_id}`,
+        image: m.image_url || null,
+        position: m.position || null,
+      });
+    }
+    for (const uid of attendeeIds)
+      if (!info.has(uid)) info.set(uid, { userId: uid, name: `선수${uid}`, image: null, position: null });
+
+    // 실력: 랭킹 종합점수(PIE 70 + 승률 30) — 전체 누적 기준
+    const gpwRows = await BasketballMemberMatchRecord.findAll({
+      where: { team_id: teamId, user_id: { [Op.in]: attendeeIds } },
+      attributes: ['user_id', [Sequelize.fn('COUNT', Sequelize.col('id')), 'gp'], [Sequelize.fn('SUM', Sequelize.col('is_win')), 'w']],
+      group: ['user_id'],
+      raw: true,
+    });
+    const gpw = new Map();
+    for (const r of gpwRows) gpw.set(Number(r.user_id), { gp: parseInt(r.gp) || 0, w: parseInt(r.w) || 0 });
+
+    // PIE: 팀 전체 기록으로 경기별 기여 총합(분모) 계산 후 개인 몫
+    const pieRecs = await BasketballMemberMatchRecord.findAll({
+      where: { team_id: teamId },
+      attributes: ['user_id', 'match_id', 'pts', 'fgm', 'fga', 'ftm', 'fta', 'oreb', 'dreb', 'ast', 'stl', 'blk', 'pf', 'turnover'],
+      raw: true,
+    });
+    const contrib = (r) =>
+      toInt(r.pts) + toInt(r.fgm) + toInt(r.ftm) - toInt(r.fga) - toInt(r.fta) +
+      toInt(r.dreb) + 0.5 * toInt(r.oreb) + toInt(r.ast) + toInt(r.stl) + 0.5 * toInt(r.blk) -
+      toInt(r.pf) - toInt(r.turnover);
+    const gameTotal = {};
+    const pc = {};
+    for (const r of pieRecs) {
+      const c = contrib(r);
+      gameTotal[r.match_id] = (gameTotal[r.match_id] || 0) + c;
+      if (r.user_id == null) continue;
+      const p = (pc[r.user_id] = pc[r.user_id] || { num: 0, matches: [] });
+      p.num += c;
+      p.matches.push(r.match_id);
+    }
+    const pieMap = new Map();
+    for (const [uid, v] of Object.entries(pc)) {
+      const den = v.matches.reduce((s, m) => s + (gameTotal[m] || 0), 0);
+      pieMap.set(Number(uid), den > 0 ? (v.num / den) * 100 : 0);
+    }
+
+    // 자격자(경기 있음) 내에서 pie·승률 정규화 → 종합점수(0~100). 무경기는 중앙값 대체
+    const norm = (x, arr) => {
+      const mn = Math.min(...arr);
+      const mx = Math.max(...arr);
+      return mx > mn ? ((x - mn) / (mx - mn)) * 100 : 50;
+    };
+    const withGames = attendeeIds.filter((uid) => (gpw.get(uid)?.gp || 0) > 0);
+    const skillMap = new Map();
+    if (withGames.length) {
+      const pies = withGames.map((uid) => pieMap.get(uid) || 0);
+      const wins = withGames.map((uid) => {
+        const g = gpw.get(uid);
+        return g.gp > 0 ? (g.w / g.gp) * 100 : 0;
+      });
+      for (const uid of withGames) {
+        const g = gpw.get(uid);
+        const winRate = g.gp > 0 ? (g.w / g.gp) * 100 : 0;
+        skillMap.set(uid, 0.7 * norm(pieMap.get(uid) || 0, pies) + 0.3 * norm(winRate, wins));
+      }
+    }
+    const skillVals = [...skillMap.values()];
+    const median = skillVals.length
+      ? skillVals.sort((a, b) => a - b)[Math.floor(skillVals.length / 2)]
+      : 50;
+    for (const uid of attendeeIds) if (!skillMap.has(uid)) skillMap.set(uid, median); // 무경기 = 중립
+
+    // 최근 2주 같은 팀(스쿼드) 쌍
+    const since = new Date(Date.now() - 14 * 86400000);
+    const recentRows = await BasketballMemberMatchRecord.findAll({
+      where: { team_id: teamId, squad_id: { [Op.ne]: null }, user_id: { [Op.ne]: null }, created_at: { [Op.gte]: since } },
+      attributes: ['match_id', 'squad_id', 'user_id'],
+      raw: true,
+    });
+    const grp = {};
+    for (const r of recentRows) {
+      const k = `${r.match_id}_${r.squad_id}`;
+      (grp[k] = grp[k] || []).push(r.user_id);
+    }
+    const recentPair = new Set();
+    for (const arr of Object.values(grp)) {
+      const us = [...new Set(arr)];
+      for (let i = 0; i < us.length; i++)
+        for (let j = i + 1; j < us.length; j++)
+          recentPair.add(us[i] < us[j] ? `${us[i]}-${us[j]}` : `${us[j]}-${us[i]}`);
+    }
+
+    // ── 밸런싱: 스네이크 드래프트 + 로컬 서치(스왑) + 랜덤 재시작 ──
+    const players = attendeeIds.map((uid) => ({ ...info.get(uid), skill: skillMap.get(uid) }));
+    const POSITIONS = ['guard', 'forward', 'center'];
+    const teamSkill = (t) => t.reduce((s, p) => s + p.skill, 0);
+    const objective = (tt) => {
+      const sums = tt.map(teamSkill);
+      const mean = sums.reduce((a, b) => a + b, 0) / tt.length;
+      const skillStd = Math.sqrt(sums.reduce((a, s) => a + (s - mean) ** 2, 0) / tt.length);
+      let rec = 0;
+      for (const t of tt)
+        for (let i = 0; i < t.length; i++)
+          for (let j = i + 1; j < t.length; j++) {
+            const a = t[i].userId, b = t[j].userId;
+            if (recentPair.has(a < b ? `${a}-${b}` : `${b}-${a}`)) rec++;
+          }
+      let pos = 0;
+      for (const P of POSITIONS) {
+        const counts = tt.map((t) => t.filter((p) => p.position === P).length);
+        pos += Math.max(...counts) - Math.min(...counts);
+      }
+      return SUGGEST_W_SKILL * skillStd + SUGGEST_W_RECENT * rec + SUGGEST_W_POS * pos;
+    };
+    const snake = (arr) => {
+      const teams = Array.from({ length: count }, () => []);
+      let idx = 0, dir = 1;
+      for (const p of arr) {
+        teams[idx].push(p);
+        idx += dir;
+        if (idx >= count) { idx = count - 1; dir = -1; } else if (idx < 0) { idx = 0; dir = 1; }
+      }
+      return teams;
+    };
+    const localSearch = (teams) => {
+      let improved = true;
+      let best = objective(teams);
+      while (improved) {
+        improved = false;
+        for (let a = 0; a < count; a++)
+          for (let b = a + 1; b < count; b++)
+            for (let i = 0; i < teams[a].length; i++)
+              for (let j = 0; j < teams[b].length; j++) {
+                [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]];
+                const o = objective(teams);
+                if (o < best - 1e-9) { best = o; improved = true; }
+                else [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]]; // 되돌림
+              }
+      }
+      return { teams, score: best };
+    };
+    let bestResult = null;
+    for (let restart = 0; restart < 12; restart++) {
+      // 실력 내림차순 + 랜덤 타이브레이크(재시작마다 다양성)
+      const shuffled = [...players]
+        .map((p) => ({ p, k: p.skill + (Math.random() - 0.5) * 1e-3 }))
+        .sort((x, y) => y.k - x.k)
+        .map((x) => x.p);
+      const { teams, score } = localSearch(snake(shuffled));
+      if (!bestResult || score < bestResult.score) bestResult = { teams, score };
+    }
+
+    const labels = ['A', 'B', 'C', 'D'];
+    const squads = bestResult.teams.map((t, i) => ({
+      label: labels[i] || `${i + 1}`,
+      members: t.map((p) => ({ userId: p.userId, name: p.name, image: p.image, position: p.position })),
+    }));
+
+    return res.status(200).json({ success: true, data: { squads } });
+  } catch (err) {
+    logger.error('팀 추천 에러:', err);
+    if (err instanceof BadRequestError || err instanceof UnauthorizedError) throw err;
+    throw new BadGatewayError(`팀 추천 중 오류가 발생했습니다: ${err.message}`);
+  }
+};
+
 module.exports = {
   createTeam,
   getTeamInfo,
@@ -3635,6 +3974,7 @@ module.exports = {
   getMatches,
   getNextMatch,
   getMatchDetail,
+  suggestTeams,
   updateAttendance,
   completeMatch,
   updateMatch,

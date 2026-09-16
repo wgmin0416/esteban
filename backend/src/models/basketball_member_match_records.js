@@ -62,6 +62,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: '스쿼드 ID',
       },
+      game_no: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+        comment: '게임 번호(하루 내 여러 게임)',
+      },
       minutes: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: true,
@@ -232,8 +238,8 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['match_id', 'user_id'],
-          name: 'uq_match_record_match_user',
+          fields: ['match_id', 'user_id', 'game_no'],
+          name: 'uq_match_record_match_user_game',
         },
       ],
     }

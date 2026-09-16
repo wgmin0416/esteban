@@ -75,6 +75,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 1,
         comment: '이 쿼터 코트 출전 여부(+/- 산출용)',
       },
+      game_no: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+        comment: '게임 번호(하루 내 여러 게임)',
+      },
       quarter: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,
@@ -188,6 +194,23 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '어시스트 개수',
       },
+      assist_targets: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: '어시스트 대상 JSON {scorerUserId: count}',
+        get() {
+          const v = this.getDataValue('assist_targets');
+          if (!v) return null;
+          try {
+            return JSON.parse(v);
+          } catch {
+            return null;
+          }
+        },
+        set(val) {
+          this.setDataValue('assist_targets', val == null ? null : JSON.stringify(val));
+        },
+      },
       stl: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,
@@ -246,8 +269,8 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['match_id', 'user_id', 'quarter'],
-          name: 'uq_quarter_record_match_user_quarter',
+          fields: ['match_id', 'user_id', 'quarter', 'game_no'],
+          name: 'uq_quarter_record_match_user_quarter_game',
         },
       ],
     }

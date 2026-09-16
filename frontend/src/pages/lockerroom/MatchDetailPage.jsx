@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import useTeamStore from '../../store/useTeamStore';
 import useAuthStore from '../../store/useAuthStore';
 import useLanguageStore from '../../store/useLanguageStore';
@@ -20,7 +20,11 @@ const avatar = (name, url) =>
 const MatchDetailPage = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  // 다른 화면(예: 후기 게시글)에서 넘어온 경우 뒤로가기를 그쪽으로
+  const backTo = location.state?.from || '/locker-room/matches';
+  const backLabel = location.state?.fromLabel;
   const teamInfo = useTeamStore((s) => s.teamInfo);
   const myInfo = useAuthStore((s) => s.myInfo);
   const language = useLanguageStore((s) => s.language);
@@ -180,8 +184,8 @@ const MatchDetailPage = () => {
   return (
     <div className="match-detail-page">
       <div className="container">
-        <button className="back-link" onClick={() => navigate('/locker-room/matches')}>
-          ← {t('경기 목록', 'Matches')}
+        <button className="back-link" onClick={() => navigate(backTo)}>
+          ← {backLabel || t('경기 목록', 'Matches')}
         </button>
 
         {/* 헤더 */}
@@ -367,6 +371,11 @@ const MatchDetailPage = () => {
               <button className="act primary" onClick={() => navigate(`/locker-room/matches/${matchId}/live`)}>
                 🔴 {t('라이브 기록 이어서', 'Continue Live Tracking')}
               </button>
+              {canManage && (
+                <button className="act ghost" onClick={() => navigate(`/locker-room/matches/${matchId}/live-setup`)}>
+                  🧩 {t('팀 짜기', 'Build Teams')}
+                </button>
+              )}
               {canManage && (
                 <button className="act ghost" onClick={openEdit}>
                   {t('경기 수정', 'Edit Match')}

@@ -34,6 +34,8 @@ router.post('/match', authMiddleware, teamController.createMatch);
 router.get('/match/next', authMiddleware, teamController.getNextMatch);
 // 경기 상세 (참석현황 + 스쿼드 + 결과)
 router.get('/match/:matchId', authMiddleware, teamController.getMatchDetail);
+// 팀 추천 (자동 밸런싱)
+router.get('/match/:matchId/suggest-teams', authMiddleware, teamController.suggestTeams);
 // 경기 수정 (팀장/운영진)
 router.put('/match/:matchId', authMiddleware, teamController.updateMatch);
 // 경기 삭제/취소

@@ -1,0 +1,480 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+@use '../../styles/common' as *;
+
+.board-form-page {
+  @extend %page-container;
+  padding-top: $spacing-md;
+
+  @include respond-to(md) {
+    padding-top: $spacing-lg;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  // 랭킹/기록/게시판과 동일한 타이틀 글씨
+  .page-title {
+    margin: 0 0 $spacing-md;
+    font-family: $font-display;
+    font-size: $font-xl;
+    font-weight: 800;
+    color: $text-primary;
+    display: flex;
+    align-items: baseline;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+
+    .page-subtitle {
+      font-family: system-ui, sans-serif;
+      font-size: $font-xs;
+      font-weight: 500;
+      color: $text-light;
+    }
+  }
+
+  // 임시저장 복구 배너
+  .draft-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+    margin-bottom: $spacing-lg;
+    padding: $spacing-sm $spacing-md;
+    background: rgba($secondary-color, 0.08);
+    border: 1px solid rgba($secondary-color, 0.25);
+    border-radius: $radius-md;
+
+    .draft-msg {
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $text-primary;
+    }
+
+    .draft-actions {
+      display: flex;
+      gap: $spacing-sm;
+    }
+
+    .btn-draft {
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 600;
+      border-radius: $radius-sm;
+      border: none;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &.restore {
+        background: $secondary-color;
+        color: white;
+
+        &:hover {
+          background: $secondary-hover;
+        }
+      }
+
+      &.discard {
+        background: $background-gray;
+        color: $text-secondary;
+
+        &:hover {
+          background: $border-light;
+          color: $danger-color;
+        }
+      }
+    }
+  }
+
+  .board-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+    background: $background-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    padding: $spacing-lg;
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      label {
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $text-secondary;
+      }
+
+      .label-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+
+        .char-count {
+          font-size: $font-xs;
+          font-weight: 500;
+          color: $text-light;
+
+          &.max {
+            color: $danger-color;
+          }
+        }
+      }
+
+      .form-input,
+      .form-textarea {
+        @include input-base;
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-base;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+        }
+      }
+
+      .form-textarea {
+        resize: vertical;
+        font-family: inherit;
+        line-height: 1.6;
+      }
+    }
+
+    .checkbox-label {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $text-primary;
+      cursor: pointer;
+
+      &.small {
+        font-weight: 500;
+        color: $text-secondary;
+      }
+
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+    }
+
+    // 말머리 칩
+    .category-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+
+      .cat-chip {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+        font-weight: 700;
+        color: $text-secondary;
+        background: $background-light;
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all $transition-base;
+
+        &.active {
+          color: #fff;
+        }
+      }
+    }
+
+    // 이미지 첨부
+    .attach-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+
+      .attach-thumb {
+        position: relative;
+        width: 84px;
+        height: 84px;
+        border-radius: $radius-md;
+        overflow: hidden;
+        border: 1px solid $border-color;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        button {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          width: 20px;
+          height: 20px;
+          border: none;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.6);
+          color: #fff;
+          font-size: 14px;
+          line-height: 1;
+          cursor: pointer;
+        }
+      }
+
+      .attach-add {
+        width: 84px;
+        height: 84px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: $text-light;
+        border: 2px dashed $border-color;
+        border-radius: $radius-md;
+        cursor: pointer;
+
+        &:hover {
+          border-color: $primary-color;
+          color: $primary-color;
+        }
+      }
+    }
+
+    // 파일 첨부
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      .file-row {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        padding: $spacing-xs $spacing-sm;
+        background: $background-gray;
+        border-radius: $radius-sm;
+        font-size: $font-sm;
+
+        .file-name {
+          flex: 1;
+          @include text-ellipsis(1);
+        }
+
+        .file-size {
+          color: $text-light;
+          font-size: $font-xs;
+        }
+
+        button {
+          border: none;
+          background: transparent;
+          color: $danger-color;
+          font-size: 16px;
+          cursor: pointer;
+        }
+      }
+
+      .file-add {
+        align-self: flex-start;
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
+        font-weight: 600;
+        color: $primary-color;
+        background: rgba($primary-color, 0.08);
+        border-radius: $radius-sm;
+        cursor: pointer;
+      }
+    }
+
+    // 링크 / 투표 항목 행
+    .link-row {
+      display: flex;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-xs;
+
+      .form-input {
+        flex: 1;
+      }
+
+      .row-remove {
+        flex-shrink: 0;
+        width: 36px;
+        border: 1px solid $border-color;
+        border-radius: $radius-sm;
+        background: $background-light;
+        color: $danger-color;
+        font-size: 18px;
+        cursor: pointer;
+      }
+    }
+
+    .row-add {
+      align-self: flex-start;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $primary-color;
+      background: rgba($primary-color, 0.08);
+      border: none;
+      border-radius: $radius-sm;
+      cursor: pointer;
+    }
+
+    // 내용 + @멘션 자동완성 + 음영 하이라이트 레이어
+    .content-wrap {
+      position: relative;
+
+      // 하이라이트 백드롭 (textarea와 동일 메트릭)
+      .ta-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        pointer-events: none;
+        margin: 0;
+        padding: $spacing-sm $spacing-md;
+        border: 1px solid transparent;
+        border-radius: $radius-md;
+        font-family: inherit;
+        font-size: $font-base;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        color: $text-primary;
+
+        .mention {
+          padding: 1px 5px;
+          border-radius: $radius-sm;
+          font-weight: 700;
+          color: $primary-color;
+          background: rgba($primary-color, 0.12);
+        }
+      }
+
+      // 하이라이트 모드: textarea 글자는 투명, 커서만 보이게
+      &.highlighting .form-textarea {
+        position: relative;
+        z-index: 2;
+        background: transparent;
+        color: transparent;
+        caret-color: $text-primary;
+      }
+
+      .mention-list {
+        position: absolute;
+        left: $spacing-sm;
+        bottom: $spacing-sm;
+        z-index: 20;
+        min-width: 180px;
+        max-height: 220px;
+        overflow-y: auto;
+        margin: 0;
+        padding: 4px;
+        list-style: none;
+        background: $background-light;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        box-shadow: 0 6px 20px $shadow-hover;
+
+        li button {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: $spacing-sm;
+          width: 100%;
+          padding: $spacing-xs $spacing-sm;
+          border: none;
+          background: transparent;
+          border-radius: $radius-sm;
+          cursor: pointer;
+          text-align: left;
+
+          &:hover {
+            background: rgba($primary-color, 0.1);
+          }
+
+          .ml-name {
+            font-weight: 600;
+            color: $text-primary;
+          }
+
+          .ml-squad {
+            font-size: $font-xs;
+            font-weight: 700;
+            color: $primary-color;
+          }
+        }
+      }
+    }
+
+    .field-hint {
+      display: block;
+      margin-top: $spacing-xs;
+      font-size: $font-xs;
+      color: $text-light;
+    }
+
+    // 투표 빌더
+    .poll-group {
+      .poll-builder {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-sm;
+        margin-top: $spacing-sm;
+        padding: $spacing-md;
+        background: $background-gray;
+        border-radius: $radius-md;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $spacing-md;
+      margin-top: $spacing-sm;
+
+      .btn {
+        padding: $spacing-sm $spacing-xl;
+        border-radius: $radius-md;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all $transition-base;
+        border: none;
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &.btn-secondary {
+          background: $background-gray;
+          color: $text-primary;
+
+          &:hover:not(:disabled) {
+            background: $border-light;
+          }
+        }
+
+        &.btn-primary {
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          color: white;
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, $primary-hover, $primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px $shadow-md;
+          }
+        }
+      }
+    }
+  }
+}

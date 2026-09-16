@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTeamStore from '../../store/useTeamStore';
 import useLanguageStore from '../../store/useLanguageStore';
@@ -6,158 +6,158 @@ import apiRequest from '../../lib/apiRequest';
 import EmptyState from '../../components/common/EmptyState';
 import './RecordsPage.scss';
 
+const pad = (n) => String(n).padStart(2, '0');
+// 4분기 기준: 1분기(1~3월) 2분기(4~6월) 3분기(7~9월) 4분기(10~12월)
+const monthToQuarter = (month) => Math.ceil(month / 3);
+
+// 통합기록 스탯 컬럼 (정렬 가능). pct=백분율 표기
+const STAT_COLS = [
+  { key: 'gp', label: 'GP' },
+  { key: 'w', label: 'W' },
+  { key: 'l', label: 'L' },
+  { key: 'pts', label: 'PTS' },
+  { key: 'fgPct', label: 'FG%', pct: true },
+  { key: 'twopPct', label: '2P%', pct: true },
+  { key: 'threepPct', label: '3P%', pct: true },
+  { key: 'ftPct', label: 'FT%', pct: true },
+  { key: 'reb', label: 'REB' },
+  { key: 'ast', label: 'AST' },
+  { key: 'stl', label: 'STL' },
+  { key: 'blk', label: 'BLK' },
+  { key: 'turnover', label: 'TO' },
+  { key: 'dd2', label: 'DD2' },
+  { key: 'td3', label: 'TD3' },
+];
+
 const RecordsPage = () => {
   const navigate = useNavigate();
   const teamInfo = useTeamStore((state) => state.teamInfo);
   const getTeamInfo = useTeamStore((state) => state.getTeamInfo);
   const language = useLanguageStore((state) => state.language);
-  
-  const [activeTab, setActiveTab] = useState('aggregate'); // 'aggregate' or 'match'
+  const t = (kr, en) => (language === 'KR' ? kr : en);
 
-  useEffect(() => {
-    if (!teamInfo) {
-      getTeamInfo();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [activeTab, setActiveTab] = useState('aggregate'); // 'aggregate' | 'match'
 
   const [availableYears, setAvailableYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(null);
-  const [selectedQuarter, setSelectedQuarter] = useState(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(''); // '' = 전체(전체 기록)
+  const [selectedQuarter, setSelectedQuarter] = useState(''); // '' = 전체
 
-  // 더미 데이터 생성 함수
-  const generateDummyRecords = () => {
-    const dummyData = [];
-    for (let i = 1; i <= 15; i++) {
-      const gp = 20 + Math.floor(Math.random() * 15);
-      const w = Math.floor(gp * (0.4 + Math.random() * 0.3));
-      const l = gp - w;
-      
-      dummyData.push({
-        no: i,
-        userId: i,
-        userName: `선수${i}`,
-        userImage: `https://i.pravatar.cc/150?img=${i}`,
-        gp: gp,
-        w: w,
-        l: l,
-        pts: (15 + Math.random() * 15).toFixed(1),
-        fgPct: (40 + Math.random() * 20).toFixed(1),
-        twopPct: (45 + Math.random() * 15).toFixed(1),
-        threepPct: (30 + Math.random() * 20).toFixed(1),
-        ftPct: (70 + Math.random() * 20).toFixed(1),
-        reb: (5 + Math.random() * 8).toFixed(1),
-        ast: (3 + Math.random() * 5).toFixed(1),
-        stl: (1 + Math.random() * 2).toFixed(1),
-        blk: (0.5 + Math.random() * 1.5).toFixed(1),
-        to: (2 + Math.random() * 3).toFixed(1),
-        dd2: Math.floor(Math.random() * 3),
-        td3: Math.floor(Math.random() * 2),
-      });
-    }
-    return dummyData;
-  };
+  const [records, setRecords] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState({ key: null, dir: 'desc' }); // 통합기록 정렬
+
+  useEffect(() => {
+    if (!teamInfo) getTeamInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 사용 가능한 연도 목록 로드
   const loadAvailableYears = async () => {
     try {
       const response = await apiRequest('get', '/team/records/years');
-      if (response?.data && response.data.length > 0) {
-        setAvailableYears(response.data);
-        setSelectedYear(response.data[0]);
-      } else {
-        // API 응답이 없을 경우 현재 연도만 사용
-        const currentYear = new Date().getFullYear();
-        setAvailableYears([currentYear]);
-        setSelectedYear(currentYear);
-      }
+      setAvailableYears(response?.data?.length ? response.data : []);
     } catch (error) {
       console.error('연도 목록 로드 실패:', error);
-      // 에러 발생 시 현재 연도만 사용
-      const currentYear = new Date().getFullYear();
-      setAvailableYears([currentYear]);
-      setSelectedYear(currentYear);
+      setAvailableYears([]);
     }
   };
 
-  // 기록 데이터 로드
-  const loadRecords = async () => {
+  // 통합기록(집계) 로드 — 연도/분기 필터. 미선택 시 전체 누적.
+  const loadRecords = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
-      if (startDate && endDate) {
-        params.startDate = startDate;
-        params.endDate = endDate;
-      } else if (selectedYear) {
+      if (selectedYear) {
         params.year = selectedYear;
-        if (selectedQuarter) {
-          params.quarter = selectedQuarter;
-        }
+        if (selectedQuarter) params.quarter = selectedQuarter;
       }
-
       const response = await apiRequest('get', '/team/records', params);
-      if (response?.data && response.data.length > 0) {
-        setRecords(response.data);
-      } else {
-        // API 응답이 없을 경우 더미 데이터 사용
-        const dummyData = generateDummyRecords();
-        setRecords(dummyData);
-      }
+      setRecords(response?.data || []);
     } catch (error) {
       console.error('기록 로드 실패:', error);
-      // 에러 발생 시 더미 데이터 사용
-      const dummyData = generateDummyRecords();
-      setRecords(dummyData);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear, selectedQuarter]);
+
+  // 경기기록 로드 — 각 경기를 찾아 상세 기록으로 이동. 기록이 있는(완료) 경기만.
+  const loadMatches = useCallback(async () => {
+    if (!teamInfo?.id) return;
+    setLoading(true);
+    try {
+      const params = { team_id: teamInfo.id };
+      if (selectedYear) params.year = selectedYear;
+      const response = await apiRequest('get', '/team/matches', params);
+      let list = (response?.data || []).filter((m) => m.status === 'completed');
+      if (selectedQuarter) {
+        list = list.filter(
+          (m) => monthToQuarter(new Date(m.match_date).getMonth() + 1) === Number(selectedQuarter)
+        );
+      }
+      setMatches(list);
+    } catch (error) {
+      console.error('경기 기록 로드 실패:', error);
+      setMatches([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [teamInfo?.id, selectedYear, selectedQuarter]);
 
   useEffect(() => {
     loadAvailableYears();
   }, []);
 
   useEffect(() => {
-    if (selectedYear || (startDate && endDate)) {
-      loadRecords();
-    } else if (availableYears.length > 0 && !selectedYear) {
-      // 연도 목록이 있지만 선택되지 않은 경우 첫 번째 연도로 설정
-      setSelectedYear(availableYears[0]);
-    }
-  }, [selectedYear, selectedQuarter, startDate, endDate, availableYears]);
+    if (!teamInfo?.id) return;
+    if (activeTab === 'aggregate') loadRecords();
+    else loadMatches();
+  }, [activeTab, teamInfo?.id, loadRecords, loadMatches]);
+
+  // 컬럼 헤더 클릭 정렬: 같은 항목이면 방향 토글, 다른 항목이면 기본 방향(이름=오름, 수치=내림)
+  const toggleSort = (key) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'name' ? 'asc' : 'desc' }
+    );
+  };
+
+  const sortedRecords = useMemo(() => {
+    if (!sort.key) return records;
+    const arr = [...records];
+    arr.sort((a, b) => {
+      if (sort.key === 'name') {
+        const cmp = (a.userName || '').localeCompare(b.userName || '');
+        return sort.dir === 'asc' ? cmp : -cmp;
+      }
+      const av = parseFloat(a[sort.key]) || 0;
+      const bv = parseFloat(b[sort.key]) || 0;
+      return sort.dir === 'asc' ? av - bv : bv - av;
+    });
+    return arr;
+  }, [records, sort]);
+
+  const sortIndicator = (key) => (sort.key === key ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅');
 
   const handleYearChange = (e) => {
-    setSelectedYear(e.target.value ? parseInt(e.target.value) : null);
-    setSelectedQuarter(null);
-    setStartDate('');
-    setEndDate('');
+    setSelectedYear(e.target.value);
+    setSelectedQuarter('');
   };
 
   const handleQuarterChange = (e) => {
-    setSelectedQuarter(e.target.value ? parseInt(e.target.value) : null);
-    setStartDate('');
-    setEndDate('');
-  };
-
-  const handleStartDateChange = (e) => {
-    setStartDate(e.target.value);
-    setSelectedYear(null);
-    setSelectedQuarter(null);
-  };
-
-  const handleEndDateChange = (e) => {
-    setEndDate(e.target.value);
-    setSelectedYear(null);
-    setSelectedQuarter(null);
+    setSelectedQuarter(e.target.value);
   };
 
   const getPlayerImage = (userImage, userName, userId) => {
     if (userImage) return userImage;
-    return `https://i.pravatar.cc/150?img=${userId || userName}`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || '?')}&background=ff5a1f&color=fff&size=128`;
+  };
+
+  const fmtDate = (d) => {
+    const dt = new Date(d);
+    return `${dt.getFullYear()}.${pad(dt.getMonth() + 1)}.${pad(dt.getDate())}`;
   };
 
   if (!teamInfo) {
@@ -170,17 +170,20 @@ const RecordsPage = () => {
     );
   }
 
-  const handleCreateRecord = () => {
-    navigate('/locker-room/matches');
-  };
-
   return (
     <div className="records-page">
       <div className="container">
         <div className="page-header">
-          <h1 className="page-title">{language === 'KR' ? '기록' : 'Records'}</h1>
+          <h1 className="page-title">
+            {t('기록', 'Records')}
+            <span className="page-subtitle">
+              {activeTab === 'aggregate'
+                ? t('통합 스탯 집계', 'Aggregate stats')
+                : t('경기별 상세 기록', 'Per-match box scores')}
+            </span>
+          </h1>
           <button className="btn btn-primary btn-create-record" onClick={() => navigate('/locker-room/matches')}>
-            {language === 'KR' ? '경기 보러가기' : 'Go to Matches'}
+            {t('경기 보러가기', 'Go to Matches')}
           </button>
         </div>
 
@@ -190,136 +193,103 @@ const RecordsPage = () => {
             className={`tab-button ${activeTab === 'aggregate' ? 'active' : ''}`}
             onClick={() => setActiveTab('aggregate')}
           >
-            {language === 'KR' ? '통합기록' : 'Aggregate Records'}
+            {t('통합기록', 'Aggregate')}
           </button>
           <button
             className={`tab-button ${activeTab === 'match' ? 'active' : ''}`}
             onClick={() => setActiveTab('match')}
           >
-            {language === 'KR' ? '경기기록' : 'Match Records'}
+            {t('경기기록', 'Match Records')}
           </button>
         </div>
 
-        {/* 필터 섹션 */}
+        {/* 필터 섹션 (연도 · 분기) */}
         <div className="records-filters">
           <div className="filter-group">
-            <label htmlFor="year-select">{language === 'KR' ? '연도' : 'Year'}</label>
+            <label htmlFor="year-select">{t('연도', 'Year')}</label>
             <select
               id="year-select"
-              value={selectedYear || ''}
+              value={selectedYear}
               onChange={handleYearChange}
               className="filter-select"
             >
-              <option value="">{language === 'KR' ? '전체' : 'All'}</option>
+              <option value="">{t('전체', 'All')}</option>
               {availableYears.map((year) => (
                 <option key={year} value={year}>
-                  {year}
+                  {t(`${year}년`, `${year}`)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="filter-group">
-            <label htmlFor="quarter-select">{language === 'KR' ? '분기' : 'Quarter'}</label>
+            <label htmlFor="quarter-select">{t('분기', 'Quarter')}</label>
             <select
               id="quarter-select"
-              value={selectedQuarter || ''}
+              value={selectedQuarter}
               onChange={handleQuarterChange}
               className="filter-select"
               disabled={!selectedYear}
             >
-              <option value="">{language === 'KR' ? '전체' : 'All'}</option>
-              <option value="1">{language === 'KR' ? '1분기' : 'Q1'}</option>
-              <option value="2">{language === 'KR' ? '2분기' : 'Q2'}</option>
-              <option value="3">{language === 'KR' ? '3분기' : 'Q3'}</option>
-              <option value="4">{language === 'KR' ? '4분기' : 'Q4'}</option>
+              <option value="">{t('전체', 'All')}</option>
+              <option value="1">{t('1분기 (1~3월)', 'Q1 (Jan–Mar)')}</option>
+              <option value="2">{t('2분기 (4~6월)', 'Q2 (Apr–Jun)')}</option>
+              <option value="3">{t('3분기 (7~9월)', 'Q3 (Jul–Sep)')}</option>
+              <option value="4">{t('4분기 (10~12월)', 'Q4 (Oct–Dec)')}</option>
             </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="start-date">{language === 'KR' ? '시작일' : 'Start Date'}</label>
-            <input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={handleStartDateChange}
-              className="filter-input"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="end-date">{language === 'KR' ? '종료일' : 'End Date'}</label>
-            <input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={handleEndDateChange}
-              className="filter-input"
-            />
           </div>
         </div>
 
-        {/* 기록 테이블 */}
+        {/* 통합기록 탭 */}
         {activeTab === 'aggregate' ? (
-          // 통합기록 탭
           loading ? (
-            <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
+            <div className="loading-spinner">{t('로딩 중...', 'Loading...')}</div>
           ) : records.length > 0 ? (
             <div className="records-table-container">
               <table className="records-table">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Profile</th>
-                    <th>Name</th>
-                    <th>GP</th>
-                    <th>W</th>
-                    <th>L</th>
-                    <th>PTS</th>
-                    <th>FG%</th>
-                    <th>2P%</th>
-                    <th>3P%</th>
-                    <th>FT%</th>
-                    <th>REB</th>
-                    <th>AST</th>
-                    <th>STL</th>
-                    <th>BLK</th>
-                    <th>TO</th>
-                    <th>DD2</th>
-                    <th>TD3</th>
+                    <th
+                      className={`col-player sortable ${sort.key === 'name' ? 'sorted' : ''}`}
+                      onClick={() => toggleSort('name')}
+                    >
+                      {t('선수', 'Player')}
+                      <span className="sort-ind">{sortIndicator('name')}</span>
+                    </th>
+                    {STAT_COLS.map((col) => (
+                      <th
+                        key={col.key}
+                        className={`sortable ${sort.key === col.key ? 'sorted' : ''}`}
+                        onClick={() => toggleSort(col.key)}
+                      >
+                        {col.label}
+                        <span className="sort-ind">{sortIndicator(col.key)}</span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record) => (
+                  {sortedRecords.map((record) => (
                     <tr key={record.userId}>
-                      <td>{record.no}</td>
-                      <td>
-                        <div className="player-image-cell">
+                      <td className="col-player">
+                        <div className="player-cell">
                           <img
+                            className="player-avatar"
                             src={getPlayerImage(record.userImage, record.userName, record.userId)}
                             alt={record.userName}
                             onError={(e) => {
                               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(record.userName)}&background=2563eb&color=fff&size=128`;
                             }}
                           />
+                          <span className="player-name">{record.userName}</span>
                         </div>
                       </td>
-                      <td>{record.userName}</td>
-                      <td>{record.gp}</td>
-                      <td>{record.w}</td>
-                      <td>{record.l}</td>
-                      <td>{record.pts}</td>
-                      <td>{record.fgPct}%</td>
-                      <td>{record.twopPct}%</td>
-                      <td>{record.threepPct}%</td>
-                      <td>{record.ftPct}%</td>
-                      <td>{record.reb}</td>
-                      <td>{record.ast}</td>
-                      <td>{record.stl}</td>
-                      <td>{record.blk}</td>
-                      <td>{record.turnover}</td>
-                      <td>{record.dd2}</td>
-                      <td>{record.td3}</td>
+                      {STAT_COLS.map((col) => (
+                        <td key={col.key} className={sort.key === col.key ? 'sorted' : ''}>
+                          {record[col.key]}
+                          {col.pct ? '%' : ''}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -329,23 +299,54 @@ const RecordsPage = () => {
             <div className="empty-state">
               <div className="empty-icon">📊</div>
               <div className="empty-message">
-                {language === 'KR' ? '기록 데이터가 없습니다.' : 'No records available.'}
+                {t('기록 데이터가 없습니다.', 'No records available.')}
               </div>
             </div>
           )
         ) : (
-          // 경기기록 탭
+          /* 경기기록 탭 — 각 경기를 눌러 상세 기록 확인 */
           <div className="match-records-section">
             {loading ? (
-              <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
+              <div className="loading-spinner">{t('로딩 중...', 'Loading...')}</div>
+            ) : matches.length > 0 ? (
+              <div className="match-record-list">
+                {matches.map((m) => (
+                  <button
+                    key={m.id}
+                    className="match-record-card"
+                    onClick={() => navigate(`/locker-room/matches/${m.id}`)}
+                  >
+                    <div className="mrc-top">
+                      <span className="mrc-date">{fmtDate(m.match_date)}</span>
+                      {m.location && <span className="mrc-loc">📍 {m.location}</span>}
+                    </div>
+                    <div className="mrc-title">{m.title}</div>
+                    <div className="mrc-bottom">
+                      {m.squads.length > 0 ? (
+                        <div className="mrc-score">
+                          {m.squads.map((s, i) => (
+                            <span key={i} className="mrc-sq">
+                              {i > 0 && <span className="mrc-vs">:</span>}
+                              <b>{s.label}</b> {s.points}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="mrc-att">🙋 {m.attendeeCount}{t('명 참석', ' attended')}</span>
+                      )}
+                      <span className="mrc-view">{t('기록 보기', 'View')} ›</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="empty-state">
                 <div className="empty-icon">🏀</div>
                 <div className="empty-message">
-                  {language === 'KR' ? '경기 기록이 없습니다.' : 'No match records available.'}
+                  {t('경기 기록이 없습니다.', 'No match records available.')}
                 </div>
-                <button className="btn btn-primary" onClick={handleCreateRecord}>
-                  {language === 'KR' ? '경기 보러가기' : 'Go to Matches'}
+                <button className="btn btn-primary" onClick={() => navigate('/locker-room/matches')}>
+                  {t('경기 보러가기', 'Go to Matches')}
                 </button>
               </div>
             )}

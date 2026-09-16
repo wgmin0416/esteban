@@ -4,6 +4,11 @@
 
 .records-page {
   @extend %page-container;
+  padding-top: $spacing-md; // 상단 메뉴와의 간격 축소
+
+  @include respond-to(md) {
+    padding-top: $spacing-lg;
+  }
 
   .container {
     max-width: $container-width;
@@ -14,28 +19,45 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $spacing-xl;
-    flex-wrap: wrap;
-    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    gap: $spacing-sm;
 
+    // 랭킹 탭과 동일한 타이틀 글씨 (Court Energy 테마)
     .page-title {
-      @extend %page-title;
       margin: 0;
+      font-family: $font-display;
+      font-size: $font-xl;
+      font-weight: 800;
+      color: $text-primary;
+      display: flex;
+      align-items: baseline;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+      min-width: 0;
+
+      .page-subtitle {
+        font-family: system-ui, sans-serif;
+        font-size: $font-xs;
+        font-weight: 500;
+        color: $text-light;
+      }
     }
 
     .btn-create-record {
       @include button-base;
+      flex-shrink: 0;
       background: linear-gradient(135deg, $primary-color, $primary-light);
       color: white;
-      padding: $spacing-sm $spacing-lg;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
       font-weight: 600;
-      box-shadow: 0 4px 6px $shadow-md;
+      box-shadow: 0 2px 4px $shadow-md;
       transition: all $transition-base;
 
       &:hover {
         background: linear-gradient(135deg, $primary-hover, $primary-color);
-        box-shadow: 0 6px 12px $shadow-hover;
-        transform: translateY(-2px);
+        box-shadow: 0 4px 8px $shadow-hover;
+        transform: translateY(-1px);
       }
     }
 
@@ -56,33 +78,33 @@
   }
 
   .records-tabs {
-    display: flex;
-    gap: $spacing-sm;
-    margin-bottom: $spacing-xl;
-    border-bottom: 2px solid $border-color;
+    display: inline-flex;
+    gap: 2px;
+    margin-bottom: $spacing-md;
+    padding: 3px;
+    background: $background-gray;
+    border-radius: $radius-md;
 
     .tab-button {
       @include button-base;
-      padding: $spacing-md $spacing-xl;
+      padding: $spacing-xs $spacing-md;
       background: transparent;
       border: none;
-      border-bottom: 3px solid transparent;
+      border-radius: $radius-sm;
       color: $text-secondary;
       font-weight: 600;
-      font-size: $font-base;
+      font-size: $font-sm;
       cursor: pointer;
       transition: all $transition-base;
-      margin-bottom: -2px;
 
       &:hover {
         color: $primary-color;
-        background: rgba($primary-color, 0.05);
       }
 
       &.active {
         color: $primary-color;
-        border-bottom-color: $primary-color;
-        background: rgba($primary-color, 0.05);
+        background: $background-light;
+        box-shadow: 0 1px 3px $shadow-sm;
       }
     }
   }
@@ -152,24 +174,14 @@
 
   .records-filters {
     display: flex;
-    gap: $spacing-lg;
-    margin-bottom: $spacing-xxl;
-    padding: $spacing-lg;
-    background: $background-light;
-    border-radius: $radius-lg;
-    box-shadow: 0 2px 8px $shadow-sm;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
     flex-wrap: wrap;
-
-    @include respond-to(md) {
-      gap: $spacing-xl;
-    }
 
     .filter-group {
       display: flex;
-      flex-direction: column;
-      gap: $spacing-sm;
-      flex: 1;
-      min-width: 150px;
+      align-items: center;
+      gap: $spacing-xs;
 
       label {
         font-size: $font-sm;
@@ -180,12 +192,14 @@
       .filter-select,
       .filter-input {
         @include input-base;
-        padding: $spacing-sm $spacing-md;
-        font-size: $font-base;
+        width: auto;
+        padding: $spacing-xs $spacing-sm;
+        font-size: $font-sm;
         font-weight: 500;
         cursor: pointer;
         background-color: $background-light;
-        border: 2px solid $border-color;
+        border: 1px solid $border-color;
+        border-radius: $radius-sm;
 
         &:hover {
           border-color: $primary-color;
@@ -194,7 +208,7 @@
         &:focus {
           outline: none;
           border-color: $primary-color;
-          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
         }
 
         &:disabled {
@@ -215,63 +229,200 @@
 
   .records-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: $font-sm;
 
     thead {
-      background: linear-gradient(135deg, $primary-color, $secondary-color);
-      color: white;
-
       th {
-        padding: $spacing-md;
+        padding: $spacing-sm $spacing-md;
         text-align: center;
         font-weight: 600;
         white-space: nowrap;
+        color: white;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
         border-right: 1px solid rgba(255, 255, 255, 0.2);
 
         &:last-child {
           border-right: none;
+        }
+
+        &.sortable {
+          cursor: pointer;
+          user-select: none;
+
+          .sort-ind {
+            margin-left: 3px;
+            font-size: 0.7em;
+            opacity: 0.5;
+            transition: opacity $transition-base;
+          }
+
+          &:hover .sort-ind {
+            opacity: 0.85;
+          }
+
+          &.sorted .sort-ind {
+            opacity: 1;
+          }
+        }
+
+        &.col-player.sortable {
+          text-align: left;
         }
       }
     }
 
     tbody {
       tr {
-        border-bottom: 1px solid $border-color;
         transition: background-color $transition-base;
 
-        &:hover {
-          background-color: rgba($primary-color, 0.05);
-        }
-
-        &:last-child {
-          border-bottom: none;
+        &:hover td {
+          background-color: mix($primary-color, #fff, 6%);
         }
 
         td {
-          padding: $spacing-md;
+          padding: $spacing-sm $spacing-md;
           text-align: center;
           border-right: 1px solid $border-color;
+          border-bottom: 1px solid $border-color;
+          background: $background-light;
 
           &:last-child {
             border-right: none;
           }
+
+          &.sorted {
+            background-color: mix($primary-color, #fff, 8%);
+            font-weight: 700;
+            color: $primary-color;
+          }
+        }
+
+        &:hover td.sorted {
+          background-color: mix($primary-color, #fff, 12%);
+        }
+
+        &:last-child td {
+          border-bottom: none;
         }
       }
     }
 
-    .player-image-cell {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    // 왼쪽 고정 선수 열 (모바일 가로 스크롤 시 항상 노출)
+    .col-player {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      text-align: left;
+    }
 
-      img {
-        width: 40px;
-        height: 40px;
+    thead .col-player {
+      z-index: 3;
+    }
+
+    tbody .col-player {
+      box-shadow: inset -1px 0 0 $border-color;
+    }
+
+    .player-cell {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .player-avatar {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid $border-color;
+        border: 1px solid $border-color;
+        flex-shrink: 0;
       }
+
+      .player-name {
+        white-space: nowrap;
+        font-weight: 600;
+        color: $text-primary;
+      }
+    }
+  }
+
+  // 경기기록 탭 — 경기 카드 목록
+  .match-record-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-xxl;
+  }
+
+  .match-record-card {
+    @include button-base;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    width: 100%;
+    text-align: left;
+    padding: $spacing-lg;
+    background: $background-light;
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: $primary-color;
+      box-shadow: 0 6px 12px $shadow-hover;
+      transform: translateY(-2px);
+    }
+
+    .mrc-top {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      font-size: $font-sm;
+      color: $text-secondary;
+    }
+
+    .mrc-title {
+      font-size: $font-lg;
+      font-weight: 700;
+      color: $text-primary;
+    }
+
+    .mrc-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-md;
+      flex-wrap: wrap;
+    }
+
+    .mrc-score {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-base;
+      color: $text-primary;
+
+      .mrc-vs {
+        color: $text-light;
+      }
+
+      b {
+        color: $primary-color;
+      }
+    }
+
+    .mrc-att {
+      font-size: $font-sm;
+      color: $text-secondary;
+    }
+
+    .mrc-view {
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $primary-color;
     }
   }
 

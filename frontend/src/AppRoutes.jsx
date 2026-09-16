@@ -16,6 +16,8 @@ import LiveTrackingPage from './pages/lockerroom/LiveTrackingPage';
 import MatchesPage from './pages/lockerroom/MatchesPage';
 import MatchDetailPage from './pages/lockerroom/MatchDetailPage';
 import BoardPage from './pages/lockerroom/BoardPage';
+import BoardForm from './pages/lockerroom/BoardForm';
+import BoardDetail from './pages/lockerroom/BoardDetail';
 import ManagementPage from './pages/lockerroom/ManagementPage';
 import DuesHistoryPage from './pages/lockerroom/DuesHistoryPage';
 
@@ -152,6 +154,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
             <BoardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/team-board/write"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <BoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/team-board/edit/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <BoardForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locker-room/team-board/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isLogin} isAuthChecking={isAuthChecking}>
+            <BoardDetail />
           </ProtectedRoute>
         }
       />

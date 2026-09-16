@@ -102,6 +102,22 @@
 
     > span { font-size: $font-xs; font-weight: 800; text-transform: uppercase; color: $text-light; }
 
+    .zone-head-actions {
+      display: flex;
+      gap: $spacing-xs;
+    }
+
+    .pool-distribute {
+      border: 1px solid $ink;
+      background: $ink;
+      color: #fff;
+      border-radius: $radius-md;
+      padding: 4px 10px;
+      font-weight: 800;
+      font-size: $font-xs;
+      cursor: pointer;
+    }
+
     .guest-add {
       border: 1px dashed $primary-color;
       background: rgba($primary-color, 0.06);
@@ -187,24 +203,87 @@
     &.hover { border-color: $primary-color; box-shadow: 0 0 0 3px rgba($primary-color, 0.15); }
   }
 
+  // 팀 자동 추천
+  .suggest-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+
+    .suggest-btn {
+      border: none;
+      border-radius: 999px;
+      padding: $spacing-sm $spacing-lg;
+      background: $gradient-primary;
+      color: #fff;
+      font-weight: 800;
+      font-size: $font-sm;
+      cursor: pointer;
+
+      &:disabled { opacity: 0.6; cursor: not-allowed; }
+    }
+
+    .suggest-hint {
+      font-size: $font-xs;
+      color: $text-light;
+    }
+  }
+
+  // 컬럼 수는 인라인 스타일(teams.length)로 지정 — 2팀=2열, 3팀=3열
   .teams-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: $spacing-md;
-
-    @include respond-to(sm) { grid-template-columns: repeat(2, 1fr); }
-    @include respond-to(lg) { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    gap: $spacing-sm;
+    align-items: start;
   }
 
   .team-zone {
     background: #fff;
     border: 2px dashed $border-color;
     border-radius: $radius-lg;
-    padding: $spacing-md;
+    padding: $spacing-sm;
     min-height: 120px;
+    min-width: 0;
     transition: all $transition-fast;
 
     &.hover { border-color: $primary-color; border-style: solid; background: rgba($primary-color, 0.04); box-shadow: 0 0 0 3px rgba($primary-color, 0.15); }
+
+    // 남은 참석자 전원 담기 버튼
+    .grab-rest {
+      width: 100%;
+      margin-bottom: $spacing-xs;
+      border: 1px solid $primary-color;
+      background: rgba($primary-color, 0.08);
+      color: $primary-color;
+      border-radius: $radius-md;
+      padding: 5px;
+      font-weight: 800;
+      font-size: $font-xs;
+      cursor: pointer;
+
+      &:hover { background: rgba($primary-color, 0.15); }
+    }
+
+    // 좁은 컬럼: 멤버를 세로로 쌓아 한눈에 보기 쉽게
+    .chip-wrap {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+
+    .chip {
+      width: 100%;
+      border-radius: $radius-md;
+      min-width: 0;
+
+      .chip-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .zone-head .team-name { min-width: 0; }
   }
 
   .start-btn {

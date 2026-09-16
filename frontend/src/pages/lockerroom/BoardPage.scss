@@ -4,14 +4,35 @@
 
 .board-page {
   @extend %page-container;
+  padding-top: $spacing-md; // 상단 메뉴와의 간격 축소 (기록 페이지와 통일)
+
+  @include respond-to(md) {
+    padding-top: $spacing-lg;
+  }
 
   .container {
     max-width: $container-width;
     margin: 0 auto;
   }
 
+  // 랭킹/기록 탭과 동일한 타이틀 글씨 (Court Energy 테마)
   .page-title {
-    @extend %page-title;
+    margin: 0 0 $spacing-md;
+    font-family: $font-display;
+    font-size: $font-xl;
+    font-weight: 800;
+    color: $text-primary;
+    display: flex;
+    align-items: baseline;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+
+    .page-subtitle {
+      font-family: system-ui, sans-serif;
+      font-size: $font-xs;
+      font-weight: 500;
+      color: $text-light;
+    }
   }
 
   // 빈 팀 상태
@@ -82,8 +103,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: $spacing-md;
-    margin-bottom: $spacing-xl;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
     flex-wrap: wrap;
 
     .search-bar {
@@ -95,11 +116,13 @@
       .search-input {
         @include input-base;
         flex: 1;
-        padding: $spacing-sm $spacing-md;
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
       }
 
       .btn-search {
-        padding: $spacing-sm $spacing-lg;
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-sm;
         background: linear-gradient(135deg, $primary-color, $primary-light);
         color: white;
         border: none;
@@ -117,7 +140,8 @@
     }
 
     .btn-primary {
-      padding: $spacing-sm $spacing-lg;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
       background: linear-gradient(135deg, $secondary-color, $secondary-light);
       color: white;
       border: none;
@@ -135,116 +159,179 @@
     }
   }
 
-  // 게시글 목록
-  .board-list {
+  // 말머리 필터 칩
+  .cat-filter {
     display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    margin-bottom: $spacing-md;
+
+    .cf-chip {
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $text-secondary;
+      background: $background-light;
+      border: 1px solid $border-color;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &:hover {
+        border-color: $primary-color;
+        color: $primary-color;
+      }
+
+      &.active {
+        background: $ink;
+        border-color: $ink;
+        color: #fff;
+      }
+    }
   }
 
-  .board-item {
-    @include card;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: $spacing-lg;
-    padding: $spacing-lg;
-    transition: all $transition-base;
+  // 분류 뱃지 (목록/상세 공통 톤)
+  .cat-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    color: #fff;
+    border-radius: $radius-sm;
+    font-size: $font-xs;
+    font-weight: 700;
+    white-space: nowrap;
+  }
 
-    &:hover {
-      transform: translateX(4px);
-      box-shadow: 0 4px 12px $shadow-hover;
+  // 게시글 목록 (표 형식)
+  .board-table-container {
+    overflow-x: auto;
+    background: $background-light;
+    border-radius: $radius-lg;
+    box-shadow: 0 2px 8px $shadow-sm;
+  }
+
+  .board-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-sm;
+
+    // 역할 뱃지 (목록 공통)
+    .role-badge {
+      padding: 0 5px;
+      border-radius: $radius-sm;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+
+      &.leader {
+        background: $primary-color;
+      }
+
+      &.manager {
+        background: $secondary-color;
+      }
     }
 
-    &.notice {
-      background: linear-gradient(135deg, rgba($primary-color, 0.05), rgba($primary-light, 0.03));
-      border-left: 4px solid $primary-color;
+    tbody tr {
+      transition: background-color $transition-base;
+      border-bottom: 1px solid $border-color;
+      cursor: pointer;
+
+      &:hover {
+        background-color: mix($primary-color, #fff, 4%);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.notice {
+        background: rgba($primary-color, 0.04);
+      }
     }
 
-    .board-main {
-      flex: 1;
-      min-width: 0;
+    td {
+      padding: $spacing-sm $spacing-md;
+      vertical-align: middle;
+    }
 
-      .notice-badge {
-        display: inline-block;
-        padding: $spacing-xs $spacing-sm;
-        background: linear-gradient(135deg, $primary-color, $primary-light);
-        color: white;
-        border-radius: $radius-sm;
-        font-size: $font-xs;
-        font-weight: 700;
-        margin-right: $spacing-sm;
+    // 분류 열: 폭 최소화
+    .col-cat {
+      width: 1%;
+      text-align: center;
+      white-space: nowrap;
+      padding-left: $spacing-sm;
+      padding-right: $spacing-xs;
+    }
+
+    .col-title {
+      width: 100%;
+
+      .title-cell {
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-sm;
+        min-width: 0;
       }
 
       .board-title {
-        font-size: $font-lg;
-        font-weight: 700;
+        flex: 1;
+        min-width: 0;
+        font-weight: 600;
         color: $text-primary;
-        margin: $spacing-xs 0;
-        @include text-ellipsis(1);
+        line-height: 1.35;
+        @include text-ellipsis(2); // 2줄 초과 시 …
       }
 
-      .board-content {
-        font-size: $font-sm;
-        color: $text-secondary;
-        margin: $spacing-sm 0;
-        @include text-ellipsis(2);
-        line-height: 1.5;
-      }
-
-      .board-meta {
-        display: flex;
-        gap: $spacing-md;
+      .cnt {
+        flex-shrink: 0;
         font-size: $font-xs;
+        font-weight: 600;
         color: $text-light;
-        margin-top: $spacing-sm;
 
-        span {
-          display: flex;
-          align-items: center;
-          gap: $spacing-xs;
+        &.home {
+          color: $primary-color;
+          font-weight: 700;
         }
 
-        .author {
-          font-weight: 600;
-          color: $text-secondary;
+        &.new {
+          padding: 1px 5px;
+          border-radius: $radius-sm;
+          background: $danger-color;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+        }
+      }
+
+      // 제목 아래 서브라인 (날짜 · 조회)
+      .title-sub {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 3px;
+        font-size: $font-xs;
+        color: $text-light;
+
+        .ts-item + .ts-item::before {
+          content: '·';
+          margin-right: 4px;
+          color: $text-lighter;
         }
       }
     }
 
-    .board-actions {
-      display: flex;
-      gap: $spacing-sm;
-      flex-shrink: 0;
+    // 작성자 열
+    .col-author {
+      text-align: center;
+      white-space: nowrap;
 
-      .btn-sm {
-        padding: $spacing-xs $spacing-md;
-        font-size: $font-sm;
-        border-radius: $radius-sm;
+      .ca-name {
         font-weight: 600;
-        cursor: pointer;
-        transition: all $transition-base;
-        border: none;
-
-        &.btn-edit {
-          background: $background-gray;
-          color: $text-primary;
-
-          &:hover {
-            background: $primary-color;
-            color: white;
-          }
-        }
-
-        &.btn-delete {
-          background: $background-gray;
-          color: $danger-color;
-
-          &:hover {
-            background: $danger-color;
-            color: white;
-          }
-        }
+        color: $text-secondary;
+        margin-right: 4px;
       }
     }
   }
@@ -294,104 +381,5 @@
     margin-top: $spacing-xxl;
     padding: $spacing-xxl;
     text-align: center;
-  }
-
-  // 모달
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: $spacing-lg;
-  }
-
-  .modal-content {
-    background: white;
-    border-radius: $radius-lg;
-    padding: $spacing-xxl;
-    max-width: 700px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-
-    h2 {
-      font-size: $font-2xl;
-      font-weight: 700;
-      color: $text-primary;
-      margin-bottom: $spacing-xl;
-    }
-
-    .form-group {
-      margin-bottom: $spacing-lg;
-
-      label {
-        display: block;
-        font-size: $font-sm;
-        font-weight: 600;
-        color: $text-secondary;
-        margin-bottom: $spacing-sm;
-      }
-
-      input[type='checkbox'] {
-        margin-right: $spacing-xs;
-      }
-
-      .form-input,
-      .form-textarea {
-        @include input-base;
-        width: 100%;
-        padding: $spacing-sm $spacing-md;
-        font-size: $font-base;
-      }
-
-      .form-textarea {
-        resize: vertical;
-        font-family: inherit;
-        line-height: 1.6;
-      }
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: $spacing-md;
-      margin-top: $spacing-xl;
-
-      .btn {
-        padding: $spacing-sm $spacing-xl;
-        border-radius: $radius-md;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all $transition-base;
-        border: none;
-
-        &.btn-secondary {
-          background: $background-gray;
-          color: $text-primary;
-
-          &:hover {
-            background: $border-light;
-          }
-        }
-
-        &.btn-primary {
-          background: linear-gradient(135deg, $primary-color, $primary-light);
-          color: white;
-
-          &:hover {
-            background: linear-gradient(135deg, $primary-hover, $primary-color);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px $shadow-md;
-          }
-        }
-      }
-    }
   }
 }
