@@ -68,10 +68,13 @@ const LiveTrackingPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [astPickFor, setAstPickFor] = useState(null); // 어시스트 대상 선택 중인 패서 pid
-  const [subOpen, setSubOpen] = useState(false); // 교체 모달
-  const [subOut, setSubOut] = useState('');
-  const [subIn, setSubIn] = useState('');
-  const [subMin, setSubMin] = useState('');
+  const [recording, setRecording] = useState(false); // 기록 시작 여부(스탯 입력 활성화)
+  const [lbDrag, setLbDrag] = useState(null); // 라인업 드래그 { pid, x, y, moved, name }
+  const [lbHover, setLbHover] = useState(null); // 'court' | 'bench'
+  const [subAsk, setSubAsk] = useState(null); // 교체 분 입력 { pid, name, prevMin }
+  const [subAskVal, setSubAskVal] = useState('');
+  const pendingInRef = useRef(null); // 코트로 들어왔지만 분 미배정 pid
+  const lastOutRemainRef = useRef(null); // 나간 선수의 남은 분(다음 투입 선수 분)
   const [minusMode, setMinusMode] = useState(false); // 잘못 누른 기록 빼기 모드
   const [lineupEdit, setLineupEdit] = useState(false); // 출전 라인업 편집 모드
   // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — 미설정 시 전원 출전
@@ -136,37 +139,98 @@ const LiveTrackingPage = () => {
       /* quota 무시 */
     }
   };
-  const toggleOnCourt = (pid) => {
-    // 미설정이면 전원에서 시작 → 벤치로 뺄 사람만 해제
-    const base = onCourtList || (mySquad?.members || []).map((m) => m.pid);
-    const cur = new Set(base);
-    if (cur.has(pid)) cur.delete(pid);
-    else cur.add(pid);
-    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...cur] } });
-  };
   const copyPrevLineup = () => {
     const prev = lineup?.[mySquadId]?.[currentQuarter - 1];
     if (!prev) return;
     persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...prev] } });
   };
   const curQuarterLen = quarterMinutes[currentQuarter - 1] || 10;
-  // 교체 실행: 나간 선수 분 입력 → 들어온 선수는 나머지 분
-  const doSubstitution = () => {
-    if (!subOut || !subIn) return;
-    const outMin = Math.max(0, Math.min(parseInt(subMin) || 0, curQuarterLen));
-    const base = onCourtList || (mySquad?.members || []).map((m) => m.pid);
-    const next = base.filter((p) => p !== subOut);
-    if (!next.includes(subIn)) next.push(subIn);
-    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...next] } });
-    setPlayerMinutes(subOut, outMin);
-    setPlayerMinutes(subIn, curQuarterLen - outMin);
-    setSubOpen(false);
-    setSubOut(''); setSubIn(''); setSubMin('');
+  const nameOf = (pid) => mySquad?.members.find((m) => m.pid === pid)?.name || '';
+  const baseLineup = () => onCourtList || (mySquad?.members || []).map((m) => m.pid);
+  const setLineupArr = (arr) =>
+    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...new Set(arr)] } });
+  const moveToBench = (pid) => setLineupArr(baseLineup().filter((p) => p !== pid));
+  const moveToCourt = (pid) => setLineupArr([...baseLineup(), pid]);
+
+  // 라인업 존 드롭 처리
+  const handleLineupDrop = (pid, zone) => {
+    const onCourtNow = isOnCourt(pid);
+    if (zone === 'bench' && onCourtNow) {
+      if (recording) {
+        // 나간 선수: 뛴 시간 입력 팝업 (확정 시 벤치 이동)
+        const prevMin = squadStats?.[currentQuarter]?.[pid]?.min ?? curQuarterLen;
+        setSubAsk({ pid, name: nameOf(pid), prevMin });
+        setSubAskVal('');
+      } else {
+        moveToBench(pid);
+      }
+    } else if (zone === 'court' && !onCourtNow) {
+      moveToCourt(pid);
+      if (recording) {
+        if (lastOutRemainRef.current != null) {
+          setPlayerMinutes(pid, lastOutRemainRef.current);
+          lastOutRemainRef.current = null;
+        } else {
+          pendingInRef.current = pid; // 나갈 선수 확정 시 남은 분 배정
+        }
+      }
+    }
   };
-  // 출전 선수 앞으로 정렬(원래 순서 유지)
-  const sortedMembers = mySquad
-    ? [...mySquad.members].sort((a, b) => (isOnCourt(a.pid) ? 0 : 1) - (isOnCourt(b.pid) ? 0 : 1))
-    : [];
+
+  // 교체 분 팝업 확정: 나간 선수 분 저장 → 남은 분을 새로 들어온 선수에게
+  const confirmSubMinutes = () => {
+    if (!subAsk) return;
+    const m = Math.max(0, Math.min(parseInt(subAskVal) || 0, subAsk.prevMin));
+    setPlayerMinutes(subAsk.pid, m);
+    moveToBench(subAsk.pid);
+    const remaining = Math.max(0, subAsk.prevMin - m);
+    if (pendingInRef.current != null) {
+      setPlayerMinutes(pendingInRef.current, remaining);
+      pendingInRef.current = null;
+    } else {
+      lastOutRemainRef.current = remaining;
+    }
+    setSubAsk(null);
+    setSubAskVal('');
+  };
+
+  // 라인업 칩 포인터 드래그 (편집 모드에서만)
+  const startLbDrag = (e, pid, name) => {
+    if (!lineupEdit || e.target.tagName === 'INPUT') return;
+    setLbDrag({ pid, x: e.clientX, y: e.clientY, moved: false, name });
+  };
+
+  // 쿼터/게임/스쿼드 바뀌면 기록 시작 해제 (라인업 확인 후 다시 시작)
+  useEffect(() => {
+    setRecording(false);
+  }, [currentQuarter, currentGame, mySquadId]);
+
+  // 라인업 드래그 이동/드롭
+  useEffect(() => {
+    if (!lbDrag) return;
+    const move = (e) => {
+      const zoneEl = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-lz]');
+      setLbHover(zoneEl ? zoneEl.getAttribute('data-lz') : null);
+      setLbDrag((d) =>
+        d ? { ...d, x: e.clientX, y: e.clientY, moved: d.moved || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6 } : d
+      );
+    };
+    const up = (e) => {
+      const zone = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-lz]')?.getAttribute('data-lz');
+      setLbDrag((d) => {
+        if (d && d.moved && zone) handleLineupDrop(d.pid, zone);
+        return null;
+      });
+      setLbHover(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lbDrag, lineup, recording, squadStats, currentQuarter]);
 
   // 같은 버튼(선수+이벤트+방향) 0.3초 쿨다운(쓰로틀) — 실수로 두 번 눌러 오기입 방지
   const EVENT_COOLDOWN_MS = 300;
@@ -427,7 +491,6 @@ const LiveTrackingPage = () => {
             <div className="lineup-bar">
               <span className="lb-label">
                 {t('라인업', 'Lineup')} <b>{onCourtCount}</b>{t('명', '')}
-                {onCourtSet == null && <em>{t(' (전원)', ' (all)')}</em>}
               </span>
               <div className="lb-actions">
                 {lineupEdit && (
@@ -448,31 +511,62 @@ const LiveTrackingPage = () => {
               </div>
             </div>
 
-            {/* 선수 아바타 스트립 (가로 스크롤 선택) */}
-            <div className={`player-strip ${lineupEdit ? 'editing' : ''}`}>
-              {sortedMembers.map((m) => {
-                const total = playerTotal(squadStats, m.pid);
-                const sel = selectedPlayer === m.pid;
-                const bench = !isOnCourt(m.pid);
-                return (
-                  <button
-                    key={m.pid}
-                    className={`ps-player ${sel ? 'sel' : ''} ${bench ? 'bench' : 'active'}`}
-                    onClick={() => (lineupEdit ? toggleOnCourt(m.pid) : setSelectedPlayer(m.pid))}
-                  >
-                    <span className="ps-avatar">
-                      <img src={avatar(m.name, m.image_url)} alt={m.name} />
-                      {lineupEdit ? (
-                        !bench && <span className="ps-check">✓</span>
-                      ) : (
+            {lineupEdit ? (
+              /* 편집 모드: 코트/벤치 드래그&드랍 */
+              <div className="lineup-zones">
+                {[
+                  { z: 'court', label: t('코트', 'On court'), list: mySquad.members.filter((m) => isOnCourt(m.pid)) },
+                  { z: 'bench', label: t('벤치', 'Bench'), list: mySquad.members.filter((m) => !isOnCourt(m.pid)) },
+                ].map((zone) => (
+                  <div key={zone.z} className={`lz ${zone.z} ${lbHover === zone.z ? 'hover' : ''}`} data-lz={zone.z}>
+                    <div className="lz-head">{zone.label} ({zone.list.length})</div>
+                    <div className="lz-chips">
+                      {zone.list.length === 0 && <span className="lz-empty">{t('여기로 드래그', 'Drag here')}</span>}
+                      {zone.list.map((m) => (
+                        <div
+                          key={m.pid}
+                          className={`lz-chip ${lbDrag?.pid === m.pid && lbDrag?.moved ? 'dragging' : ''}`}
+                          onPointerDown={(e) => startLbDrag(e, m.pid, m.name)}
+                        >
+                          <img src={avatar(m.name, m.image_url)} alt={m.name} draggable={false} />
+                          <span>{m.name}{m.isGuest ? ' (G)' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* 기록 모드: 코트 위 선수만 노출(선택) */
+              <div className="player-strip">
+                {mySquad.members.filter((m) => isOnCourt(m.pid)).map((m) => {
+                  const total = playerTotal(squadStats, m.pid);
+                  const sel = selectedPlayer === m.pid;
+                  return (
+                    <button
+                      key={m.pid}
+                      className={`ps-player ${sel ? 'sel' : ''} active`}
+                      onClick={() => setSelectedPlayer(m.pid)}
+                    >
+                      <span className="ps-avatar">
+                        <img src={avatar(m.name, m.image_url)} alt={m.name} />
                         <span className="ps-pts">{statPoints(total)}</span>
-                      )}
-                    </span>
-                    <span className="ps-name">{m.name}{m.isGuest ? ' (G)' : ''}</span>
-                  </button>
-                );
-              })}
-            </div>
+                      </span>
+                      <span className="ps-name">{m.name}{m.isGuest ? ' (G)' : ''}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 기록 시작 / 기록 중 */}
+            {!recording ? (
+              <button className="rec-start" onClick={() => setRecording(true)}>
+                ▶ {t('기록 시작', 'Start recording')}
+              </button>
+            ) : (
+              <div className="rec-on">● {t('기록 중 · 라인업 편집으로 교체', 'Recording · edit lineup to sub')}</div>
+            )}
 
             {/* 선택 선수 포커스 카드 */}
             {(() => {
@@ -557,7 +651,7 @@ const LiveTrackingPage = () => {
                       <button
                         key={ev}
                         className={`ev-btn tone-${def.tone}`}
-                        disabled={!selectedPlayer}
+                        disabled={!selectedPlayer || !recording}
                         onClick={() => {
                           if (!selectedPlayer) return;
                           // 어시스트(추가 모드)는 득점자 선택 팝업
@@ -574,54 +668,32 @@ const LiveTrackingPage = () => {
                   })}
                 </div>
               ))}
-              <div className="ep-foot">
-                <button className="sub-btn" onClick={() => { setSubOut(''); setSubIn(''); setSubMin(''); setSubOpen(true); }}>
-                  🔁 {t('선수 교체', 'Substitute')}
-                </button>
-                <button className="undo-btn" disabled={eventLog.length === 0} onClick={undo}>
-                  ↶ {t('되돌리기', 'Undo')} {eventLog.length > 0 ? `(${eventLog.length})` : ''}
-                </button>
-              </div>
+              <button className="undo-btn" disabled={eventLog.length === 0} onClick={undo}>
+                ↶ {t('되돌리기', 'Undo')} {eventLog.length > 0 ? `(${eventLog.length})` : ''}
+              </button>
             </div>
 
-            {/* 선수 교체 모달 */}
-            {subOpen && (
-              <div className="ast-pick-overlay" onClick={() => setSubOpen(false)}>
+            {/* 교체 분 입력 팝업 (기록 중 코트→벤치) */}
+            {subAsk && (
+              <div className="ast-pick-overlay" onClick={() => setSubAsk(null)}>
                 <div className="ast-pick sub-modal" onClick={(e) => e.stopPropagation()}>
-                  <div className="ap-title">🔁 {t('선수 교체', 'Substitution')} · Q{currentQuarter} ({curQuarterLen}{t('분', 'min')})</div>
+                  <div className="ap-title">
+                    🔁 <b>{subAsk.name}</b> {t('몇 분 뛰었나요?', 'Minutes played?')}
+                  </div>
                   <label className="sub-field">
-                    <span>{t('나가는 선수', 'Out')}</span>
-                    <select value={subOut} onChange={(e) => setSubOut(e.target.value)}>
-                      <option value="">{t('선택', 'Select')}</option>
-                      {mySquad.members.filter((m) => isOnCourt(m.pid)).map((m) => (
-                        <option key={m.pid} value={m.pid}>{m.name}</option>
-                      ))}
-                    </select>
+                    <span>{t('출전 분', 'Minutes')} (0 ~ {subAsk.prevMin})</span>
+                    <input
+                      type="number" min="0" max={subAsk.prevMin} value={subAskVal} autoFocus
+                      onChange={(e) => setSubAskVal(e.target.value)}
+                      placeholder={`0 ~ ${subAsk.prevMin}`}
+                    />
                   </label>
-                  <label className="sub-field">
-                    <span>{t('나간 선수 출전 분', 'Minutes played')}</span>
-                    <input type="number" min="0" max={curQuarterLen} value={subMin}
-                      onChange={(e) => setSubMin(e.target.value)} placeholder={`0 ~ ${curQuarterLen}`} />
-                  </label>
-                  <label className="sub-field">
-                    <span>{t('들어오는 선수', 'In')}</span>
-                    <select value={subIn} onChange={(e) => setSubIn(e.target.value)}>
-                      <option value="">{t('선택', 'Select')}</option>
-                      {mySquad.members.filter((m) => !isOnCourt(m.pid)).map((m) => (
-                        <option key={m.pid} value={m.pid}>{m.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {subOut && subIn && (
-                    <p className="sub-preview">
-                      {mySquad.members.find((m) => m.pid === subOut)?.name} {Math.min(parseInt(subMin) || 0, curQuarterLen)}{t('분', 'm')}
-                      {' → '}
-                      {mySquad.members.find((m) => m.pid === subIn)?.name} {curQuarterLen - Math.min(parseInt(subMin) || 0, curQuarterLen)}{t('분', 'm')}
-                    </p>
-                  )}
+                  <p className="sub-preview">
+                    {t('들어오는 선수', 'Incoming')}: {Math.max(0, subAsk.prevMin - Math.min(parseInt(subAskVal) || 0, subAsk.prevMin))}{t('분', 'm')}
+                  </p>
                   <div className="sub-actions">
-                    <button className="sub-cancel" onClick={() => setSubOpen(false)}>{t('취소', 'Cancel')}</button>
-                    <button className="sub-confirm" disabled={!subOut || !subIn} onClick={doSubstitution}>{t('교체', 'Sub')}</button>
+                    <button className="sub-cancel" onClick={() => setSubAsk(null)}>{t('취소', 'Cancel')}</button>
+                    <button className="sub-confirm" onClick={confirmSubMinutes}>{t('확인', 'OK')}</button>
                   </div>
                 </div>
               </div>
@@ -731,6 +803,13 @@ const LiveTrackingPage = () => {
           </div>
         )}
       </div>
+
+      {/* 라인업 드래그 고스트 */}
+      {lbDrag && lbDrag.moved && (
+        <div className="lb-drag-ghost" style={{ left: lbDrag.x, top: lbDrag.y }}>
+          {lbDrag.name}
+        </div>
+      )}
     </div>
   );
 };

@@ -741,6 +741,86 @@
     padding: $spacing-lg;
   }
 
+  // 라인업 편집: 코트/벤치 존 (드래그&드랍)
+  .lineup-zones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
+
+    .lz {
+      border: 2px dashed $border-color;
+      border-radius: $radius-md;
+      padding: $spacing-sm;
+      min-height: 90px;
+
+      &.hover { border-color: $primary-color; border-style: solid; background: rgba($primary-color, 0.05); }
+      &.court .lz-head { color: $primary-color; }
+      &.bench .lz-head { color: $text-light; }
+
+      .lz-head { font-size: $font-xs; font-weight: 800; margin-bottom: $spacing-xs; }
+      .lz-chips { display: flex; flex-wrap: wrap; gap: 4px; min-height: 44px; align-content: flex-start; }
+      .lz-empty { font-size: $font-xs; color: $text-lighter; align-self: center; }
+
+      .lz-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px 3px 3px;
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        background: #fff;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        box-shadow: 0 1px 3px $shadow-sm;
+
+        img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; pointer-events: none; }
+        span { font-size: $font-sm; font-weight: 700; color: $text-primary; }
+        &.dragging { opacity: 0.35; }
+      }
+    }
+  }
+
+  .lb-drag-ghost {
+    position: fixed;
+    transform: translate(-50%, -140%);
+    z-index: 2000;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: $ink;
+    color: #fff;
+    font-size: $font-sm;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  // 기록 시작 / 기록 중
+  .rec-start {
+    display: block;
+    width: 100%;
+    margin-bottom: $spacing-sm;
+    padding: $spacing-md;
+    border: none;
+    border-radius: $radius-md;
+    background: $gradient-primary;
+    color: #fff;
+    font-weight: 800;
+    font-size: $font-base;
+    cursor: pointer;
+  }
+  .rec-on {
+    margin-bottom: $spacing-sm;
+    padding: $spacing-xs $spacing-sm;
+    text-align: center;
+    font-size: $font-xs;
+    font-weight: 700;
+    color: $primary-color;
+    background: rgba($primary-color, 0.08);
+    border-radius: $radius-md;
+  }
+
   // 이벤트 패드 하단 (교체/되돌리기)
   .ep-foot {
     display: flex;
