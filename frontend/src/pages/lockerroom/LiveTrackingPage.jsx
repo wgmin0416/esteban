@@ -71,6 +71,7 @@ const LiveTrackingPage = () => {
   const [recording, setRecording] = useState(false); // 기록 시작 여부(스탯 입력 활성화)
   const [lbDrag, setLbDrag] = useState(null); // 라인업 드래그 { pid, x, y, moved, name }
   const [lbHover, setLbHover] = useState(null); // 'court' | 'bench'
+  const [dragOrder, setDragOrder] = useState(null); // 코트 재정렬 실시간 순서(드래그 중)
   const [subAsk, setSubAsk] = useState(null); // 교체 분 입력 { pid, name, prevMin }
   const [subAskVal, setSubAskVal] = useState('');
   const pendingInRef = useRef(null); // 코트로 들어왔지만 분 미배정 pid
@@ -219,6 +220,7 @@ const LiveTrackingPage = () => {
   const startLbDrag = (e, pid, name) => {
     if (!lineupEdit || e.target.tagName === 'INPUT') return;
     setLbDrag({ pid, x: e.clientX, y: e.clientY, moved: false, name });
+    setDragOrder(isOnCourt(pid) ? [...onCourtList] : null); // 코트 선수면 실시간 재정렬 준비
   };
 
   // 쿼터/게임/스쿼드 바뀌면 기록 시작 해제 (라인업 확인 후 다시 시작)
@@ -230,20 +232,46 @@ const LiveTrackingPage = () => {
   useEffect(() => {
     if (!lbDrag) return;
     const move = (e) => {
-      const zoneEl = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-lz]');
-      setLbHover(zoneEl ? zoneEl.getAttribute('data-lz') : null);
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const zone = el?.closest('[data-lz]')?.getAttribute('data-lz');
+      setLbHover(zone || null);
       setLbDrag((d) =>
         d ? { ...d, x: e.clientX, y: e.clientY, moved: d.moved || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6 } : d
       );
+      // 코트 내 실시간 재정렬 (다른 칩 절반 이상 침범 시 밀림)
+      if (zone === 'court' && isOnCourt(lbDrag.pid)) {
+        const chipEl = el?.closest('[data-pid]');
+        const overPid = chipEl?.getAttribute('data-pid');
+        if (overPid && overPid !== lbDrag.pid) {
+          const rect = chipEl.getBoundingClientRect();
+          const after = e.clientX > rect.left + rect.width / 2;
+          setDragOrder((prev) => {
+            const cur = prev || onCourtList;
+            if (!cur.includes(lbDrag.pid)) return cur;
+            const arr = cur.filter((p) => p !== lbDrag.pid);
+            let idx = arr.indexOf(overPid);
+            if (idx < 0) return cur;
+            if (after) idx += 1;
+            arr.splice(idx, 0, lbDrag.pid);
+            return arr;
+          });
+        }
+      }
     };
     const up = (e) => {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const zone = el?.closest('[data-lz]')?.getAttribute('data-lz');
       const targetPid = el?.closest('[data-pid]')?.getAttribute('data-pid');
-      setLbDrag((d) => {
-        if (d && d.moved && zone) handleLineupDrop(d.pid, zone, targetPid);
-        return null;
-      });
+      const d = lbDrag;
+      if (d && d.moved) {
+        if (zone === 'court' && isOnCourt(d.pid) && dragOrder) {
+          setLineupArr(dragOrder); // 실시간 재정렬 확정
+        } else if (zone) {
+          handleLineupDrop(d.pid, zone, targetPid);
+        }
+      }
+      setLbDrag(null);
+      setDragOrder(null);
       setLbHover(null);
     };
     window.addEventListener('pointermove', move);
@@ -253,7 +281,7 @@ const LiveTrackingPage = () => {
       window.removeEventListener('pointerup', up);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lbDrag, lineup, recording, squadStats, currentQuarter]);
+  }, [lbDrag, dragOrder, lineup, recording, squadStats, currentQuarter]);
 
   // 같은 버튼(선수+이벤트+방향) 0.3초 쿨다운(쓰로틀) — 실수로 두 번 눌러 오기입 방지
   const EVENT_COOLDOWN_MS = 300;
@@ -541,8 +569,8 @@ const LiveTrackingPage = () => {
                   {
                     z: 'court',
                     label: t('코트', 'On court'),
-                    // 코트는 라인업 순서대로(재정렬 반영)
-                    list: onCourtList.map((pid) => mySquad.members.find((m) => m.pid === pid)).filter(Boolean),
+                    // 코트는 라인업 순서대로(드래그 중엔 실시간 재정렬 순서)
+                    list: (dragOrder || onCourtList).map((pid) => mySquad.members.find((m) => m.pid === pid)).filter(Boolean),
                   },
                   { z: 'bench', label: t('벤치', 'Bench'), list: mySquad.members.filter((m) => !isOnCourt(m.pid)) },
                 ].map((zone) => (

@@ -743,8 +743,8 @@
 
   // 라인업 편집: 코트/벤치 존 (드래그&드랍)
   .lineup-zones {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: $spacing-sm;
     margin-bottom: $spacing-sm;
 
