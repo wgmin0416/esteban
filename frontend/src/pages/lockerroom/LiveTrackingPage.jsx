@@ -39,7 +39,9 @@ const LiveTrackingPage = () => {
     squadRecorders,
     allSquadsSaved,
     quarterMatchups,
-    setQuarterMatchup,
+    gameMatchups,
+    currentGame,
+    setGame,
     allStats,
     mySquadId,
     currentQuarter,
@@ -222,7 +224,9 @@ const LiveTrackingPage = () => {
     mine: String(s.squadId) === String(mySquadId),
   }));
   // 현재 쿼터 대진(3파전)
-  const curPair = is3way ? quarterMatchups?.[currentQuarter] : null;
+  // 게임별 대진: 현재 게임의 두 팀 (게임 모델). 레거시(쿼터별)도 폴백.
+  const games = gameMatchups ? Object.keys(gameMatchups).map(Number).sort((a, b) => a - b) : [];
+  const curPair = gameMatchups?.[currentGame] || (is3way ? quarterMatchups?.[currentQuarter] : null);
 
   return (
     <div className="live-track-page">
@@ -260,35 +264,23 @@ const LiveTrackingPage = () => {
           </div>
         )}
 
-        {/* 쿼터 대진 선택 (3파전+) — 담당팀 고르기 전에 먼저 */}
-        {is3way && (
-          <div className="matchup-picker">
-            <span className="mp-label">Q{currentQuarter} {t('대진', 'Matchup')}</span>
-            <select
-              className="mp-select"
-              value={curPair?.[0] ?? ''}
-              onChange={(e) => setQuarterMatchup(currentQuarter, [Number(e.target.value), curPair?.[1] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId])}
-            >
-              <option value="" disabled>{t('팀', 'Team')}</option>
-              {meta.squads.map((s) => (
-                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[1])}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <span className="mp-vs">vs</span>
-            <select
-              className="mp-select"
-              value={curPair?.[1] ?? ''}
-              onChange={(e) => setQuarterMatchup(currentQuarter, [curPair?.[0] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId, Number(e.target.value)])}
-            >
-              <option value="" disabled>{t('팀', 'Team')}</option>
-              {meta.squads.map((s) => (
-                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[0])}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+        {/* 게임 전환 (하루 내 여러 게임) */}
+        {games.length > 1 && (
+          <div className="game-switch">
+            {games.map((g) => {
+              const pair = gameMatchups[g] || [];
+              const label = pair.map((sid) => squadOf(sid)?.label || '?').join(' vs ');
+              return (
+                <button
+                  key={g}
+                  className={`gs-btn ${g === currentGame ? 'on' : ''}`}
+                  onClick={() => setGame(g)}
+                >
+                  <span className="gs-no">G{g}</span>
+                  <span className="gs-pair">{label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -301,38 +293,28 @@ const LiveTrackingPage = () => {
             >
               ← {t('팀 배정 다시하기', 'Back to team setup')}
             </button>
-            {is3way && !(Array.isArray(curPair) && curPair.length === 2) ? (
-              <>
-                <h2>{t('이 쿼터 대진을 먼저 선택하세요', 'Pick this quarter’s matchup first')}</h2>
-                <p className="sp-need-matchup">
-                  {t('위에서 붙는 두 팀을 고르면 담당 팀을 선택할 수 있어요.', 'Choose the two teams above, then pick your squad.')}
-                </p>
-              </>
-            ) : (
-              <>
-                <h2>{t('담당 스쿼드를 선택하세요', 'Pick your squad to score')}</h2>
-                {is3way && (
-                  <p className="sp-matchup">
-                    Q{currentQuarter} {t('대진', 'Matchup')}: <b>{squadOf(curPair[0])?.label} vs {squadOf(curPair[1])?.label}</b>
-                  </p>
-                )}
-                <div className="squad-pick-grid">
-                  {(is3way
-                    ? meta.squads.filter((s) => curPair.map(String).includes(String(s.squadId)))
-                    : meta.squads
-                  ).map((s) => (
-                    <button
-                      key={s.squadId}
-                      className="squad-pick-btn"
-                      onClick={() => setMySquad(s.squadId)}
-                    >
-                      <span className="spb-label">{s.label}</span>
-                      <span className="spb-count">{s.members.length}{t('명', ' players')}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
+            <h2>{t('담당 스쿼드를 선택하세요', 'Pick your squad to score')}</h2>
+            {Array.isArray(curPair) && curPair.length === 2 && (
+              <p className="sp-matchup">
+                {games.length > 1 ? `G${currentGame} ` : ''}{t('대진', 'Matchup')}:{' '}
+                <b>{squadOf(curPair[0])?.label} vs {squadOf(curPair[1])?.label}</b>
+              </p>
             )}
+            <div className="squad-pick-grid">
+              {(Array.isArray(curPair) && curPair.length === 2
+                ? meta.squads.filter((s) => curPair.map(String).includes(String(s.squadId)))
+                : meta.squads
+              ).map((s) => (
+                <button
+                  key={s.squadId}
+                  className="squad-pick-btn"
+                  onClick={() => setMySquad(s.squadId)}
+                >
+                  <span className="spb-label">{s.label}</span>
+                  <span className="spb-count">{s.members.length}{t('명', ' players')}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <>

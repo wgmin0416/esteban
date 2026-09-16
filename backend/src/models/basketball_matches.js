@@ -85,6 +85,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: '쿼터별 대진 { quarter: [squadIdA, squadIdB] } (2파전은 미사용)',
       },
+      game_matchups: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: '게임별 대진 { [gameNo]: [squadIdA, squadIdB] }',
+      },
       status: {
         type: DataTypes.ENUM('scheduled', 'live', 'completed'),
         allowNull: false,

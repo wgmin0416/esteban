@@ -67,6 +67,36 @@
   }
 
   // ── 쿼터 대진 선택 (3파전+) ──
+  // 게임 전환 바
+  .game-switch {
+    display: flex;
+    gap: $spacing-xs;
+    margin-top: $spacing-sm;
+    overflow-x: auto;
+
+    .gs-btn {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: $spacing-xs $spacing-md;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      background: #fff;
+      cursor: pointer;
+
+      .gs-no { font-weight: 800; font-size: $font-sm; color: $text-secondary; }
+      .gs-pair { font-size: $font-xs; color: $text-light; white-space: nowrap; }
+
+      &.on {
+        background: $ink;
+        border-color: $ink;
+        .gs-no, .gs-pair { color: #fff; }
+      }
+    }
+  }
+
   .matchup-picker {
     display: flex;
     align-items: center;
