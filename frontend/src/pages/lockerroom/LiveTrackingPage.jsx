@@ -582,13 +582,7 @@ const LiveTrackingPage = () => {
             {/* 선택 선수 포커스 카드 */}
             {(() => {
               const m = mySquad.members.find((x) => x.pid === selectedPlayer);
-              if (!m) {
-                return (
-                  <div className="focus-empty">
-                    👆 {t('위에서 선수를 선택하세요', 'Select a player above')}
-                  </div>
-                );
-              }
+              if (!m) return null;
               const total = playerTotal(squadStats, m.pid);
               // 기록/수정은 현재 쿼터 기준 → 카드도 현재 쿼터를 보여줘 add/subtract가 바로 반영
               const cur = squadStats?.[currentQuarter]?.[m.pid] || blankStat();
