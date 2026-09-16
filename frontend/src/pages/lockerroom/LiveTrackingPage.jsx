@@ -159,9 +159,23 @@ const LiveTrackingPage = () => {
   const moveToBench = (pid) => setLineupArr(baseLineup().filter((p) => p !== pid));
   const moveToCourt = (pid) => setLineupArr([...baseLineup(), pid]);
 
-  // 라인업 존 드롭 처리
-  const handleLineupDrop = (pid, zone) => {
+    // 코트 내 순서 재정렬 (targetPid 앞에 삽입)
+  const reorderCourt = (pid, targetPid) => {
+    const arr = baseLineup().filter((p) => p !== pid);
+    const idx = arr.indexOf(targetPid);
+    if (idx < 0) arr.push(pid);
+    else arr.splice(idx, 0, pid);
+    setLineupArr(arr);
+  };
+
+  // 라인업 존 드롭 처리 (targetPid: 드롭 대상 칩 — 같은 존이면 순서 변경)
+  const handleLineupDrop = (pid, zone, targetPid) => {
     const onCourtNow = isOnCourt(pid);
+    // 같은 존(코트) 내 재정렬
+    if (zone === 'court' && onCourtNow) {
+      if (targetPid && targetPid !== pid) reorderCourt(pid, targetPid);
+      return;
+    }
     if (zone === 'bench' && onCourtNow) {
       if (recording) {
         // 나간 선수: 뛴 시간 입력 팝업 (확정 시 벤치 이동)
@@ -223,9 +237,11 @@ const LiveTrackingPage = () => {
       );
     };
     const up = (e) => {
-      const zone = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-lz]')?.getAttribute('data-lz');
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const zone = el?.closest('[data-lz]')?.getAttribute('data-lz');
+      const targetPid = el?.closest('[data-pid]')?.getAttribute('data-pid');
       setLbDrag((d) => {
-        if (d && d.moved && zone) handleLineupDrop(d.pid, zone);
+        if (d && d.moved && zone) handleLineupDrop(d.pid, zone, targetPid);
         return null;
       });
       setLbHover(null);
@@ -522,7 +538,12 @@ const LiveTrackingPage = () => {
               /* 편집 모드: 코트/벤치 드래그&드랍 */
               <div className="lineup-zones">
                 {[
-                  { z: 'court', label: t('코트', 'On court'), list: mySquad.members.filter((m) => isOnCourt(m.pid)) },
+                  {
+                    z: 'court',
+                    label: t('코트', 'On court'),
+                    // 코트는 라인업 순서대로(재정렬 반영)
+                    list: onCourtList.map((pid) => mySquad.members.find((m) => m.pid === pid)).filter(Boolean),
+                  },
                   { z: 'bench', label: t('벤치', 'Bench'), list: mySquad.members.filter((m) => !isOnCourt(m.pid)) },
                 ].map((zone) => (
                   <div key={zone.z} className={`lz ${zone.z} ${lbHover === zone.z ? 'hover' : ''}`} data-lz={zone.z}>
@@ -532,6 +553,7 @@ const LiveTrackingPage = () => {
                       {zone.list.map((m) => (
                         <div
                           key={m.pid}
+                          data-pid={m.pid}
                           className={`lz-chip ${lbDrag?.pid === m.pid && lbDrag?.moved ? 'dragging' : ''}`}
                           onPointerDown={(e) => startLbDrag(e, m.pid, m.name)}
                         >
@@ -546,7 +568,7 @@ const LiveTrackingPage = () => {
             ) : (
               /* 기록 모드: 코트 위 선수만 노출(선택) */
               <div className="player-strip">
-                {mySquad.members.filter((m) => isOnCourt(m.pid)).map((m) => {
+                {onCourtList.map((pid) => mySquad.members.find((m) => m.pid === pid)).filter(Boolean).map((m) => {
                   const total = playerTotal(squadStats, m.pid);
                   const sel = selectedPlayer === m.pid;
                   return (
