@@ -86,6 +86,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: '쿼터 번호(1부터)',
       },
+      minutes: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        comment: '해당 쿼터 출전 분(교체 반영)',
+      },
       is_win: {
         type: DataTypes.TINYINT(1),
         allowNull: false,

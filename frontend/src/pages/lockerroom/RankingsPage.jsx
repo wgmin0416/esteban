@@ -352,6 +352,7 @@ const RankingsPage = () => {
                           <span className="dc-names">{duo.user1?.name} · {duo.user2?.name}</span>
                           <span className="dc-sub">
                             {duo.wins}{language === 'KR' ? '승' : 'W'} {duo.losses}{language === 'KR' ? '패' : 'L'}
+                            {duo.minutes ? ` · ${duo.minutes}${language === 'KR' ? '분' : 'min'}` : ''}
                             {duo.assists > 0 ? ` · ${language === 'KR' ? '어시' : 'AST'} ${duo.assists}` : ''}
                           </span>
                         </div>

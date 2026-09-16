@@ -41,6 +41,7 @@ const MatchDetailPage = () => {
     const q = parseInt(searchParams.get('q'));
     return Number.isInteger(q) && q > 0 ? q : 0; // 0 = 합산, ?q=N 이면 해당 쿼터 기본 선택
   }); // 0 = 합산
+  const [selectedGame, setSelectedGame] = useState(null); // 선택된 게임 번호(null=첫 게임)
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState(null);
@@ -162,16 +163,25 @@ const MatchDetailPage = () => {
         ? { cls: 'done', label: t('종료', 'Done') }
         : { cls: 'scheduled', label: t('예정', 'Scheduled') };
 
-  const { attendance, result } = detail;
+  const { attendance } = detail;
+  const games = detail.games || [];
+  const game = games.find((g) => g.gameNo === selectedGame) || games[0] || null;
 
-  // 결과: 쿼터 필터 적용된 선수 스탯
+  // 쿼터별 스쿼드 득점 합
+  const quarterSquadPts = (g, q) => {
+    const pts = {};
+    for (const r of g.quarters?.[q] || []) if (r.squad_id != null) pts[r.squad_id] = (pts[r.squad_id] || 0) + r.pts;
+    return pts;
+  };
+
+  // 결과: 쿼터 필터 적용된 선수 스탯 (선택 게임 기준)
   const playersToShow = () => {
-    if (!result) return [];
-    if (quarterView === 0) return result.players;
-    const rows = result.quarters?.[quarterView] || [];
+    if (!game) return [];
+    if (quarterView === 0) return game.players;
+    const rows = game.quarters?.[quarterView] || [];
     const byKey = {};
     for (const r of rows) byKey[r.key] = r;
-    return result.players.map((p) => {
+    return game.players.map((p) => {
       const q = byKey[p.key];
       return {
         ...p,
@@ -180,6 +190,14 @@ const MatchDetailPage = () => {
       };
     });
   };
+
+  // 상단 스코어: 전체=게임 총점, 쿼터 선택 시 그 쿼터 점수
+  const topScores = game
+    ? game.squads.map((s) => ({
+        ...s,
+        shown: quarterView === 0 ? s.points : quarterSquadPts(game, quarterView)[s.squadId] || 0,
+      }))
+    : [];
 
   return (
     <div className="match-detail-page">
@@ -199,68 +217,44 @@ const MatchDetailPage = () => {
           </div>
         </div>
 
-        {/* 결과 (완료 또는 쿼터별 누적 저장으로 기록 존재 시) */}
-        {result && (
+        {/* 결과 — 게임별 (완료 또는 쿼터별 누적 저장으로 기록 존재 시) */}
+        {game && (
           <section className="md-result">
-            {result.mode === 'roundrobin' ? (
-              <>
-                {/* 라운드로빈 순위표(승패) */}
-                <div className="standings">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t('팀', 'Team')}</th>
-                        <th>{t('승', 'W')}</th>
-                        <th>{t('패', 'L')}</th>
-                        <th>{t('무', 'D')}</th>
-                        <th>{t('득실', '+/-')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.standings.map((s, i) => (
-                        <tr key={s.squadId} className={i === 0 && s.games > 0 ? 'lead' : ''}>
-                          <td className="st-team">{i === 0 && s.games > 0 && '🏆 '}{s.label}</td>
-                          <td>{s.wins}</td>
-                          <td>{s.losses}</td>
-                          <td>{s.draws}</td>
-                          <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* 쿼터별 대진 결과 */}
-                {result.quarterResults?.length > 0 && (
-                  <div className="quarter-results">
-                    {result.quarterResults.map((r) => (
-                      <div key={r.quarter} className="qr-row">
-                        <span className="qrr-q">Q{r.quarter}</span>
-                        <span className={`qrr-team ${r.winner === r.a ? 'win' : ''}`}>{r.aLabel} {r.ptsA}</span>
-                        <span className="qrr-sep">:</span>
-                        <span className={`qrr-team ${r.winner === r.b ? 'win' : ''}`}>{r.ptsB} {r.bLabel}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="result-scores">
-                {result.squads.map((s) => (
-                  <div key={s.squadId} className={`rs-squad ${s.isWin ? 'win' : ''}`}>
-                    <span className="rs-label">{s.label}{s.isWin && ' 🏆'}</span>
-                    <span className="rs-pts">{s.points}</span>
-                  </div>
-                ))}
+            {/* 게임 선택 탭 */}
+            {games.length > 1 && (
+              <div className="game-tabs">
+                {games.map((g) => {
+                  const win = g.squads.find((s) => s.isWin);
+                  return (
+                    <button
+                      key={g.gameNo}
+                      className={`gt-btn ${g.gameNo === (game.gameNo) ? 'on' : ''}`}
+                      onClick={() => { setSelectedGame(g.gameNo); setQuarterView(0); }}
+                    >
+                      <span className="gt-no">G{g.gameNo}</span>
+                      <span className="gt-score">{g.squads.map((s) => s.points).join(':')}</span>
+                      {win && <span className="gt-win">{win.label}</span>}
+                    </button>
+                  );
+                })}
               </div>
             )}
+
+            <div className="result-scores">
+              {topScores.map((s) => (
+                <div key={s.squadId} className={`rs-squad ${quarterView === 0 && s.isWin ? 'win' : ''}`}>
+                  <span className="rs-label">{s.label}{quarterView === 0 && s.isWin && ' 🏆'}</span>
+                  <span className="rs-pts">{s.shown}</span>
+                </div>
+              ))}
+            </div>
 
             <div className="quarter-filter">
               <button className={quarterView === 0 ? 'on' : ''} onClick={() => setQuarterView(0)}>
                 {t('전체', 'Total')}
               </button>
-              {(result.savedQuarters?.length
-                ? result.savedQuarters
+              {(game.savedQuarters?.length
+                ? game.savedQuarters
                 : Array.from({ length: detail.quarterCount }, (_, i) => i + 1)
               ).map((q) => (
                 <button key={q} className={quarterView === q ? 'on' : ''} onClick={() => setQuarterView(q)}>
@@ -270,10 +264,10 @@ const MatchDetailPage = () => {
             </div>
 
             {/* 쿼터별 기록 담당자 */}
-            {quarterView > 0 && result.recorders && (
+            {quarterView > 0 && game.recorders && (
               <div className="quarter-recorders">
-                {result.squads.map((s) => {
-                  const rec = result.recorders?.[s.squadId]?.[quarterView];
+                {game.squads.map((s) => {
+                  const rec = game.recorders?.[s.squadId]?.[quarterView];
                   return rec ? (
                     <span key={s.squadId} className="qr-item">
                       {s.label} {t('기록', 'by')}: <b>{rec.name}</b>
@@ -289,6 +283,7 @@ const MatchDetailPage = () => {
                   <tr>
                     <th>{t('선수', 'Player')}</th>
                     <th>{t('팀', 'Sq')}</th>
+                    {quarterView === 0 && <th>MIN</th>}
                     <th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th>
                     {quarterView === 0 && (<><th>FG%</th><th>3P%</th><th>FT%</th></>)}
                   </tr>
@@ -298,6 +293,7 @@ const MatchDetailPage = () => {
                     <tr key={p.key}>
                       <td className="bs-name">{p.name}{p.isGuest ? ' (G)' : ''}</td>
                       <td>{p.squad_label || '-'}</td>
+                      {quarterView === 0 && <td>{p.minutes ?? 0}</td>}
                       <td className="bs-pts">{p.pts}</td>
                       <td>{p.reb}</td><td>{p.ast}</td><td>{p.stl}</td><td>{p.blk}</td><td>{p.turnover}</td><td>{p.pf}</td>
                       {quarterView === 0 && (<><td>{p.fg_pct}</td><td>{p.threep_pct}</td><td>{p.ft_pct}</td></>)}
@@ -310,7 +306,7 @@ const MatchDetailPage = () => {
         )}
 
         {/* 참석 투표 (기록 저장 전에만 노출) */}
-        {!result && (
+        {games.length === 0 && (
         <section className="md-vote">
           <h2 className="md-section-title">{t('참석 투표', 'Attendance')}</h2>
           <div className="vote-buttons">

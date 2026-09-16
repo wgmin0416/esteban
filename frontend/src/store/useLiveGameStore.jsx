@@ -191,6 +191,34 @@ const useLiveGameStore = create((set, get) => ({
     await get().loadDraft(matchId);
   },
 
+  // 게임 추가 → 새 게임으로 전환
+  addGame: async (squadIds) => {
+    const { matchId } = get();
+    if (matchId == null) return;
+    try {
+      const res = await apiRequest('post', `/team/live/${matchId}/game`, squadIds ? { squadIds } : {});
+      const g = res?.data?.game;
+      if (g) {
+        set({ gameMatchups: res.data.gameMatchups });
+        await get().setGame(g);
+      }
+    } catch {
+      /* 토스트는 apiRequest에서 처리 */
+    }
+  },
+
+  // 게임 대진 변경 (3파전+)
+  setGameMatchup: async (game, squadIds) => {
+    const { matchId, gameMatchups } = get();
+    if (matchId == null) return;
+    set({ gameMatchups: { ...(gameMatchups || {}), [game]: squadIds.map(Number) } }); // 낙관적
+    try {
+      await apiRequest('put', `/team/live/${matchId}/game/${game}/matchup`, { squadIds });
+    } catch {
+      /* 실패 시 다음 로드에서 보정 */
+    }
+  },
+
   // 스코어보드 + 스쿼드별 저장상태/기록담당자 갱신 (타 담당자 진행 반영)
   refreshScoreboard: async () => {
     const { matchId, mySquadId, squadStats, currentGame } = get();
@@ -295,6 +323,18 @@ const useLiveGameStore = create((set, get) => ({
       squadStats: next,
       eventLog: [...eventLog, { userId, quarter: q, eventType, deltas: def.deltas, made: def.made, dir, targetId }],
     });
+    get()._persist();
+  },
+
+  // 교체: 선수의 이번 쿼터 출전 분 수동 지정
+  setPlayerMinutes: (userId, minutes) => {
+    const { squadStats, currentQuarter } = get();
+    const q = currentQuarter;
+    const next = { ...squadStats, [q]: { ...(squadStats[q] || {}) } };
+    const cur = { ...(next[q][userId] || blankStat()) };
+    cur.min = Math.max(0, parseInt(minutes) || 0);
+    next[q][userId] = cur;
+    set({ squadStats: next });
     get()._persist();
   },
 

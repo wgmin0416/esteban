@@ -95,6 +95,19 @@
         .gs-no, .gs-pair { color: #fff; }
       }
     }
+
+    .gs-add {
+      flex: 0 0 auto;
+      padding: $spacing-xs $spacing-md;
+      border: 1px dashed $primary-color;
+      border-radius: $radius-md;
+      background: rgba($primary-color, 0.06);
+      color: $primary-color;
+      font-weight: 800;
+      font-size: $font-sm;
+      cursor: pointer;
+      white-space: nowrap;
+    }
   }
 
   .matchup-picker {
@@ -726,6 +739,59 @@
     justify-content: center;
     z-index: 1000;
     padding: $spacing-lg;
+  }
+
+  // 이벤트 패드 하단 (교체/되돌리기)
+  .ep-foot {
+    display: flex;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .sub-btn {
+      flex: 1;
+      padding: $spacing-sm;
+      border: 1px solid $secondary-color;
+      border-radius: $radius-md;
+      background: rgba($secondary-color, 0.08);
+      color: $secondary-color;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .undo-btn { flex: 1; }
+  }
+
+  // 교체 모달
+  .sub-modal {
+    .sub-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 600;
+      color: $text-secondary;
+
+      select, input {
+        padding: $spacing-sm;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        font-size: $font-base;
+      }
+    }
+    .sub-preview {
+      margin: 0 0 $spacing-sm;
+      font-size: $font-sm;
+      font-weight: 700;
+      color: $primary-color;
+      text-align: center;
+    }
+    .sub-actions {
+      display: flex;
+      gap: $spacing-sm;
+      button { flex: 1; padding: $spacing-sm; border: none; border-radius: $radius-md; font-weight: 700; cursor: pointer; }
+      .sub-cancel { background: $background-gray; color: $text-secondary; }
+      .sub-confirm { background: $primary-color; color: #fff; &:disabled { opacity: 0.5; } }
+    }
   }
 
   // 어시스트 대상(득점자) 선택 팝업

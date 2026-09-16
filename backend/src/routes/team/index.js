@@ -60,6 +60,9 @@ router.put('/live/:matchId/squad/:squadId', authMiddleware, teamController.saveL
 router.put('/live/:matchId/quarter-minutes', authMiddleware, teamController.updateLiveQuarterMinutes);
 // 쿼터별 대진 지정 (3파전 이상)
 router.put('/live/:matchId/quarter/:quarter/matchup', authMiddleware, teamController.setQuarterMatchup);
+// 게임 추가 / 게임 대진 변경 (하루 내 여러 게임)
+router.post('/live/:matchId/game', authMiddleware, teamController.addLiveGame);
+router.put('/live/:matchId/game/:game/matchup', authMiddleware, teamController.setLiveGameMatchup);
 // 쿼터별 누적 저장 (스쿼드 단위) → 해당 스쿼드의 그 쿼터 record 확정 + 기록 담당자 저장
 router.post('/live/:matchId/squad/:squadId/quarter/:quarter/save', authMiddleware, teamController.saveLiveQuarter);
 // 경기 종료 → DB 저장

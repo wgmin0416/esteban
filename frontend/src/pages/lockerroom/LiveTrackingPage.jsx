@@ -42,6 +42,8 @@ const LiveTrackingPage = () => {
     gameMatchups,
     currentGame,
     setGame,
+    addGame,
+    setGameMatchup,
     allStats,
     mySquadId,
     currentQuarter,
@@ -56,6 +58,7 @@ const LiveTrackingPage = () => {
     setQuarter,
     setQuarterMinutes,
     applyEvent,
+    setPlayerMinutes,
     undo,
     flushSave,
     saveQuarter,
@@ -65,6 +68,10 @@ const LiveTrackingPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [astPickFor, setAstPickFor] = useState(null); // 어시스트 대상 선택 중인 패서 pid
+  const [subOpen, setSubOpen] = useState(false); // 교체 모달
+  const [subOut, setSubOut] = useState('');
+  const [subIn, setSubIn] = useState('');
+  const [subMin, setSubMin] = useState('');
   const [minusMode, setMinusMode] = useState(false); // 잘못 누른 기록 빼기 모드
   const [lineupEdit, setLineupEdit] = useState(false); // 출전 라인업 편집 모드
   // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — 미설정 시 전원 출전
@@ -141,6 +148,20 @@ const LiveTrackingPage = () => {
     const prev = lineup?.[mySquadId]?.[currentQuarter - 1];
     if (!prev) return;
     persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...prev] } });
+  };
+  const curQuarterLen = quarterMinutes[currentQuarter - 1] || 10;
+  // 교체 실행: 나간 선수 분 입력 → 들어온 선수는 나머지 분
+  const doSubstitution = () => {
+    if (!subOut || !subIn) return;
+    const outMin = Math.max(0, Math.min(parseInt(subMin) || 0, curQuarterLen));
+    const base = onCourtList || (mySquad?.members || []).map((m) => m.pid);
+    const next = base.filter((p) => p !== subOut);
+    if (!next.includes(subIn)) next.push(subIn);
+    persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...next] } });
+    setPlayerMinutes(subOut, outMin);
+    setPlayerMinutes(subIn, curQuarterLen - outMin);
+    setSubOpen(false);
+    setSubOut(''); setSubIn(''); setSubMin('');
   };
   // 출전 선수 앞으로 정렬(원래 순서 유지)
   const sortedMembers = mySquad
@@ -264,8 +285,8 @@ const LiveTrackingPage = () => {
           </div>
         )}
 
-        {/* 게임 전환 (하루 내 여러 게임) */}
-        {games.length > 1 && (
+        {/* 게임 전환/추가 (하루 내 여러 게임) */}
+        {games.length > 0 && (
           <div className="game-switch">
             {games.map((g) => {
               const pair = gameMatchups[g] || [];
@@ -281,6 +302,40 @@ const LiveTrackingPage = () => {
                 </button>
               );
             })}
+            {(() => {
+              const maxGames = meta.squads.length === 2 ? 4 : 6;
+              return games.length < maxGames ? (
+                <button className="gs-add" onClick={() => addGame()}>＋ {t('게임 추가', 'Add game')}</button>
+              ) : null;
+            })()}
+          </div>
+        )}
+
+        {/* 이 게임 대진 선택 (3파전+ · 담당팀 고르기 전) */}
+        {is3way && !mySquad && (
+          <div className="matchup-picker">
+            <span className="mp-label">G{currentGame} {t('대진', 'Matchup')}</span>
+            <select
+              className="mp-select"
+              value={curPair?.[0] ?? ''}
+              onChange={(e) => setGameMatchup(currentGame, [Number(e.target.value), curPair?.[1] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId])}
+            >
+              <option value="" disabled>{t('팀', 'Team')}</option>
+              {meta.squads.map((s) => (
+                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[1])}>{s.label}</option>
+              ))}
+            </select>
+            <span className="mp-vs">vs</span>
+            <select
+              className="mp-select"
+              value={curPair?.[1] ?? ''}
+              onChange={(e) => setGameMatchup(currentGame, [curPair?.[0] ?? meta.squads.find((s) => String(s.squadId) !== e.target.value)?.squadId, Number(e.target.value)])}
+            >
+              <option value="" disabled>{t('팀', 'Team')}</option>
+              {meta.squads.map((s) => (
+                <option key={s.squadId} value={s.squadId} disabled={String(s.squadId) === String(curPair?.[0])}>{s.label}</option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -519,10 +574,58 @@ const LiveTrackingPage = () => {
                   })}
                 </div>
               ))}
-              <button className="undo-btn" disabled={eventLog.length === 0} onClick={undo}>
-                ↶ {t('되돌리기', 'Undo')} {eventLog.length > 0 ? `(${eventLog.length})` : ''}
-              </button>
+              <div className="ep-foot">
+                <button className="sub-btn" onClick={() => { setSubOut(''); setSubIn(''); setSubMin(''); setSubOpen(true); }}>
+                  🔁 {t('선수 교체', 'Substitute')}
+                </button>
+                <button className="undo-btn" disabled={eventLog.length === 0} onClick={undo}>
+                  ↶ {t('되돌리기', 'Undo')} {eventLog.length > 0 ? `(${eventLog.length})` : ''}
+                </button>
+              </div>
             </div>
+
+            {/* 선수 교체 모달 */}
+            {subOpen && (
+              <div className="ast-pick-overlay" onClick={() => setSubOpen(false)}>
+                <div className="ast-pick sub-modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="ap-title">🔁 {t('선수 교체', 'Substitution')} · Q{currentQuarter} ({curQuarterLen}{t('분', 'min')})</div>
+                  <label className="sub-field">
+                    <span>{t('나가는 선수', 'Out')}</span>
+                    <select value={subOut} onChange={(e) => setSubOut(e.target.value)}>
+                      <option value="">{t('선택', 'Select')}</option>
+                      {mySquad.members.filter((m) => isOnCourt(m.pid)).map((m) => (
+                        <option key={m.pid} value={m.pid}>{m.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="sub-field">
+                    <span>{t('나간 선수 출전 분', 'Minutes played')}</span>
+                    <input type="number" min="0" max={curQuarterLen} value={subMin}
+                      onChange={(e) => setSubMin(e.target.value)} placeholder={`0 ~ ${curQuarterLen}`} />
+                  </label>
+                  <label className="sub-field">
+                    <span>{t('들어오는 선수', 'In')}</span>
+                    <select value={subIn} onChange={(e) => setSubIn(e.target.value)}>
+                      <option value="">{t('선택', 'Select')}</option>
+                      {mySquad.members.filter((m) => !isOnCourt(m.pid)).map((m) => (
+                        <option key={m.pid} value={m.pid}>{m.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {subOut && subIn && (
+                    <p className="sub-preview">
+                      {mySquad.members.find((m) => m.pid === subOut)?.name} {Math.min(parseInt(subMin) || 0, curQuarterLen)}{t('분', 'm')}
+                      {' → '}
+                      {mySquad.members.find((m) => m.pid === subIn)?.name} {curQuarterLen - Math.min(parseInt(subMin) || 0, curQuarterLen)}{t('분', 'm')}
+                    </p>
+                  )}
+                  <div className="sub-actions">
+                    <button className="sub-cancel" onClick={() => setSubOpen(false)}>{t('취소', 'Cancel')}</button>
+                    <button className="sub-confirm" disabled={!subOut || !subIn} onClick={doSubstitution}>{t('교체', 'Sub')}</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 어시스트 대상(득점자) 선택 */}
             {astPickFor != null && (() => {

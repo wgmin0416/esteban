@@ -73,6 +73,36 @@
     flex-direction: column;
     gap: $spacing-md;
 
+    // 게임 선택 탭
+    .game-tabs {
+      display: flex;
+      gap: $spacing-xs;
+      overflow-x: auto;
+
+      .gt-btn {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: $spacing-xs $spacing-md;
+        border: 1px solid $border-color;
+        border-radius: $radius-md;
+        background: #fff;
+        cursor: pointer;
+
+        .gt-no { font-weight: 800; font-size: $font-xs; color: $text-secondary; }
+        .gt-score { font-family: $font-display; font-size: $font-base; color: $text-primary; }
+        .gt-win { font-size: 10px; font-weight: 700; color: $primary-color; }
+
+        &.on {
+          background: $ink;
+          border-color: $ink;
+          .gt-no, .gt-score, .gt-win { color: #fff; }
+        }
+      }
+    }
+
     .result-scores {
       display: flex;
       justify-content: center;
