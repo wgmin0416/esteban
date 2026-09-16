@@ -77,7 +77,7 @@ const LiveTrackingPage = () => {
   const lastOutRemainRef = useRef(null); // 나간 선수의 남은 분(다음 투입 선수 분)
   const [minusMode, setMinusMode] = useState(false); // 잘못 누른 기록 빼기 모드
   const [lineupEdit, setLineupEdit] = useState(false); // 출전 라인업 편집 모드
-  // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — 미설정 시 전원 출전
+  // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — Q1 미설정=전원 벤치, Q2+=이전 쿼터 승계
   const [lineup, setLineup] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`live:${matchId}:lineup`)) || {};
@@ -126,10 +126,17 @@ const LiveTrackingPage = () => {
   const myRecorder = squadRecorders?.[mySquadId]?.[currentQuarter]?.name || null;
 
   // ── 출전 라인업(쿼터별) ──
-  const onCourtList = lineup?.[mySquadId]?.[currentQuarter]; // 배열 or undefined(=전원)
-  const onCourtSet = onCourtList ? new Set(onCourtList) : null; // null = 전원 출전
-  const isOnCourt = (pid) => !onCourtSet || onCourtSet.has(pid);
-  const onCourtCount = onCourtSet ? onCourtSet.size : (mySquad?.members?.length || 0);
+  // Q1 미설정 → 전원 벤치(빈 라인업), Q2+ 미설정 → 이전 쿼터 종료 라인업 승계
+  const resolveLineup = (q) => {
+    const cur = lineup?.[mySquadId]?.[q];
+    if (Array.isArray(cur)) return cur;
+    if (q <= 1) return [];
+    return resolveLineup(q - 1);
+  };
+  const onCourtList = resolveLineup(currentQuarter);
+  const onCourtSet = new Set(onCourtList);
+  const isOnCourt = (pid) => onCourtSet.has(pid);
+  const onCourtCount = onCourtSet.size;
 
   const persistLineup = (next) => {
     setLineup(next);
@@ -146,7 +153,7 @@ const LiveTrackingPage = () => {
   };
   const curQuarterLen = quarterMinutes[currentQuarter - 1] || 10;
   const nameOf = (pid) => mySquad?.members.find((m) => m.pid === pid)?.name || '';
-  const baseLineup = () => onCourtList || (mySquad?.members || []).map((m) => m.pid);
+  const baseLineup = () => [...onCourtList];
   const setLineupArr = (arr) =>
     persistLineup({ ...lineup, [mySquadId]: { ...(lineup[mySquadId] || {}), [currentQuarter]: [...new Set(arr)] } });
   const moveToBench = (pid) => setLineupArr(baseLineup().filter((p) => p !== pid));
@@ -247,8 +254,8 @@ const LiveTrackingPage = () => {
     const q = currentQuarter;
     setSavingQuarter(true);
     try {
-      // 이 쿼터 출전 라인업(미설정이면 전원 → onCourt 미전송)
-      const onCourt = lineup?.[mySquadId]?.[q] || null;
+      // 이 쿼터 실제 출전 라인업(해석된 값 — Q2+는 이전 쿼터 승계 포함)
+      const onCourt = resolveLineup(q);
       await saveQuarter(q, onCourt);
       toastSuccess(t(`Q${q} 기록이 저장되었습니다.`, `Q${q} record saved.`));
       setShowSave(false);
