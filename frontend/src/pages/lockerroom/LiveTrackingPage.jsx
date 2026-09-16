@@ -565,7 +565,7 @@ const LiveTrackingPage = () => {
                 <button
                   className="rec-start"
                   disabled={onCourtCount !== 5}
-                  onClick={() => setRecording(true)}
+                  onClick={() => { setRecording(true); setLineupEdit(false); }}
                 >
                   ▶ {t('기록 시작', 'Start recording')}
                 </button>
