@@ -721,6 +721,7 @@ const LiveTrackingPage = () => {
                           className="ap-btn"
                           onClick={() => {
                             applyEvent(astPickFor, 'ast', 1, x.pid);
+                            setSelectedPlayer(x.pid); // 득점자로 포커스 이동(2·3점 입력 편의)
                             setAstPickFor(null);
                           }}
                         >
