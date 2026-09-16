@@ -372,6 +372,11 @@ const MatchDetailPage = () => {
                 🔴 {t('라이브 기록 이어서', 'Continue Live Tracking')}
               </button>
               {canManage && (
+                <button className="act ghost" onClick={() => navigate(`/locker-room/matches/${matchId}/live-setup`)}>
+                  🧩 {t('팀 짜기', 'Build Teams')}
+                </button>
+              )}
+              {canManage && (
                 <button className="act ghost" onClick={openEdit}>
                   {t('경기 수정', 'Edit Match')}
                 </button>

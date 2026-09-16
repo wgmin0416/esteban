@@ -262,7 +262,7 @@ const useLiveGameStore = create((set, get) => ({
   },
 
   // 선수에게 이벤트 적용 (현재 쿼터). sign: +1 추가 / -1 빼기(잘못 누른 기록 취소)
-  applyEvent: (userId, eventType, sign = 1) => {
+  applyEvent: (userId, eventType, sign = 1, targetId = null) => {
     const def = EVENT_DEFS[eventType];
     if (!def) return;
     const dir = sign < 0 ? -1 : 1;
@@ -282,10 +282,17 @@ const useLiveGameStore = create((set, get) => ({
       }
       cur.makes = makes;
     }
+    // 어시스트 대상(득점자 pid) 기록 { [scorerPid]: count }
+    if (eventType === 'ast' && targetId != null) {
+      const at = { ...(cur.at || {}) };
+      at[targetId] = Math.max((toInt(at[targetId]) || 0) + dir, 0);
+      if (!at[targetId]) delete at[targetId];
+      cur.at = at;
+    }
     next[q][userId] = cur;
     set({
       squadStats: next,
-      eventLog: [...eventLog, { userId, quarter: q, eventType, deltas: def.deltas, made: def.made, dir }],
+      eventLog: [...eventLog, { userId, quarter: q, eventType, deltas: def.deltas, made: def.made, dir, targetId }],
     });
     get()._persist();
   },
@@ -310,6 +317,13 @@ const useLiveGameStore = create((set, get) => ({
         makes.push(last.made);
       }
       cur.makes = makes;
+    }
+    // 어시스트 대상 되돌리기
+    if (last.eventType === 'ast' && last.targetId != null) {
+      const at = { ...(cur.at || {}) };
+      at[last.targetId] = Math.max((toInt(at[last.targetId]) || 0) - dir, 0);
+      if (!at[last.targetId]) delete at[last.targetId];
+      cur.at = at;
     }
     next[q][last.userId] = cur;
     set({ squadStats: next, eventLog: eventLog.slice(0, -1) });

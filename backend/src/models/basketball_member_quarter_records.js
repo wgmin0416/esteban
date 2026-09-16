@@ -188,6 +188,23 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0,
         comment: '어시스트 개수',
       },
+      assist_targets: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: '어시스트 대상 JSON {scorerUserId: count}',
+        get() {
+          const v = this.getDataValue('assist_targets');
+          if (!v) return null;
+          try {
+            return JSON.parse(v);
+          } catch {
+            return null;
+          }
+        },
+        set(val) {
+          this.setDataValue('assist_targets', val == null ? null : JSON.stringify(val));
+        },
+      },
       stl: {
         type: DataTypes.TINYINT.UNSIGNED,
         allowNull: false,

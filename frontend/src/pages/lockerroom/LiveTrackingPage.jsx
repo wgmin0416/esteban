@@ -62,6 +62,7 @@ const LiveTrackingPage = () => {
 
   const [notFound, setNotFound] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [astPickFor, setAstPickFor] = useState(null); // 어시스트 대상 선택 중인 패서 pid
   const [minusMode, setMinusMode] = useState(false); // 잘못 누른 기록 빼기 모드
   const [lineupEdit, setLineupEdit] = useState(false); // 출전 라인업 편집 모드
   // 출전 라인업(쿼터별) { [squadId]: { [quarter]: [pid...] } } — 미설정 시 전원 출전
@@ -108,7 +109,6 @@ const LiveTrackingPage = () => {
   const mySquad = meta?.squads?.find((s) => String(s.squadId) === String(mySquadId));
 
   // 경기 종료는 전 스쿼드가 전 쿼터를 저장했을 때만 (서버가 최종 검증)
-  const quarterCount = meta?.quarterCount || 0;
   const allQuartersSaved = allSquadsSaved;
   // 현재 쿼터의 내 스쿼드 기록 담당자
   const myRecorder = squadRecorders?.[mySquadId]?.[currentQuarter]?.name || null;
@@ -260,8 +260,8 @@ const LiveTrackingPage = () => {
           </div>
         )}
 
-        {/* 쿼터 대진 선택 (3파전+) */}
-        {is3way && mySquad && (
+        {/* 쿼터 대진 선택 (3파전+) — 담당팀 고르기 전에 먼저 */}
+        {is3way && (
           <div className="matchup-picker">
             <span className="mp-label">Q{currentQuarter} {t('대진', 'Matchup')}</span>
             <select
@@ -301,27 +301,38 @@ const LiveTrackingPage = () => {
             >
               ← {t('팀 배정 다시하기', 'Back to team setup')}
             </button>
-            <h2>{t('담당 스쿼드를 선택하세요', 'Pick your squad to score')}</h2>
-            {is3way && Array.isArray(curPair) && curPair.length === 2 && (
-              <p className="sp-matchup">
-                Q{currentQuarter} {t('대진', 'Matchup')}: <b>{squadOf(curPair[0])?.label} vs {squadOf(curPair[1])?.label}</b>
-              </p>
+            {is3way && !(Array.isArray(curPair) && curPair.length === 2) ? (
+              <>
+                <h2>{t('이 쿼터 대진을 먼저 선택하세요', 'Pick this quarter’s matchup first')}</h2>
+                <p className="sp-need-matchup">
+                  {t('위에서 붙는 두 팀을 고르면 담당 팀을 선택할 수 있어요.', 'Choose the two teams above, then pick your squad.')}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2>{t('담당 스쿼드를 선택하세요', 'Pick your squad to score')}</h2>
+                {is3way && (
+                  <p className="sp-matchup">
+                    Q{currentQuarter} {t('대진', 'Matchup')}: <b>{squadOf(curPair[0])?.label} vs {squadOf(curPair[1])?.label}</b>
+                  </p>
+                )}
+                <div className="squad-pick-grid">
+                  {(is3way
+                    ? meta.squads.filter((s) => curPair.map(String).includes(String(s.squadId)))
+                    : meta.squads
+                  ).map((s) => (
+                    <button
+                      key={s.squadId}
+                      className="squad-pick-btn"
+                      onClick={() => setMySquad(s.squadId)}
+                    >
+                      <span className="spb-label">{s.label}</span>
+                      <span className="spb-count">{s.members.length}{t('명', ' players')}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
-            <div className="squad-pick-grid">
-              {(is3way && Array.isArray(curPair) && curPair.length === 2
-                ? meta.squads.filter((s) => curPair.map(String).includes(String(s.squadId)))
-                : meta.squads
-              ).map((s) => (
-                <button
-                  key={s.squadId}
-                  className="squad-pick-btn"
-                  onClick={() => setMySquad(s.squadId)}
-                >
-                  <span className="spb-label">{s.label}</span>
-                  <span className="spb-count">{s.members.length}{t('명', ' players')}</span>
-                </button>
-              ))}
-            </div>
           </div>
         ) : (
           <>
@@ -510,7 +521,15 @@ const LiveTrackingPage = () => {
                         key={ev}
                         className={`ev-btn tone-${def.tone}`}
                         disabled={!selectedPlayer}
-                        onClick={() => selectedPlayer && guardedApply(selectedPlayer, ev, minusMode ? -1 : 1)}
+                        onClick={() => {
+                          if (!selectedPlayer) return;
+                          // 어시스트(추가 모드)는 득점자 선택 팝업
+                          if (ev === 'ast' && !minusMode) {
+                            setAstPickFor(selectedPlayer);
+                            return;
+                          }
+                          guardedApply(selectedPlayer, ev, minusMode ? -1 : 1);
+                        }}
                       >
                         {minusMode ? '−' : ''}{t(def.label, def.labelEn).replace(' ', '\n')}
                       </button>
@@ -522,6 +541,42 @@ const LiveTrackingPage = () => {
                 ↶ {t('되돌리기', 'Undo')} {eventLog.length > 0 ? `(${eventLog.length})` : ''}
               </button>
             </div>
+
+            {/* 어시스트 대상(득점자) 선택 */}
+            {astPickFor != null && (() => {
+              const passer = mySquad.members.find((x) => x.pid === astPickFor);
+              const mates = mySquad.members.filter((x) => x.pid !== astPickFor && isOnCourt(x.pid));
+              return (
+                <div className="ast-pick-overlay" onClick={() => setAstPickFor(null)}>
+                  <div className="ast-pick" onClick={(e) => e.stopPropagation()}>
+                    <div className="ap-title">
+                      <b>{passer?.name}</b> {t('어시스트 → 득점자 선택', 'Assist → pick scorer')}
+                    </div>
+                    <div className="ap-grid">
+                      {mates.map((x) => (
+                        <button
+                          key={x.pid}
+                          className="ap-btn"
+                          onClick={() => {
+                            applyEvent(astPickFor, 'ast', 1, x.pid);
+                            setAstPickFor(null);
+                          }}
+                        >
+                          <img src={avatar(x.name, x.image_url)} alt={x.name} />
+                          <span>{x.name}{x.isGuest ? ' (G)' : ''}</span>
+                        </button>
+                      ))}
+                      {mates.length === 0 && (
+                        <div className="ap-empty">{t('출전 중인 동료가 없어요', 'No teammates on court')}</div>
+                      )}
+                    </div>
+                    <button className="ap-cancel" onClick={() => setAstPickFor(null)}>
+                      {t('취소', 'Cancel')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* 하단 액션 */}
             <div className="lt-actions">

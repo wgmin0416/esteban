@@ -116,6 +116,12 @@
       b { color: $primary-color; }
     }
 
+    .sp-need-matchup {
+      margin: 0 0 $spacing-md;
+      font-size: $font-sm;
+      color: $text-light;
+    }
+
     .squad-pick-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -690,6 +696,91 @@
     justify-content: center;
     z-index: 1000;
     padding: $spacing-lg;
+  }
+
+  // 어시스트 대상(득점자) 선택 팝업
+  .ast-pick-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 16, 32, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: $spacing-lg;
+  }
+
+  .ast-pick {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+
+    .ap-title {
+      font-size: $font-base;
+      color: $text-primary;
+      margin-bottom: $spacing-md;
+      text-align: center;
+    }
+
+    .ap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: $spacing-sm;
+      margin-bottom: $spacing-md;
+
+      .ap-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        color: $text-light;
+        padding: $spacing-md 0;
+      }
+    }
+
+    .ap-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      background: $background-light;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      span {
+        font-size: $font-xs;
+        font-weight: 600;
+        color: $text-primary;
+        text-align: center;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+        background: rgba($primary-color, 0.06);
+      }
+    }
+
+    .ap-cancel {
+      width: 100%;
+      padding: $spacing-sm;
+      border: none;
+      border-radius: $radius-md;
+      background: $background-gray;
+      color: $text-secondary;
+      font-weight: 600;
+      cursor: pointer;
+    }
   }
 
   .lt-modal {

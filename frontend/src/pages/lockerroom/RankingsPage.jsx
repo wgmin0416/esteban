@@ -27,8 +27,6 @@ const RankingsPage = () => {
   // 랭킹 카테고리 옵션
   const categoryOptions = [
     { value: 'TOTAL', label: '종합', labelEn: 'Overall' },
-    { value: 'BEST_DUO', label: '최고의 듀오', labelEn: 'Best Duo' },
-    { value: 'WORST_DUO', label: '최악의 듀오', labelEn: 'Worst Duo' },
     { value: 'GP', label: '경기수', labelEn: 'GP' },
     { value: 'W', label: '승리', labelEn: 'W' },
     { value: 'L', label: '패배', labelEn: 'L' },
@@ -55,7 +53,6 @@ const RankingsPage = () => {
   const [records, setRecords] = useState([]); // 기간별 원시 집계(항목과 무관) — 캐싱용
   const [bestDuos, setBestDuos] = useState([]); // 최고 듀오 전체(<=10)
   const [worstDuos, setWorstDuos] = useState([]); // 최악 듀오 전체(<=10)
-  const [duoIdx, setDuoIdx] = useState(0); // 하이라이트 순환 인덱스(TOP3)
   const [loading, setLoading] = useState(false);
 
   const toNumber = (v) => {
@@ -196,32 +193,14 @@ const RankingsPage = () => {
 
   useEffect(() => {
     if (teamInfo?.id) loadPeriod(selectedYear);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, teamInfo]);
 
-  // 매일 다른 듀오가 먼저 뜨도록 날짜 기반 시작 + 4초마다 자동 순환(TOP3)
-  useEffect(() => {
-    const len = Math.min(3, Math.max(bestDuos.length, worstDuos.length));
-    if (len <= 1) {
-      setDuoIdx(0);
-      return;
-    }
-    const dayOfYear = Math.floor(
-      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-    );
-    setDuoIdx(dayOfYear % len);
-    const timer = setInterval(() => setDuoIdx((i) => (i + 1) % len), 4000);
-    return () => clearInterval(timer);
-  }, [bestDuos, worstDuos]);
-
-  // 항목 전환은 재요청 없이 클라이언트 재정렬/선택만
-  const isDuoRanking = selectedCategory === 'BEST_DUO' || selectedCategory === 'WORST_DUO';
+  // 항목 전환은 재요청 없이 클라이언트 재정렬만
   const rankings = useMemo(
-    () => (isDuoRanking ? [] : buildRankingsFromRecords(records, selectedCategory)),
+    () => buildRankingsFromRecords(records, selectedCategory),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [records, selectedCategory]
   );
-  const duos = selectedCategory === 'BEST_DUO' ? bestDuos : selectedCategory === 'WORST_DUO' ? worstDuos : [];
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
@@ -327,6 +306,10 @@ const RankingsPage = () => {
     return info.signed && Number(v) > 0 ? `+${s}` : s;
   };
 
+  const duoFace = (u) =>
+    u?.image ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(u?.name || '?')}&background=ff5a1f&color=fff&size=96`;
+
   if (!teamInfo) {
     return (
       <div className="rankings-page">
@@ -347,56 +330,42 @@ const RankingsPage = () => {
           </span>
         </h1>
 
-        {/* 듀오 하이라이트 (최고/최악 TOP3 순환) */}
-        {(bestDuos.length > 0 || worstDuos.length > 0) &&
-          (() => {
-            const bestTop = bestDuos.slice(0, 3);
-            const worstTop = worstDuos.slice(0, 3);
-            const len = Math.max(bestTop.length, worstTop.length);
-            const bd = bestTop[duoIdx] || bestTop[0];
-            const wd = worstTop[duoIdx] || worstTop[0];
-            const face = (u) =>
-              u?.image ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(u?.name || '?')}&background=ff5a1f&color=fff&size=96`;
-            const renderSide = (duo, cls, cap, cat) =>
-              duo ? (
-                <button className={`dh-side ${cls}`} onClick={() => setSelectedCategory(cat)}>
-                  <span className="dh-cap">{cap}</span>
-                  <div className="dh-faces">
-                    <img src={face(duo.user1)} alt={duo.user1?.name} />
-                    <img src={face(duo.user2)} alt={duo.user2?.name} />
-                  </div>
-                  <div className="dh-names">{duo.user1?.name} · {duo.user2?.name}</div>
-                  <div className="dh-stat">
-                    {duo.winRate}% <em>{duo.wins}{language === 'KR' ? '승' : 'W'} {duo.losses}{language === 'KR' ? '패' : 'L'} · {language === 'KR' ? '마진' : '+/-'} {duo.pmPerGame > 0 ? `+${duo.pmPerGame}` : duo.pmPerGame}</em>
-                  </div>
-                </button>
-              ) : (
-                <div className={`dh-side ${cls} empty`}>
-                  <span className="dh-cap">{cap}</span>
-                  <span className="dh-none">-</span>
-                </div>
-              );
-            return (
-              <div className="duo-highlight">
-                <div className="dh-row">
-                  {renderSide(bd, 'best', language === 'KR' ? '🔥 최고의 듀오' : '🔥 Best Duo', 'BEST_DUO')}
-                  {renderSide(wd, 'worst', language === 'KR' ? '💧 최악의 듀오' : '💧 Worst Duo', 'WORST_DUO')}
-                </div>
-                {len > 1 && (
-                  <div className="dh-dots">
-                    {Array.from({ length: len }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={i === duoIdx ? 'on' : ''}
-                        onClick={() => setDuoIdx(i)}
-                      />
+        {/* 듀오 랭킹 (최고/최악 좌우 2열, 전체 표시) */}
+        {(bestDuos.length > 0 || worstDuos.length > 0) && (
+          <div className="duo-columns">
+            {[
+              { cls: 'best', cap: language === 'KR' ? '🔥 최고의 듀오' : '🔥 Best Duo', list: bestDuos },
+              { cls: 'worst', cap: language === 'KR' ? '💧 최악의 듀오' : '💧 Worst Duo', list: worstDuos },
+            ].map((col) => (
+              <div key={col.cls} className={`duo-col ${col.cls}`}>
+                <div className="dc-title">{col.cap}</div>
+                {col.list.length > 0 ? (
+                  <ol className="dc-list">
+                    {col.list.slice(0, 3).map((duo, i) => (
+                      <li key={i} className="dc-item">
+                        <span className="dc-rank">{i + 1}</span>
+                        <div className="dc-faces">
+                          <img src={duoFace(duo.user1)} alt={duo.user1?.name} />
+                          <img src={duoFace(duo.user2)} alt={duo.user2?.name} />
+                        </div>
+                        <div className="dc-info">
+                          <span className="dc-names">{duo.user1?.name} · {duo.user2?.name}</span>
+                          <span className="dc-sub">
+                            {duo.wins}{language === 'KR' ? '승' : 'W'} {duo.losses}{language === 'KR' ? '패' : 'L'}
+                            {duo.assists > 0 ? ` · ${language === 'KR' ? '어시' : 'AST'} ${duo.assists}` : ''}
+                          </span>
+                        </div>
+                        <span className="dc-rate">{duo.winRate}%</span>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
+                ) : (
+                  <div className="dc-empty">-</div>
                 )}
               </div>
-            );
-          })()}
+            ))}
+          </div>
+        )}
 
         {/* 필터 섹션 */}
         <div className="rankings-filters">
@@ -456,63 +425,9 @@ const RankingsPage = () => {
           </p>
         )}
 
-        {/* 1위 선수 프로필 또는 듀오 랭킹 */}
+        {/* 1위 선수 프로필 (항목별) */}
         {loading ? (
           <div className="loading-spinner">{language === 'KR' ? '로딩 중...' : 'Loading...'}</div>
-        ) : isDuoRanking ? (
-          duos.length > 0 ? (
-            <div className="rankings-list">
-              {duos.map((duo) => (
-                <div key={duo.rank} className="ranking-item duo-item">
-                  <div className="ranking-number">{duo.rank}</div>
-                  <div className="duo-players">
-                    <div className="duo-player">
-                      <div className="ranking-player-image">
-                        <img
-                          src={duo.user1.image || `https://i.pravatar.cc/150?img=${duo.user1.id}`}
-                          alt={duo.user1.name}
-                          onError={(e) => {
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(duo.user1.name)}&background=2563eb&color=fff&size=128`;
-                          }}
-                        />
-                      </div>
-                      <div className="ranking-player-name">{duo.user1.name}</div>
-                    </div>
-                    <div className="duo-vs">VS</div>
-                    <div className="duo-player">
-                      <div className="ranking-player-image">
-                        <img
-                          src={duo.user2.image || `https://i.pravatar.cc/150?img=${duo.user2.id}`}
-                          alt={duo.user2.name}
-                          onError={(e) => {
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(duo.user2.name)}&background=2563eb&color=fff&size=128`;
-                          }}
-                        />
-                      </div>
-                      <div className="ranking-player-name">{duo.user2.name}</div>
-                    </div>
-                  </div>
-                  <div className="ranking-player-info">
-                    <div className="ranking-player-stats">
-                      <span className="ranking-value">
-                        {duo.winRate}% ({duo.wins}W-{duo.losses}L)
-                      </span>
-                      <span className="ranking-games">
-                        {duo.games}GP · {language === 'KR' ? '마진' : '+/-'} {duo.pmPerGame > 0 ? `+${duo.pmPerGame}` : duo.pmPerGame}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-icon">👥</div>
-              <div className="empty-message">
-                {language === 'KR' ? '듀오 데이터가 없습니다.' : 'No duo data available.'}
-              </div>
-            </div>
-          )
         ) : rankings.length > 0 ? (
           <>
             {/* TOP 3: 1위 크게, 2·3위 오른쪽 절반 분할 */}

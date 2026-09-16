@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useLanguageStore from '../../store/useLanguageStore';
 import apiRequest from '../../lib/apiRequest';
@@ -20,6 +20,8 @@ const LiveSetupPage = () => {
   const [loading, setLoading] = useState(true);
   const [match, setMatch] = useState(null);
   const [starting, setStarting] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const didAutoRef = useRef(false);
 
   // 참가자 배치 상태
   const [pool, setPool] = useState([]); // 미배정 참가자 [{uid,userId,name,image,isGuest}]
@@ -49,35 +51,26 @@ const LiveSetupPage = () => {
           uid: `u${a.user_id}`, userId: a.user_id, name: a.name, image: a.image_url, isGuest: false,
         }));
 
-        // 이미 라이브 진행 중이면 기존 배정을 그대로 복원(초기화 X)
-        let draft = null;
-        if (d.status === 'live') {
-          try {
-            const lres = await apiRequest('get', `/team/live/${matchId}`);
-            draft = lres?.data || null;
-          } catch {
-            draft = null;
-          }
-        }
-
-        if (draft?.squads?.length) {
+        // 기존 스쿼드 구성이 있으면 DB(경기 상세) 기준으로 복원 (Redis 드래프트 의존 X)
+        const existing = (d.squads || []).filter((s) => (s.members || []).length > 0);
+        if (existing.length) {
           const assigned = new Set();
-          let maxGuest = 0;
-          const nextTeams = draft.squads.map((s) => ({
+          let gseq = 0;
+          const nextTeams = d.squads.map((s) => ({
             label: s.label,
             members: (s.members || []).map((m) => {
-              if (m.userId != null) {
-                assigned.add(m.userId);
-                return { uid: `u${m.userId}`, userId: m.userId, name: m.name, image: m.image_url, isGuest: false };
+              if (m.user_id != null) {
+                assigned.add(m.user_id);
+                return { uid: `u${m.user_id}`, userId: m.user_id, name: m.name, image: m.image_url, isGuest: false };
               }
-              const seq = parseInt(String(m.pid).replace(/^g/, '')) || 0;
-              if (seq > maxGuest) maxGuest = seq;
-              return { uid: m.pid, userId: null, name: m.name, image: null, isGuest: true };
+              gseq += 1;
+              return { uid: `g${gseq}`, userId: null, name: m.name, image: null, isGuest: true };
             }),
           }));
           setTeams(nextTeams);
-          setPool(attendees.filter((a) => !assigned.has(a.userId))); // 배정 안 된 참석자만 풀에
-          setGuestSeq(maxGuest);
+          setPool(attendees.filter((a) => !assigned.has(a.userId)));
+          setGuestSeq(gseq);
+          didAutoRef.current = true; // 기존 구성 유지 → 자동추천 스킵
         } else {
           setPool(attendees);
         }
@@ -112,6 +105,73 @@ const LiveSetupPage = () => {
       setTeams((prev) => prev.map((tm, i) => (i === dest ? { ...tm, members: [...tm.members, p] } : tm)));
     }
   };
+
+  // 남은 참석자(풀)를 특정 팀에 전부 담기
+  const moveAllPoolTo = (idx) => {
+    if (!pool.length) return;
+    setTeams((prev) => prev.map((tm, i) => (i === idx ? { ...tm, members: [...tm.members, ...pool] } : tm)));
+    setPool([]);
+    setSelectedUid(null);
+  };
+
+  // 남은 참석자를 인원이 적은 팀부터 균등 분배
+  const distributeEvenly = () => {
+    if (!pool.length) return;
+    setTeams((prev) => {
+      const next = prev.map((tm) => ({ ...tm, members: [...tm.members] }));
+      for (const p of pool) {
+        let min = next[0];
+        for (const tm of next) if (tm.members.length < min.members.length) min = tm;
+        min.members.push(p);
+      }
+      return next;
+    });
+    setPool([]);
+    setSelectedUid(null);
+  };
+
+  // 팀 자동 추천 (실력·포지션·최근 2주 같은 팀 고려) — 참석자를 팀에 배분, 게스트는 풀로
+  const applySuggestion = async (cnt) => {
+    const count = cnt || teams.length;
+    setSuggesting(true);
+    try {
+      const res = await apiRequest('get', `/team/match/${matchId}/suggest-teams`, { count });
+      const sq = res?.data?.squads || [];
+      if (!sq.length) {
+        toastError(t('추천할 참석자가 없습니다.', 'No attendees to suggest.'));
+        return;
+      }
+      const guests = [
+        ...pool.filter((p) => p.isGuest),
+        ...teams.flatMap((tm) => tm.members.filter((m) => m.isGuest)),
+      ];
+      setTeams(
+        sq.map((s, i) => ({
+          label: s.label || SQUAD_LABELS[i] || `${i + 1}`,
+          members: s.members.map((m) => ({
+            uid: `u${m.userId}`, userId: m.userId, name: m.name, image: m.image, isGuest: false,
+          })),
+        }))
+      );
+      setPool(guests); // 참석자는 모두 팀 배정, 게스트만 풀에 남겨 수동 배치
+      setSelectedUid(null);
+    } catch {
+      toastError(t('팀 추천에 실패했습니다.', 'Failed to suggest teams.'));
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  // 첫 진입(예정 경기, 배정 전) 자동 추천
+  useEffect(() => {
+    if (didAutoRef.current || loading || !match) return;
+    if (match.status === 'live') { didAutoRef.current = true; return; } // 기존 구성 유지
+    if (pool.length === 0) return;
+    if (!teams.every((tm) => tm.members.length === 0)) { didAutoRef.current = true; return; }
+    didAutoRef.current = true;
+    applySuggestion(teams.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, match, pool]);
 
   const setSquadCount = (n) => {
     setTeams((prev) => {
@@ -201,7 +261,12 @@ const LiveSetupPage = () => {
           members: tm.members.map((p) => (p.isGuest ? { guestName: p.name } : { userId: p.userId })),
         })),
       });
-      navigate(`/locker-room/matches/${matchId}/live`);
+      // 라이브 편집이면 경기 상세로, 예정→시작이면 기록 화면으로
+      navigate(
+        match.status === 'live'
+          ? `/locker-room/matches/${matchId}`
+          : `/locker-room/matches/${matchId}/live`
+      );
     } catch {
       toastError(t('라이브 기록 시작에 실패했습니다.', 'Failed to start live tracking.'));
     } finally {
@@ -287,9 +352,16 @@ const LiveSetupPage = () => {
         >
           <div className="zone-head">
             <span>{t('참석자', 'Attendees')} ({pool.length})</span>
-            <button className="guest-add" onClick={(e) => { e.stopPropagation(); addGuest(); }}>
-              + {t('게스트 추가', 'Add Guest')}
-            </button>
+            <div className="zone-head-actions">
+              {pool.length > 0 && teams.length > 1 && (
+                <button className="pool-distribute" onClick={(e) => { e.stopPropagation(); distributeEvenly(); }}>
+                  {t('균등 분배', 'Split evenly')}
+                </button>
+              )}
+              <button className="guest-add" onClick={(e) => { e.stopPropagation(); addGuest(); }}>
+                + {t('게스트 추가', 'Add Guest')}
+              </button>
+            </div>
           </div>
           <div className="chip-wrap">
             {pool.length === 0 && <span className="zone-empty">{t('모두 배치됨', 'All assigned')}</span>}
@@ -299,8 +371,21 @@ const LiveSetupPage = () => {
           </div>
         </div>
 
-        {/* 팀 존 */}
-        <div className="teams-grid">
+        {/* 팀 자동 추천 */}
+        <div className="suggest-row">
+          <button className="suggest-btn" onClick={() => applySuggestion(teams.length)} disabled={suggesting}>
+            {suggesting ? t('추천 중...', 'Suggesting...') : `✨ ${t('팀 자동 추천', 'Suggest Teams')}`}
+          </button>
+          <span className="suggest-hint">
+            {t('실력·포지션·최근 2주 같은 팀을 고려해 배분해요.', 'Balanced by skill, position & recent teammates.')}
+          </span>
+        </div>
+
+        {/* 팀 존 — 스쿼드 수만큼 컬럼(2팀=2열, 3팀=3열)으로 한눈에 */}
+        <div
+          className="teams-grid"
+          style={{ gridTemplateColumns: `repeat(${teams.length}, minmax(0, 1fr))` }}
+        >
           {teams.map((tm, idx) => (
             <div
               key={idx}
@@ -318,6 +403,15 @@ const LiveSetupPage = () => {
                 />
                 <span className="team-count">{tm.members.length}{t('명', '')}</span>
               </div>
+              {pool.length > 0 && (
+                <button
+                  className="grab-rest"
+                  onClick={(e) => { e.stopPropagation(); moveAllPoolTo(idx); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  ↓ {t(`남은 ${pool.length}명 담기`, `Add all ${pool.length}`)}
+                </button>
+              )}
               <div className="chip-wrap">
                 {tm.members.length === 0 && <span className="zone-empty">{t('여기로 드래그', 'Drag here')}</span>}
                 {tm.members.map((p) => (
@@ -329,7 +423,11 @@ const LiveSetupPage = () => {
         </div>
 
         <button className="start-btn" onClick={handleStart} disabled={starting}>
-          {starting ? t('시작 중...', 'Starting...') : t('라이브 기록 시작', 'Start Live Tracking')}
+          {starting
+            ? t('처리 중...', 'Working...')
+            : match.status === 'live'
+              ? t('팀 구성 저장', 'Save Teams')
+              : t('라이브 기록 시작', 'Start Live Tracking')}
         </button>
       </div>
 
