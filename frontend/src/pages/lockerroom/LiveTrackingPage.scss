@@ -800,7 +800,7 @@
   .rec-start {
     display: block;
     width: 100%;
-    margin-bottom: $spacing-sm;
+    margin-bottom: $spacing-xs;
     padding: $spacing-md;
     border: none;
     border-radius: $radius-md;
@@ -809,6 +809,14 @@
     font-weight: 800;
     font-size: $font-base;
     cursor: pointer;
+
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+  }
+  .rec-hint {
+    margin: 0 0 $spacing-sm;
+    text-align: center;
+    font-size: $font-xs;
+    color: $danger-color;
   }
   .rec-on {
     margin-bottom: $spacing-sm;

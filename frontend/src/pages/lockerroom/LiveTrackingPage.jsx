@@ -559,11 +559,22 @@ const LiveTrackingPage = () => {
               </div>
             )}
 
-            {/* 기록 시작 / 기록 중 */}
+            {/* 기록 시작 / 기록 중 (코트 5명일 때만 시작) */}
             {!recording ? (
-              <button className="rec-start" onClick={() => setRecording(true)}>
-                ▶ {t('기록 시작', 'Start recording')}
-              </button>
+              <>
+                <button
+                  className="rec-start"
+                  disabled={onCourtCount !== 5}
+                  onClick={() => setRecording(true)}
+                >
+                  ▶ {t('기록 시작', 'Start recording')}
+                </button>
+                {onCourtCount !== 5 && (
+                  <p className="rec-hint">
+                    {t(`코트에 5명이어야 시작할 수 있어요 (현재 ${onCourtCount}명)`, `Need exactly 5 on court (now ${onCourtCount})`)}
+                  </p>
+                )}
+              </>
             ) : (
               <div className="rec-on">● {t('기록 중 · 라인업 편집으로 교체', 'Recording · edit lineup to sub')}</div>
             )}
