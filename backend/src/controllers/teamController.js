@@ -22,6 +22,7 @@ const {
 const { Op, Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 const redisClient = require('../config/redisClient.js');
+const { ensureTeamSchedules } = require('../utils/matchScheduler');
 
 // 창단 일시 정규화: 연·월만 입력('YYYY-MM')받아 해당 월 1일로 저장
 const normalizeEstablishedAt = (value) => {
@@ -3440,6 +3441,9 @@ const getMatches = async (req, res) => {
     if (!userId) throw new BadRequestError('사용자 정보가 없습니다.');
     if (!team_id) throw new BadRequestError('팀 ID가 필요합니다.');
     await assertTeamMember(userId, team_id);
+
+    // 정기 경기 자동 생성 보장(지연 생성)
+    await ensureTeamSchedules(parseInt(team_id));
 
     const where = { team_id: parseInt(team_id) };
     if (status && ['scheduled', 'live', 'completed'].includes(status)) where.status = status;

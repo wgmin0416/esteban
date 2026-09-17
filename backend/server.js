@@ -128,6 +128,11 @@ const server = app.listen(PORT, () => {
   logger.info(`서버 실행 중: http://localhost:${PORT}`);
 });
 
+// 정기 경기 자동 생성 스케줄러 (10분마다 + 시작 시 1회)
+const { ensureAllSchedules } = require('./src/utils/matchScheduler');
+setTimeout(() => ensureAllSchedules(), 5000);
+setInterval(() => ensureAllSchedules(), 10 * 60 * 1000);
+
 // error
 process.on('uncaughtException', (err) => {
   logger.error('uncaughtException error: ', err);

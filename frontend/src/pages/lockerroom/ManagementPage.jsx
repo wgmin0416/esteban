@@ -7,6 +7,10 @@ import apiRequest from '../../lib/apiRequest';
 import { toastError, toastSuccess, confirm } from '../../utils/alert';
 import './ManagementPage.scss';
 
+const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const blankSchedule = () => ({ weekday: 6, time: '19:00', title: '정기 경기', location: '', quarter_count: 4, lead_days: 7, is_active: true });
+
 const ManagementPage = () => {
   const language = useLanguageStore((state) => state.language);
   const navigate = useNavigate();
@@ -19,6 +23,8 @@ const ManagementPage = () => {
   const [activeTab, setActiveTab] = useState('members'); // 'members' or 'join-requests'
   const [members, setMembers] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleForm, setScheduleForm] = useState(null); // null=닫힘
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showDuesModal, setShowDuesModal] = useState(false);
@@ -110,8 +116,44 @@ const ManagementPage = () => {
       loadMembers();
     } else if (activeTab === 'join-requests') {
       loadJoinRequests();
+    } else if (activeTab === 'schedules') {
+      loadSchedules();
     }
   }, [activeTab, hasPermission, checkingPermission]);
+
+  // 정기 경기 스케줄
+  const loadSchedules = async () => {
+    setLoading(true);
+    try {
+      const r = await apiRequest('get', '/team/match-schedules');
+      setSchedules(r?.data || []);
+    } catch {
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const saveSchedule = async () => {
+    try {
+      const f = scheduleForm;
+      if (f.id) await apiRequest('put', `/team/match-schedules/${f.id}`, f);
+      else await apiRequest('post', '/team/match-schedules', f);
+      toastSuccess(language === 'KR' ? '저장되었습니다.' : 'Saved.');
+      setScheduleForm(null);
+      loadSchedules();
+    } catch {
+      toastError(language === 'KR' ? '저장에 실패했습니다.' : 'Failed to save.');
+    }
+  };
+  const removeSchedule = async (id) => {
+    if (!(await confirm(language === 'KR' ? '이 스케줄을 삭제할까요?' : 'Delete this schedule?'))) return;
+    try {
+      await apiRequest('delete', `/team/match-schedules/${id}`);
+      loadSchedules();
+    } catch {
+      toastError(language === 'KR' ? '삭제에 실패했습니다.' : 'Failed to delete.');
+    }
+  };
 
   const handleDuesClick = (member) => {
     setSelectedMember(member);
@@ -294,6 +336,12 @@ const ManagementPage = () => {
           >
             {language === 'KR' ? '가입 신청' : 'Join Requests'}
           </button>
+          <button
+            className={`tab-button ${activeTab === 'schedules' ? 'active' : ''}`}
+            onClick={() => setActiveTab('schedules')}
+          >
+            {language === 'KR' ? '정기 경기' : 'Auto Matches'}
+          </button>
         </div>
 
         {loading ? (
@@ -373,7 +421,7 @@ const ManagementPage = () => {
               </div>
             </div>
           )
-        ) : (
+        ) : activeTab === 'join-requests' ? (
           // 가입 신청 탭
           joinRequests.length > 0 ? (
             <div className="join-requests-container">
@@ -431,6 +479,92 @@ const ManagementPage = () => {
               </div>
             </div>
           )
+        ) : (
+          // 정기 경기 자동 생성 탭
+          <div className="schedule-section">
+            <div className="sched-head">
+              <p className="sched-desc">
+                {language === 'KR'
+                  ? '요일·시간을 정해두면 경기가 자동으로 생성됩니다.'
+                  : 'Matches are auto-created on the set weekday/time.'}
+              </p>
+              <button className="sched-add" onClick={() => setScheduleForm(blankSchedule())}>
+                + {language === 'KR' ? '스케줄 추가' : 'Add'}
+              </button>
+            </div>
+
+            {schedules.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-message">{language === 'KR' ? '등록된 정기 경기가 없습니다.' : 'No schedules.'}</div>
+              </div>
+            ) : (
+              <div className="sched-list">
+                {schedules.map((s) => (
+                  <div key={s.id} className={`sched-item ${s.is_active ? '' : 'off'}`}>
+                    <div className="si-main">
+                      <span className="si-day">{(language === 'KR' ? WEEKDAYS_KR : WEEKDAYS_EN)[s.weekday]}</span>
+                      <span className="si-time">{s.time}</span>
+                      <span className="si-title">{s.title}</span>
+                    </div>
+                    <div className="si-sub">
+                      {s.location && <span>📍 {s.location}</span>}
+                      <span>{s.quarter_count}Q</span>
+                      <span>{language === 'KR' ? `${s.lead_days}일 전 생성` : `${s.lead_days}d ahead`}</span>
+                      {!s.is_active && <span className="si-off">{language === 'KR' ? '중지' : 'Off'}</span>}
+                    </div>
+                    <div className="si-actions">
+                      <button onClick={() => setScheduleForm({ ...s, is_active: !!s.is_active })}>{language === 'KR' ? '수정' : 'Edit'}</button>
+                      <button className="del" onClick={() => removeSchedule(s.id)}>{language === 'KR' ? '삭제' : 'Delete'}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {scheduleForm && (
+              <div className="modal-overlay" onClick={() => setScheduleForm(null)}>
+                <div className="modal-content sched-modal" onClick={(e) => e.stopPropagation()}>
+                  <h2>{scheduleForm.id ? (language === 'KR' ? '정기 경기 수정' : 'Edit Schedule') : (language === 'KR' ? '정기 경기 추가' : 'Add Schedule')}</h2>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '요일' : 'Weekday'}</label>
+                    <select value={scheduleForm.weekday} onChange={(e) => setScheduleForm({ ...scheduleForm, weekday: parseInt(e.target.value) })}>
+                      {(language === 'KR' ? WEEKDAYS_KR : WEEKDAYS_EN).map((w, i) => (
+                        <option key={i} value={i}>{w}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '시간' : 'Time'}</label>
+                    <input type="time" value={scheduleForm.time} onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })} />
+                  </div>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '제목' : 'Title'}</label>
+                    <input type="text" value={scheduleForm.title} onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })} maxLength={100} />
+                  </div>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '장소' : 'Location'}</label>
+                    <input type="text" value={scheduleForm.location || ''} onChange={(e) => setScheduleForm({ ...scheduleForm, location: e.target.value })} />
+                  </div>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '쿼터 수' : 'Quarters'}</label>
+                    <input type="number" min="1" max="8" value={scheduleForm.quarter_count} onChange={(e) => setScheduleForm({ ...scheduleForm, quarter_count: parseInt(e.target.value) || 4 })} />
+                  </div>
+                  <div className="sf-row">
+                    <label>{language === 'KR' ? '며칠 전 생성' : 'Create ahead (days)'}</label>
+                    <input type="number" min="1" max="30" value={scheduleForm.lead_days} onChange={(e) => setScheduleForm({ ...scheduleForm, lead_days: parseInt(e.target.value) || 7 })} />
+                  </div>
+                  <label className="sf-check">
+                    <input type="checkbox" checked={!!scheduleForm.is_active} onChange={(e) => setScheduleForm({ ...scheduleForm, is_active: e.target.checked })} />
+                    {language === 'KR' ? '활성화' : 'Active'}
+                  </label>
+                  <div className="form-actions">
+                    <button className="btn btn-secondary" onClick={() => setScheduleForm(null)}>{language === 'KR' ? '취소' : 'Cancel'}</button>
+                    <button className="btn btn-primary" onClick={saveSchedule}>{language === 'KR' ? '저장' : 'Save'}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

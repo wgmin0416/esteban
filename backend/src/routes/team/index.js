@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const teamController = require('../../controllers/teamController.js');
+const scheduleController = require('../../controllers/matchScheduleController.js');
 const authMiddleware = require('../../middleware/authMiddleware.js');
 const boardRouter = require('./board.js');
 
@@ -36,6 +37,12 @@ router.get('/match/next', authMiddleware, teamController.getNextMatch);
 router.get('/match/:matchId', authMiddleware, teamController.getMatchDetail);
 // 팀 추천 (자동 밸런싱)
 router.get('/match/:matchId/suggest-teams', authMiddleware, teamController.suggestTeams);
+
+// 정기 경기 자동 생성 스케줄
+router.get('/match-schedules', authMiddleware, scheduleController.getSchedules);
+router.post('/match-schedules', authMiddleware, scheduleController.createSchedule);
+router.put('/match-schedules/:id', authMiddleware, scheduleController.updateSchedule);
+router.delete('/match-schedules/:id', authMiddleware, scheduleController.deleteSchedule);
 // 경기 수정 (팀장/운영진)
 router.put('/match/:matchId', authMiddleware, teamController.updateMatch);
 // 경기 삭제/취소
