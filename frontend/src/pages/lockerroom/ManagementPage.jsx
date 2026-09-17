@@ -314,7 +314,10 @@ const ManagementPage = () => {
     <div className="management-page">
       <div className="container">
         <div className="page-header">
-          <h1 className="page-title">{language === 'KR' ? '회원 관리' : 'Members'}</h1>
+          <h1 className="page-title">
+            {language === 'KR' ? '팀 관리' : 'Team Admin'}
+            <span className="page-subtitle">{language === 'KR' ? '회원 · 가입 · 정기 경기' : 'Members · Join · Auto matches'}</span>
+          </h1>
           {activeTab === 'members' && (
             <button onClick={() => setShowCreateDuesModal(true)} className="btn btn-primary">
               {language === 'KR' ? '회비 생성' : 'Create Dues'}
@@ -328,7 +331,7 @@ const ManagementPage = () => {
             className={`tab-button ${activeTab === 'members' ? 'active' : ''}`}
             onClick={() => setActiveTab('members')}
           >
-            {language === 'KR' ? '회원 관리' : 'Members'}
+            {language === 'KR' ? '회원' : 'Members'}
           </button>
           <button
             className={`tab-button ${activeTab === 'join-requests' ? 'active' : ''}`}

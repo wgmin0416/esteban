@@ -5,6 +5,11 @@
 
 .management-page {
   @extend %page-container;
+  padding-top: $spacing-md; // 상단 메뉴와 간격 축소 (기록/게시판과 통일)
+
+  @include respond-to(md) {
+    padding-top: $spacing-lg;
+  }
 
   .container {
     max-width: $container-width;
@@ -15,19 +20,34 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $spacing-xl;
-    flex-wrap: wrap;
-    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    gap: $spacing-sm;
 
+    // 랭킹/기록/게시판과 동일한 타이틀 글씨
     .page-title {
       margin: 0;
-      font-size: $font-3xl;
+      font-family: $font-display;
+      font-size: $font-xl;
       font-weight: 800;
       color: $text-primary;
+      display: flex;
+      align-items: baseline;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+      min-width: 0;
+
+      .page-subtitle {
+        font-family: system-ui, sans-serif;
+        font-size: $font-xs;
+        font-weight: 500;
+        color: $text-light;
+      }
     }
 
     .btn-primary {
-      padding: $spacing-sm $spacing-lg;
+      flex-shrink: 0;
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-sm;
       background: linear-gradient(135deg, $secondary-color, $secondary-light);
       color: white;
       border: none;
@@ -45,32 +65,34 @@
     }
   }
 
-  // 탭 메뉴
+  // 탭 메뉴 (세그먼트/알약형 — 기록/게시판과 통일)
   .management-tabs {
-    display: flex;
-    gap: $spacing-sm;
-    margin-bottom: $spacing-xl;
-    border-bottom: 2px solid $border-color;
+    display: inline-flex;
+    gap: 2px;
+    margin-bottom: $spacing-md;
+    padding: 3px;
+    background: $background-gray;
+    border-radius: $radius-md;
 
     .tab-button {
-      padding: $spacing-md $spacing-lg;
+      padding: $spacing-xs $spacing-md;
       background: transparent;
       border: none;
-      border-bottom: 3px solid transparent;
-      font-size: $font-lg;
+      border-radius: $radius-sm;
+      font-size: $font-sm;
       font-weight: 600;
       color: $text-secondary;
       cursor: pointer;
       transition: all $transition-base;
-      margin-bottom: -2px;
 
       &:hover {
-        color: $text-primary;
+        color: $primary-color;
       }
 
       &.active {
         color: $primary-color;
-        border-bottom-color: $primary-color;
+        background: $background-light;
+        box-shadow: 0 1px 3px $shadow-sm;
       }
     }
   }
